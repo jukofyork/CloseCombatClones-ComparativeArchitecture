@@ -4,22 +4,22 @@
 
 ### 14.1.1 Introduction: Why AI Matters
 
-Artificial Intelligence is the invisible hand that shapes player experience in tactical wargames. Unlike first-person shooters where AI opponents simply need to appear intelligent for brief encounters, tactical wargames demand AI that maintains believable behavior over extended engagements spanning minutes or hours of real-time gameplay. The challenge is not merely creating challenging opponents, but opponents that feel authentic—units that respond to threats with appropriate caution, seize opportunities with tactical cunning, and occasionally make mistakes that feel human rather than systematic.
+Artificial Intelligence shapes player experience in tactical wargames. While first-person shooters need AI opponents that appear intelligent for brief encounters, tactical wargames require AI that maintains believable behavior over extended engagements lasting minutes or hours. The challenge lies in creating opponents that respond to threats with appropriate caution, seize opportunities with tactical cunning, and make occasional human-like mistakes.
 
-The three Close Combat clones examined in this book represent different points along the AI sophistication spectrum:
+The three Close Combat clones in this book demonstrate different approaches to AI sophistication:
 
-| Project | AI Approach | Autonomy Level | Key Innovation |
-|---------|-------------|----------------|----------------|
-| **OpenCombat-SDL** | No autonomous AI | Pure obedience | Automatic prerequisite handling |
-| **OpenCombat** | Reactive self-preservation | Tactical initiative | "Feeling" system for emotional states |
-| **CloseCombatFree** | State-based triggers | Minimal autonomy | Visual feedback integration |
+| Project         | AI Approach                | Autonomy Level      | Key Innovation                        |
+| --------------- | -------------------------- | ------------------- | ------------------------------------- |
+| **OpenCombat-SDL**  | No autonomous AI           | Pure obedience      | Automatic prerequisite handling       |
+| **OpenCombat**      | Reactive self-preservation | Tactical initiative | "Feeling" system for emotional states |
+| **CloseCombatFree** | State-based triggers       | Minimal autonomy    | Visual feedback integration           |
 
 ### 14.1.2 The Four AI Types in Tactical Games
 
-Tactical wargames require multiple distinct AI systems operating at different scales and timescales:
+Tactical wargames require multiple AI systems operating at different scales:
 
 #### **System AI (Milliseconds)**
-Manages the lowest-level behaviors:
+Handles low-level behaviors:
 - Animation state machines
 - Physics interactions
 - Collision responses
@@ -46,101 +46,95 @@ Manages high-level battle planning:
 - Reinforcement decisions
 - Retreat and regroup triggers
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    AI HIERARCHY IN TACTICAL WARGAMES                    │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  STRATEGIC AI (Hours)                                                   │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • Objective prioritization                                      │   │
-│  │ • Resource allocation                                           │   │
-│  │ • Reinforcement decisions                                       │   │
-│  │ • Retreat triggers                                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  TACTICAL AI (Minutes)                                                  │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • Squad coordination                                            │   │
-│  │ • Formation selection                                           │   │
-│  │ • Fire and maneuver                                             │   │
-│  │ • Flanking decisions                                            │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  UNIT AI (Seconds)                                                    │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • Target selection                                                │   │
-│  │ • Cover evaluation                                                │   │
-│  │ • Threat response                                                 │   │
-│  │ • Self-preservation                                               │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  SYSTEM AI (Milliseconds)                                             │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • Animation states                                                │   │
-│  │ • Weapon cycling                                                  │   │
-│  │ • Collision response                                              │   │
-│  │ • Physics integration                                             │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph STRATEGIC_AI["STRATEGIC AI (Hours)"]
+        S1[Objective prioritization]
+        S2[Resource allocation]
+        S3[Reinforcement decisions]
+        S4[Retreat triggers]
+    end
+
+    subgraph TACTICAL_AI["TACTICAL AI (Minutes)"]
+        T1[Squad coordination]
+        T2[Formation selection]
+        T3[Fire and maneuver]
+        T4[Flanking decisions]
+    end
+
+    subgraph UNIT_AI["UNIT AI (Seconds)"]
+        U1[Target selection]
+        U2[Cover evaluation]
+        U3[Threat response]
+        U4[Self-preservation]
+    end
+
+    subgraph SYSTEM_AI["SYSTEM AI (Milliseconds)"]
+        SY1[Animation states]
+        SY2[Weapon cycling]
+        SY3[Collision response]
+        SY4[Physics integration]
+    end
+
+    STRATEGIC_AI --> TACTICAL_AI
+    TACTICAL_AI --> UNIT_AI
+    UNIT_AI --> SYSTEM_AI
 ```
 
 ### 14.1.3 The Four Challenges of Tactical AI
 
-Creating effective tactical AI requires balancing four competing requirements:
+Effective tactical AI balances four requirements:
 
 #### **Believability**
-The AI must behave in ways that align with player expectations of military tactics:
-- Units should use cover appropriately
-- Suppression should affect behavior
-- Soldiers should show self-preservation instincts
-- Tactical mistakes should feel human, not robotic
+AI behavior must align with player expectations:
+- Units use cover appropriately
+- Suppression affects behavior
+- Soldiers show self-preservation instincts
+- Tactical mistakes appear human
 
 #### **Fairness**
-The AI must not cheat in ways that frustrate players:
-- Information access should be limited (fog of war)
-- Accuracy should follow same rules as player units
-- Reaction times should be realistic
-- Resources should be constrained
+AI should not frustrate players with unfair advantages:
+- Information access is limited by fog of war
+- Accuracy follows the same rules as player units
+- Reaction times remain realistic
+- Resources are constrained
 
 #### **Performance**
-AI calculations must not bog down real-time simulation:
-- Pathfinding must complete within frame budgets
-- Target evaluation should use efficient algorithms
-- Decision trees should minimize branching
-- Spatial queries need acceleration structures
+AI calculations must not slow real-time simulation:
+- Pathfinding completes within frame budgets
+- Target evaluation uses efficient algorithms
+- Decision trees minimize branching
+- Spatial queries use acceleration structures
 
 #### **Determinism**
 For multiplayer and replay systems, AI must be predictable:
-- Same inputs must produce same outputs
-- Random decisions must use seeded generators
-- Timing must be frame-rate independent
-- Floating-point operations must be consistent
+- Same inputs produce same outputs
+- Random decisions use seeded generators
+- Timing is frame-rate independent
+- Floating-point operations remain consistent
 
+```mermaid
+mindmap
+  root((BELIEVABLE AI))
+    FAIR
+      ::icon(fa-scale-balanced)
+      Same information access
+      Same accuracy rules
+    PERFORMANT
+      ::icon(fa-gauge-high)
+      Completes decisions within frame budget
+      Efficient algorithms
+    DETERMINISTIC
+      ::icon(fa-shuffle)
+      Same seed → same behavior
+      For multiplayer synchronization
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│              THE FOUR CONSTRAINTS OF TACTICAL AI                       │
-│                                                                         │
-│                    ┌──────────────┐                                     │
-│                    │  BELIEVABLE  │                                     │
-│                    │    AI        │                                     │
-│                    └──────┬───────┘                                     │
-│                           │                                             │
-│        ┌──────────────────┼──────────────────┐                         │
-│        │                  │                  │                         │
-│   ┌────┴────┐        ┌────┴────┐        ┌────┴────┐                    │
-│   │  FAIR   │←──────→│PERFORM │←──────→│DETERMIN│                    │
-│   │         │        │   ANT   │        │  ISTIC   │                    │
-│   └─────────┘        └─────────┘        └─────────┘                    │
-│                                                                         │
-│  Believable: Uses cover, shows fear, makes human-like mistakes         │
-│  Fair: Same information access, same accuracy rules                    │
-│  Performant: Completes decisions within frame budget                   │
-│  Deterministic: Same seed → same behavior (for multiplayer)            │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+
+**Constraint Definitions:**
+- **Believable**: Uses cover, shows fear, makes human-like mistakes
+- **Fair**: Same information access, same accuracy rules
+- **Performant**: Completes decisions within frame budget
+- **Deterministic**: Same seed → same behavior (for multiplayer)
 
 ---
 
@@ -148,7 +142,7 @@ For multiplayer and replay systems, AI must be predictable:
 
 ### 14.2.1 OpenCombat-SDL: Rule-Based with State Machines
 
-OpenCombat-SDL adopts the simplest AI philosophy: **no autonomous AI at all**. Every action requires explicit player orders.
+OpenCombat-SDL uses the simplest AI approach: no autonomous AI. Every action requires explicit player orders.
 
 ```cpp
 void Soldier::Simulate(long dt, World* world) {
@@ -161,7 +155,7 @@ void Soldier::Simulate(long dt, World* world) {
 }
 ```
 
-**Design Philosophy**: The player controls everything. Soldiers are extensions of player will.
+**Design Philosophy**: The player controls everything. Soldiers act as extensions of player will.
 
 **Architecture Characteristics**:
 - **State Representation**: 64-bit bitfield allowing orthogonal state composition
@@ -171,19 +165,19 @@ void Soldier::Simulate(long dt, World* world) {
 
 **Advantages**:
 - Predictable behavior
-- Player has full control
-- No "AI did something stupid" frustration
-- Easy to debug and balance
+- Player maintains full control
+- Eliminates "AI did something stupid" frustration
+- Easy debugging and balancing
 
 **Disadvantages**:
 - Heavy micromanagement burden
-- Unrealistic (real soldiers take initiative)
+- Unrealistic as real soldiers take initiative
 - Doesn't scale to large unit counts
 - No emergent gameplay from AI interactions
 
 ### 14.2.2 CloseCombatFree: Behavioral State Triggers
 
-CloseCombatFree implements minimal AI through state-based triggers rather than autonomous decision-making.
+CloseCombatFree implements minimal AI through state-based triggers.
 
 ```cpp
 // States exist but minimal logic
@@ -198,7 +192,7 @@ if (unitStatus == "AMBUSHING") {
 }
 ```
 
-**Design Philosophy**: Simple state triggers provide basic automation while maintaining player control.
+**Design Philosophy**: Simple state triggers provide basic automation while keeping player control.
 
 **Architecture Characteristics**:
 - **State Representation**: String-based unitStatus property
@@ -207,13 +201,13 @@ if (unitStatus == "AMBUSHING") {
 - **Visual Feedback**: Order markers with color coding
 
 **Available States**:
-| State | AI Behavior | Trigger |
-|-------|-------------|---------|
-| READY | None | Default |
-| DEFENDING | Fire at enemies in arc | Player command |
+| State     | AI Behavior              | Trigger        |
+| --------- | ------------------------ | -------------- |
+| READY     | None                     | Default        |
+| DEFENDING | Fire at enemies in arc   | Player command |
 | AMBUSHING | Fire when enemy detected | Player command |
-| MOVING | Follow path | Player order |
-| FIRING | Execute attack | Player order |
+| MOVING    | Follow path              | Player order   |
+| FIRING    | Execute attack           | Player order   |
 
 **Limitations**:
 - No target selection AI
@@ -229,18 +223,18 @@ OpenCombat implements the most sophisticated AI of the three clones, featuring a
 fn tick_soldiers(&mut self) {
     for soldier_idx in self.all_soldiers() {
         let soldier = self.soldier(soldier_idx);
-        
+
         // Check for threats
         if let Some(threat) = self.find_nearest_enemy(soldier) {
             if self.can_see(soldier_idx, threat) {
                 // Override to engage
                 self.change_behavior(
-                    soldier_idx, 
+                    soldier_idx,
                     Behavior::EngageSoldier(threat)
                 );
             }
         }
-        
+
         // Check if under fire
         if soldier.under_fire == Feeling::Danger {
             // Find cover
@@ -285,7 +279,7 @@ fn update_feeling(soldier: &mut Soldier, world: &World) {
             soldier.under_fire.increase(50);
         }
     }
-    
+
     // Increase from bullet impacts
     for bullet in &world.recent_bullets {
         let distance = distance(soldier.position, bullet.impact);
@@ -297,66 +291,61 @@ fn update_feeling(soldier: &mut Soldier, world: &World) {
             soldier.under_fire.increase(1);
         }
     }
-    
+
     // Natural decay
     soldier.under_fire.decrease(UNDER_FIRE_TICK);
 }
 ```
 
 **Behavior Hierarchy**:
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    OPENCOMBAT THREE-TIER SYSTEM                         │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  PHASE (Global)                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • Placement    - Pre-battle setup                                 │   │
-│  │ • Battle       - Active combat                                  │   │
-│  │ • End          - Post-battle resolution                          │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  BEHAVIOR (Tactical - Seconds)                                          │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ Movement:    MoveTo, MoveFastTo, SneakTo, DriveTo               │   │
-│  │ Combat:      Idle, Defend, Hide, SuppressFire                  │   │
-│  │ Engagement:  EngageSoldier                                      │   │
-│  │ Terminal:    Dead, Unconscious                                  │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  GESTURE (Physical - Milliseconds)                                    │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • Idle                                                          │   │
-│  │ • Reloading(duration, weapon_class)                               │   │
-│  │ • Aiming(duration, weapon_class)                                │   │
-│  │ • Firing(duration, weapon_class)                                │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph PHASE["PHASE (Global)"]
+        P1["🎯 Placement - Pre-battle setup"]
+        P2["⚔️ Battle - Active combat"]
+        P3["🏁 End - Post-battle resolution"]
+    end
+
+    subgraph BEHAVIOR["BEHAVIOR (Tactical - Seconds)"]
+        B1["🏃 Movement: MoveTo, MoveFastTo, SneakTo, DriveTo"]
+        B2["🛡️ Combat: Idle, Defend, Hide, SuppressFire"]
+        B3["🎯 Engagement: EngageSoldier"]
+        B4["💀 Terminal: Dead, Unconscious"]
+    end
+
+    subgraph GESTURE["GESTURE (Physical - Milliseconds)"]
+        G1["⏸️ Idle"]
+        G2["🔄 Reloading(duration, weapon_class)"]
+        G3["🎯 Aiming(duration, weapon_class)"]
+        G4["💥 Firing(duration, weapon_class)"]
+    end
+
+    PHASE --> BEHAVIOR
+    BEHAVIOR --> GESTURE
 ```
 
 **AI Behaviors**:
 
-| Situation | Response | Priority |
-|-----------|----------|----------|
-| Under heavy fire | Seek cover or return fire | 100 (Survival) |
-| Enemy spotted | Engage if in range | 50 (Combat) |
-| Squad leader killed | Promote new leader | 75 (Cohesion) |
-| Out of ammo | Reload (blocking) | 90 (Readiness) |
-| Wounded | Continue or retreat (morale check) | 80 (Self-preservation) |
+| Situation           | Response                           | Priority               |
+| ------------------- | ---------------------------------- | ---------------------- |
+| Under heavy fire    | Seek cover or return fire          | 100 (Survival)         |
+| Enemy spotted       | Engage if in range                 | 50 (Combat)            |
+| Squad leader killed | Promote new leader                 | 75 (Cohesion)          |
+| Out of ammo         | Reload (blocking)                  | 90 (Readiness)         |
+| Wounded             | Continue or retreat (morale check) | 80 (Self-preservation) |
 
 ### 14.2.4 Comparative Summary
 
-| Aspect | OpenCombat-SDL | CloseCombatFree | OpenCombat |
-|--------|---------------|-----------------|------------|
-| **AI Philosophy** | Pure obedience | State triggers | Reactive + proactive |
-| **Autonomy Level** | None | Minimal | Tactical |
-| **Decision System** | Player commands only | State-based | Threat evaluation |
-| **Self-Preservation** | No | No | Yes (Feeling system) |
-| **Cover Seeking** | Manual | No | Automatic |
-| **Target Selection** | Manual | Basic range | Dynamic evaluation |
-| **Implementation** | C++ bitfield | C++ strings | Rust enums |
-| **Complexity** | Low | Very Low | Medium |
+| Aspect            | OpenCombat-SDL       | CloseCombatFree | OpenCombat           |
+| ----------------- | -------------------- | --------------- | -------------------- |
+| **AI Philosophy**     | Pure obedience       | State triggers  | Reactive + proactive |
+| **Autonomy Level**    | None                 | Minimal         | Tactical             |
+| **Decision System**   | Player commands only | State-based     | Threat evaluation    |
+| **Self-Preservation** | No                   | No              | Yes (Feeling system) |
+| **Cover Seeking**     | Manual               | No              | Automatic            |
+| **Target Selection**  | Manual               | Basic range     | Dynamic evaluation   |
+| **Implementation**    | C++ bitfield         | C++ strings     | Rust enums           |
+| **Complexity**        | Low                  | Very Low        | Medium               |
 
 ---
 
@@ -364,31 +353,31 @@ fn update_feeling(soldier: &mut Soldier, world: &World) {
 
 ### 14.3.1 What Can AI Perceive?
 
-In tactical wargames, AI perception defines the boundary between fair challenge and frustrating omniscience. The perception system determines what information AI-controlled units can access about the game world.
+In tactical wargames, AI perception defines the boundary between fair challenge and frustrating omniscience. The system determines what information AI-controlled units can access.
 
 #### **Visual Perception**
-What the AI can "see":
+AI can "see":
 - Enemy units within line of sight
 - Terrain features and obstacles
 - Weapon effects (muzzle flashes, tracers)
 - Movement and posture changes
 
 #### **Auditory Perception**
-What the AI can "hear":
+AI can "hear":
 - Gunfire and explosions (direction and distance)
 - Vehicle engines
 - Footsteps (close range)
 - Shouted orders and radio chatter
 
 #### **Tactile/Environmental Perception**
-What the AI can "feel":
+AI can "feel":
 - Nearby explosions (concussion)
 - Bullet impacts (suppression)
 - Ground vibrations (vehicle movement)
 - Temperature (fire, smoke)
 
 #### **Knowledge-Based Perception**
-What the AI "knows":
+AI "knows":
 - Last known enemy positions
 - Squad member locations
 - Objective locations
@@ -396,7 +385,7 @@ What the AI "knows":
 
 ### 14.3.2 Line of Sight (LoS) Calculations
 
-The foundation of visual perception is accurate line of sight calculation. All three clones implement LoS with varying sophistication:
+Accurate line of sight calculation forms the foundation of visual perception. The three clones implement LoS with varying sophistication:
 
 **CloseCombatFree Implementation**:
 ```cpp
@@ -405,17 +394,17 @@ bool CcfEngineHelpers::isObstacleInLOS(QList<QObject *> items, qreal x1, qreal y
     qreal distance = targetDistance(x1, y1, x2, y2);
     qreal a = (y2 - y1) / (x2 - x1);  // Slope
     qreal b = y1 - (a * x1);           // Intercept
-    
+
     // Sample points along the line
     for (int i = 0; i < distance; ++i) {
         qreal x = (x2 >= x1) ? x1 + i : x1 - i;
         qreal y = (a * x) + b;
-        
+
         // Check collision with all items
         for (int j = 0; j < items.length(); ++j) {
             QObject *item = items.at(j);
             if (item == currentUnit) continue;
-            
+
             // AABB collision detection
             if (pointInRect(x, y, item)) {
                 return true;  // Obstacle found
@@ -434,7 +423,7 @@ bool CcfEngineHelpers::isObstacleInLOS(QList<QObject *> items, qreal x1, qreal y
 
 ### 14.3.3 OpenCombat's "Feeling" System
 
-OpenCombat's most innovative AI feature is the Feeling system, which abstracts sensory input into emotional states that drive behavior.
+OpenCombat's Feeling system abstracts sensory input into emotional states that drive behavior.
 
 ```rust
 enum Feeling {
@@ -450,14 +439,14 @@ struct Soldier {
 
 **Sensory Input Sources**:
 
-| Source | Effect on Feeling | Range |
-|--------|-------------------|-------|
-| Explosion < 5m | +150 intensity | Immediate danger |
-| Explosion 5-10m | +100 intensity | Nearby threat |
-| Explosion > 10m | +50 intensity | Distant threat |
-| Bullet impact < 3m | +100 intensity | Direct fire |
-| Bullet impact 3-10m | +35 intensity | Close fire |
-| Bullet impact > 10m | +1 intensity | Distant fire |
+| Source              | Effect on Feeling | Range            |
+| ------------------- | ----------------- | ---------------- |
+| Explosion < 5m      | +150 intensity    | Immediate danger |
+| Explosion 5-10m     | +100 intensity    | Nearby threat    |
+| Explosion > 10m     | +50 intensity     | Distant threat   |
+| Bullet impact < 3m  | +100 intensity    | Direct fire      |
+| Bullet impact 3-10m | +35 intensity     | Close fire       |
+| Bullet impact > 10m | +1 intensity      | Distant fire     |
 
 **Behavior Triggers**:
 ```rust
@@ -482,58 +471,52 @@ fn evaluate_threat_response(soldier: &Soldier) -> Option<Behavior> {
 
 ### 14.3.4 Information Sharing (Squad Coordination)
 
-Real soldiers communicate threats and observations. AI systems can model this through information sharing mechanisms:
+Real soldiers communicate threats and observations. AI systems model this through information sharing:
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    INFORMATION SHARING MODELS                            │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  MODEL 1: Perfect Shared Knowledge (Unrealistic)                         │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐                            │
-│  │Soldier A│←──→│Soldier B│←──→│Soldier C│   All know what others see │
-│  └────┬────┘    └────┬────┘    └────┬────┘                            │
-│       └────────────────┴───────────────┘                                  │
-│                    Shared Memory                                        │
-│                                                                         │
-│  MODEL 2: Communication Range Limited (Realistic)                       │
-│  ┌─────────┐         ┌─────────┐         ┌─────────┐                    │
-│  │Soldier A│←───────→│Soldier B│←───────→│Soldier C│   Only share      │
-│  │ (Sees)  │         │ (Range) │         │ (Knows) │   within range     │
-│  └─────────┘         └─────────┘         └─────────┘                    │
-│       │                    │                    │                       │
-│       └────────────────────┴────────────────────┘                       │
-│                    Within 50m range                                       │
-│                                                                         │
-│  MODEL 3: Chain of Command (Hierarchical)                                 │
-│  ┌─────────┐                                                            │
-│  │ Leader  │←── Knows all squad sightings                               │
-│  └────┬────┘                                                            │
-│       │                                                                 │
-│   ┌───┴───┬───┐                                                         │
-│   ↓       ↓   ↓                                                         │
-│ ┌───┐   ┌───┐ ┌───┐                                                     │
-│ │A  │   │B  │ │C  │  Soldiers report to leader                          │
-│ └───┘   └───┘ └───┘                                                     │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph MODEL1["MODEL 1: Perfect Shared Knowledge (Unrealistic)"]
+        A1[Soldier A] <---> B1[Soldier B]
+        B1 <---> C1[Soldier C]
+        A1 <---> C1
+        SM1[(Shared Memory)]
+    end
+
+    subgraph MODEL2["MODEL 2: Communication Range Limited (Realistic)"]
+        A2[Soldier A<br/>Sees] <-.->|Within 50m| B2[Soldier B<br/>Range]
+        B2 <-.->|Within 50m| C2[Soldier C<br/>Knows]
+        note["Only share within range"]
+    end
+
+    subgraph MODEL3["MODEL 3: Chain of Command (Hierarchical)"]
+        L[Leader<br/>Knows all squad sightings]
+        A3[Soldier A]
+        B3[Soldier B]
+        C3[Soldier C]
+        L --> A3
+        L --> B3
+        L --> C3
+    end
+
+    MODEL1 ~~~ MODEL2
+    MODEL2 ~~~ MODEL3
 ```
 
 **Implementation Example**:
 ```rust
 fn share_contact_info(squad: &mut Squad, world: &World) {
     let leader = world.soldier_mut(squad.leader);
-    
+
     // Collect all sightings from squad members
     let mut all_contacts: Vec<EnemyContact> = Vec::new();
-    
+
     for member_idx in &squad.members {
         let member = world.soldier(*member_idx);
         for contact in &member.visible_enemies {
             all_contacts.push(contact.clone());
         }
     }
-    
+
     // Distribute shared knowledge to all members
     for member_idx in &squad.members {
         let member = world.soldier_mut(*member_idx);
@@ -563,7 +546,7 @@ impl FogOfWar {
         if !self.revealed_tiles.contains(&target.position.to_grid()) {
             return false;
         }
-        
+
         // Check if position is currently visible
         if !has_line_of_sight(entity.position, target.position) {
             // Can only see if we have recent memory
@@ -574,16 +557,16 @@ impl FogOfWar {
             }
             return false;
         }
-        
+
         true
     }
-    
+
     fn update(&mut self, viewer: &Entity, world: &World) {
         // Reveal tiles within view radius
         for pos in iterate_view_cone(viewer.position, viewer.facing, viewer.view_distance) {
             self.revealed_tiles.insert(pos);
         }
-        
+
         // Update last seen positions for visible enemies
         for enemy in world.visible_enemies(viewer) {
             self.last_seen.insert(enemy.id, (enemy.position, Time::now()));
@@ -596,7 +579,7 @@ impl FogOfWar {
 - AI cannot target enemies it cannot see
 - AI uses last known position for area fire only
 - AI must scout to reveal unknown areas
-- AI accuracy penalties for firing at suspected vs. confirmed targets
+- AI accuracy suffers when firing at suspected versus confirmed targets
 
 ---
 
@@ -604,19 +587,19 @@ impl FogOfWar {
 
 ### 14.4.1 Overview of Decision Architectures
 
-Modern game AI employs several architectural patterns for decision-making, each with distinct advantages for tactical scenarios:
+Modern game AI uses several architectural patterns for decision-making, each suited to different tactical needs:
 
-| Architecture | Best For | Complexity | Emergence |
-|--------------|----------|------------|-----------|
-| **Behavior Trees** | Reactive behaviors, clear structure | Medium | Low |
-| **GOAP** | Multi-step planning, complex goals | High | High |
-| **Utility AI** | Fuzzy decisions, scoring actions | Medium | Medium |
-| **Finite State Machines** | Simple, discrete states | Low | Low |
-| **HTN** | Hierarchical task decomposition | High | Medium |
+| Architecture          | Best For                            | Complexity | Emergence |
+| --------------------- | ----------------------------------- | ---------- | --------- |
+| **Behavior Trees**        | Reactive behaviors, clear structure | Medium     | Low       |
+| **GOAP**                  | Multi-step planning, complex goals  | High       | High      |
+| **Utility AI**            | Fuzzy decisions, scoring actions    | Medium     | Medium    |
+| **Finite State Machines** | Simple, discrete states             | Low        | Low       |
+| **HTN**                   | Hierarchical task decomposition     | High       | Medium    |
 
 ### 14.4.2 Behavior Trees
 
-Behavior Trees organize AI logic as a tree of hierarchical behaviors with standardized execution patterns.
+Behavior Trees structure AI logic as a tree of hierarchical behaviors with standardized execution patterns.
 
 **Node Types**:
 
@@ -624,7 +607,7 @@ Behavior Trees organize AI logic as a tree of hierarchical behaviors with standa
 // Selector: Tries children until one succeeds
 class Selector extends BTNode
     children: List<BTNode>
-    
+
     function Execute(context)
         for child in children
             result = child.Execute(context)
@@ -637,7 +620,7 @@ class Selector extends BTNode
 // Sequence: Executes children until one fails
 class Sequence extends BTNode
     children: List<BTNode>
-    
+
     function Execute(context)
         for child in children
             result = child.Execute(context)
@@ -650,7 +633,7 @@ class Sequence extends BTNode
 // Condition: Checks world state
 class Condition extends BTNode
     predicate: Function<Context, bool>
-    
+
     function Execute(context)
         if predicate(context)
             return Success
@@ -660,7 +643,7 @@ class Condition extends BTNode
 // Action: Performs game action
 class Action extends BTNode
     action: Function<Context, Status>
-    
+
     function Execute(context)
         return action(context)
 ```
@@ -682,43 +665,43 @@ class SoldierBehaviorTree
                     Action(ReturnFire)
                 ])
             ]),
-            
+
             // Priority 2: Engage visible enemies
             Sequence([
                 Condition(CanSeeEnemy),
                 Action(EngageTarget)
             ]),
-            
+
             // Priority 3: Follow orders
             Sequence([
                 Condition(HasPendingOrder),
                 Action(ExecuteCurrentOrder)
             ]),
-            
+
             // Priority 4: Idle behavior
             Action(IdleScan)
         ])
 ```
 
 **Advantages**:
-- Visual and intuitive structure
-- Easy to debug and modify
-- Good performance (O(depth) per tick)
-- Industry standard (Unreal Engine, Unity)
+- The structure is visual and intuitive
+- Debugging and modification are straightforward
+- Performance scales well (O(depth) per tick)
+- Industry standard in engines like Unreal and Unity
 
 **Disadvantages**:
-- Can become complex for long-term planning
-- Reactive rather than proactive by default
-- Requires manual structuring of all possibilities
+- Long-term planning can become unwieldy
+- The system is reactive by default
+- All possible behaviors must be manually structured
 
 ### 14.4.3 Goal-Oriented Action Planning (GOAP)
 
-GOAP flips the decision-making process: instead of checking conditions top-down, the AI plans backwards from goals.
+GOAP reverses the decision-making process. Instead of checking conditions top-down, the AI plans backward from goals.
 
 ```pseudocode
 class WorldState
     facts: Map<String, Value>
-    
+
     function DistanceTo(otherState)
         differences = 0
         for key in facts.keys
@@ -731,13 +714,13 @@ class Action
     cost: float
     preconditions: Map<String, Value>
     effects: Map<String, Value>
-    
+
     function IsValid(state)
         for key, value in preconditions
             if state.Get(key) != value
                 return false
         return true
-    
+
     function Apply(state)
         newState = state.Clone()
         for key, value in effects
@@ -748,22 +731,22 @@ class GOAPPlanner
     function Plan(currentState, goalState, availableActions)
         openSet = PriorityQueue()
         openSet.Add(Node(currentState, [], 0))
-        
+
         while not openSet.empty()
             current = openSet.Pop()
-            
+
             if current.state == goalState
                 return current.actions
-            
+
             for action in availableActions
                 if action.IsValid(current.state)
                     newState = action.Apply(current.state)
                     newActions = current.actions + [action]
                     cost = current.cost + action.cost
                     heuristic = newState.DistanceTo(goalState)
-                    
+
                     openSet.Add(Node(newState, newActions, cost + heuristic))
-        
+
         return null  // No plan found
 ```
 
@@ -787,14 +770,14 @@ actions = [
         preconditions: {IsReloading: false},
         effects: {HasWeaponLoaded: true}
     ),
-    
+
     Action(
         name: "MoveToCover",
         cost: 2.0,
         preconditions: {IsInCover: false},
         effects: {IsInCover: true, IsSafe: true}
     ),
-    
+
     Action(
         name: "EngageEnemy",
         cost: 1.0,
@@ -804,7 +787,7 @@ actions = [
         },
         effects: {EnemyDead: true}
     ),
-    
+
     Action(
         name: "TakeCover",
         cost: 0.5,
@@ -821,14 +804,14 @@ function ReactToContact(soldier, world)
         IsSafe: not soldier.underFire,
         CanSeeEnemy: CanSeeEnemy(soldier, world)
     })
-    
+
     goalState = WorldState({
         IsSafe: true,
         EnemyDead: true
     })
-    
+
     plan = GOAPPlanner.Plan(currentState, goalState, actions)
-    
+
     if plan
         ExecutePlan(plan)
     else
@@ -836,56 +819,56 @@ function ReactToContact(soldier, world)
 ```
 
 **Advantages**:
-- Emergent behavior from action combinations
-- Handles complex multi-step planning
-- Easy to add new actions without restructuring
-- Proactive rather than purely reactive
+- Behavior emerges from action combinations
+- Handles complex, multi-step planning well
+- New actions integrate without restructuring
+- The system is proactive
 
 **Disadvantages**:
-- Higher computational cost (A* search)
-- Can generate unrealistic plans
-- Requires careful cost tuning
+- Computational cost is higher (A* search)
+- Plans may appear unrealistic
+- Cost tuning requires care
 - Debugging planned sequences can be difficult
 
 ### 14.4.4 Utility AI (Scoring Actions)
 
-Utility AI evaluates all possible actions and selects the one with the highest score based on current context.
+Utility AI evaluates all possible actions and selects the highest-scoring option based on context.
 
 ```pseudocode
 class UtilityAI
     actions: List<ScoredAction>
-    
+
     function SelectAction(context): Action
         bestAction = null
         bestScore = -infinity
-        
+
         for action in actions
             score = action.CalculateScore(context)
             if score > bestScore
                 bestScore = score
                 bestAction = action
-        
+
         return bestAction
 
 class ScoredAction
     name: String
     considerations: List<Consideration>
-    
+
     function CalculateScore(context): float
         score = 1.0
-        
+
         for consideration in considerations
             score *= consideration.Evaluate(context)
             if score < 0.01  // Early exit for very low scores
                 return 0.0
-        
+
         return score
 
 class Consideration
     input: Function<Context, float>  // Raw value from world
     curve: ResponseCurve             // How to transform value
     weight: float                    // Importance multiplier
-    
+
     function Evaluate(context): float
         rawValue = input(context)
         curvedValue = curve.Evaluate(rawValue)
@@ -903,21 +886,21 @@ class EngageTargetAction extends ScoredAction
             curve: InverseLinear(0, 100),  // Score 1.0 at 0m, 0.0 at 100m
             weight: 1.0
         ),
-        
+
         // Threat consideration (higher threat is better target)
         Consideration(
             input: TargetThreatLevel,
             curve: Linear(0, 100),  // Score 0.0 at low threat, 1.0 at high
             weight: 0.8
         ),
-        
+
         // Visibility consideration (must be visible)
         Consideration(
             input: CanSeeTarget,
             curve: Step(0.9),  // 0.0 if < 0.9 visibility, 1.0 otherwise
             weight: 1.0  // Critical - must see to engage
         ),
-        
+
         // Cover consideration (prefer targets not in heavy cover)
         Consideration(
             input: TargetCoverQuality,
@@ -929,18 +912,18 @@ class EngageTargetAction extends ScoredAction
 // Example usage
 function SelectTarget(soldier, visibleEnemies)
     engageAction = EngageTargetAction()
-    
+
     bestTarget = null
     bestScore = 0.0
-    
+
     for enemy in visibleEnemies
         context = EngagementContext(soldier, enemy)
         score = engageAction.CalculateScore(context)
-        
+
         if score > bestScore
             bestScore = score
             bestTarget = enemy
-    
+
     return bestTarget
 ```
 
@@ -950,541 +933,469 @@ function SelectTarget(soldier, visibleEnemies)
 enum CurveType
     Linear          // y = x
     InverseLinear   // y = 1 - x
-    Step            // y = 0 if x < threshold, else 1
-    SCurve          // Smooth S-shaped curve
-    Exponential     // y = x^2
-    Logarithmic     // y = log(x + 1) / log(2)
+    Quadratic       // y = x²
+    InverseQuad     // y = 1 - x²
+    Logistic        // S-curve
+    Step            // Threshold function
+
+class ResponseCurve
+    type: CurveType
+
+    function Evaluate(x: float): float
+        x = clamp(x, 0.0, 1.0)
+
+        switch type
+            case Linear: return x
+            case InverseLinear: return 1.0 - x
+            case Quadratic: return x * x
+            case InverseQuad: return 1.0 - (x * x)
+            case Logistic: return 1.0 / (1.0 + exp(-10 * (x - 0.5)))
+            case Step(threshold): return x >= threshold ? 1.0 : 0.0
 ```
 
-**Advantages**:
-- Natural handling of fuzzy decisions
-- Easy to balance via curve tuning
-- Considers all options simultaneously
-- Graceful degradation (always picks something)
+### 14.4.5 Finite State Machines (FSM)
 
-**Disadvantages**:
-- Can be computationally expensive (evaluate all actions)
-- Harder to debug than behavior trees
-- Can oscillate between similar-scoring actions
-- Requires careful normalization of inputs
-
-### 14.4.5 Finite State Machines
-
-Finite State Machines (FSM) represent the simplest decision architecture, where AI exists in one of several discrete states with defined transitions.
+FSMs offer the simplest approach, working well for basic behaviors but struggling with complexity.
 
 ```pseudocode
-class FiniteStateMachine
-    currentState: State
-    states: Map<StateId, State>
-    
-    function Update(context)
-        transition = currentState.CheckTransitions(context)
-        if transition != null
-            ChangeState(transition.targetState)
-        
-        currentState.Execute(context)
-    
-    function ChangeState(newState)
-        currentState.OnExit()
-        currentState = states[newState]
-        currentState.OnEnter()
+enum SoldierState
+    Idle
+    Moving
+    Engaging
+    TakingCover
+    Reloading
+    Dead
 
-class State
-    id: StateId
-    onEnter: Action
-    onExecute: Action
-    onExit: Action
-    transitions: List<Transition>
-    
-    function CheckTransitions(context): Transition
-        for transition in transitions
-            if transition.condition(context)
-                return transition
-        return null
+class FSMController
+    currentState: SoldierState
 
-class Transition
-    condition: Function<Context, bool>
-    targetState: StateId
-```
+    function Update(soldier, world)
+        switch currentState
+            case Idle:
+                if CanSeeEnemy(soldier, world)
+                    TransitionTo(Engaging)
+                else if soldier.underFire
+                    TransitionTo(TakingCover)
 
-**CloseCombatFree's FSM**:
+            case Engaging:
+                if not CanSeeEnemy(soldier, world)
+                    TransitionTo(Idle)
+                else if soldier.ammo <= 0
+                    TransitionTo(Reloading)
 
-```cpp
-// Simplified state transitions
-void UpdateUnitState(Unit* unit, World* world) {
-    QString currentStatus = unit->getUnitStatus();
-    
-    if (currentStatus == "READY") {
-        // Check for queued orders
-        if (unit->hasPendingOrders()) {
-            unit->processNextOrder();
-        }
-    }
-    else if (currentStatus == "DEFENDING") {
-        // Check for enemies in defense arc
-        if (EnemyInRange(unit, world)) {
-            unit->changeStatus("FIRING");
-            unit->acquireTarget();
-        }
-    }
-    else if (currentStatus == "AMBUSHING") {
-        // Wait for enemy to enter trigger zone
-        if (EnemyEnteredAmbushZone(unit, world)) {
-            unit->changeStatus("FIRING");
-            unit->fireAtWill();
-        }
-    }
-    else if (currentStatus == "MOVING") {
-        // Check if movement complete
-        if (unit->reachedDestination()) {
-            unit->changeStatus("READY");
-            unit->continueQueue();
-        }
-    }
-}
-```
+            case Reloading:
+                if ReloadComplete(soldier)
+                    TransitionTo(Idle)
 
-**State Transition Diagram**:
+            case TakingCover:
+                if Safe(soldier) and soldier.ammo > 0
+                    TransitionTo(Idle)
 
-```
-                    ┌─────────────┐
-                    │    READY    │
-                    └──────┬──────┘
-                           │
-         ┌─────────────────┼─────────────────┐
-         │                 │                 │
-         ↓                 ↓                 ↓
-   ┌──────────┐    ┌──────────┐    ┌──────────┐
-   │  MOVING  │    │ DEFENDING│    │ AMBUSHING│
-   └────┬─────┘    └────┬─────┘    └────┬─────┘
-        │               │               │
-        │               │               │
-        ↓               ↓               ↓
-   ┌──────────┐    ┌──────────┐    ┌──────────┐
-   │  READY   │←───│  FIRING  │←───│  FIRING  │
-   └──────────┘    └──────────┘    └──────────┘
+    function TransitionTo(newState)
+        OnExit(currentState)
+        currentState = newState
+        OnEnter(currentState)
 ```
 
 **Advantages**:
-- Simple to understand and implement
-- Predictable behavior
+- Simple to implement and understand
+- Behavior is predictable
+- Efficient (O(1) per update)
 - Easy to debug
-- Low computational cost
 
 **Disadvantages**:
-- Limited expressiveness
-- State explosion for complex behaviors
-- No memory of past states
-- Difficult to handle concurrent behaviors
+- State explosion occurs as complexity grows
+- Transition logic becomes hard to maintain
+- No support for concurrent behaviors
+- Modifications risk breaking existing transitions
 
 ### 14.4.6 Hierarchical Task Networks (HTN)
 
-HTN decomposes high-level goals into increasingly specific tasks until reaching primitive actions.
+HTN planners break down high-level goals into primitive tasks through method application.
 
 ```pseudocode
-class HTNPlanner
-    function Plan(domain, currentState, goalTask)
-        plan = []
-        tasksToProcess = [goalTask]
-        
-        while tasksToProcess not empty
-            currentTask = tasksToProcess.Pop()
-            
-            if IsPrimitive(currentTask)
-                plan.Add(currentTask)
-            else
-                // Find applicable decomposition method
-                method = FindApplicableMethod(domain, currentTask, currentState)
-                if method == null
-                    return null  // Planning failed
-                
-                // Add subtasks to process (in reverse order for stack)
-                for subtask in Reverse(method.subtasks)
-                    tasksToProcess.Push(subtask)
-        
-        return plan
-
 class Task
     name: String
-    preconditions: List<Condition>
-
-class PrimitiveTask extends Task
-    effects: List<Effect>
-    cost: float
 
 class CompoundTask extends Task
     methods: List<Method>
 
+class PrimitiveTask extends Task
+    preconditions: Function<World, bool>
+    effects: Function<World, World>
+    cost: float
+
 class Method
-    preconditions: List<Condition>
+    name: String
+    preconditions: Function<World, bool>
     subtasks: List<Task>
+
+class HTNPlanner
+    function Plan(rootTask, worldState)
+        plan = []
+
+        if Decompose(rootTask, worldState, plan)
+            return plan
+        else
+            return null
+
+    function Decompose(task, worldState, plan): bool
+        if task is PrimitiveTask
+            if task.preconditions(worldState)
+                plan.Add(task)
+                worldState = task.effects(worldState)
+                return true
+            else
+                return false
+
+        // Compound task - try methods
+        for method in task.methods
+            if method.preconditions(worldState)
+                allSucceeded = true
+                for subtask in method.subtasks
+                    if not Decompose(subtask, worldState, plan)
+                        allSucceeded = false
+                        break
+
+                if allSucceeded
+                    return true
+
+        return false
 ```
 
-**Example: Assault Position HTN**:
+**Example: Squad Assault HTN**:
 
 ```pseudocode
-CompoundTask: AssaultPosition(target)
-    Method 1: CoordinatedAssault
-        Preconditions: HasSquadSupport, NotSuppressed
-        Subtasks:
-            1. SuppressTarget(target)
-            2. MoveToCover(nearTarget)
-            3. EngageEnemy(target)
-    
-    Method 2: SoloAssault
-        Preconditions: None
-        Subtasks:
-            1. MoveFastTo(target)
-            2. EngageEnemy(target)
+// Compound Tasks
+class AssaultObjective extends CompoundTask
+    methods = [
+        Method(
+            name: "Standard Assault",
+            preconditions: {squad.size >= 4},
+            subtasks: [
+                SuppressEnemy(),
+                FlankEnemy(),
+                ClearObjective()
+            ]
+        ),
 
-CompoundTask: SuppressTarget(target)
-    Method 1: MachineGunSuppression
-        Preconditions: HasMachineGun
-        Subtasks:
-            1. PositionForFieldOfFire(target)
-            2. OpenFire(target)
-            3. MaintainFire(duration: 10s)
-    
-    Method 2: RifleSuppression
-        Preconditions: None
-        Subtasks:
-            1. TakeKnee
-            2. OpenFire(target)
-            3. MaintainFire(duration: 5s)
+        Method(
+            name: "Reduced Force Assault",
+            preconditions: {squad.size < 4},
+            subtasks: [
+                WaitForReinforcements(),
+                SuppressEnemy(),
+                ClearObjective()
+            ]
+        )
+    ]
 
-PrimitiveTask: MoveToCover(nearTarget)
-    Preconditions: NotInCover
-    Effects: IsInCover, PositionChanged
-    Cost: Distance / Speed
+// Primitive Tasks
+class SuppressEnemy extends PrimitiveTask
+    preconditions = {hasAmmo: true}
+    effects = {enemySuppressed: true}
+    cost = 2.0
 
-// Planning example
-plan = HTNPlanner.Plan(
-    domain = MilitaryDomain(),
-    currentState = soldier.CurrentState(),
-    goalTask = AssaultPosition(enemyBuilding)
-)
-
-// Might produce:
-// 1. PositionForFieldOfFire(enemyBuilding)
-// 2. OpenFire(enemyBuilding)
-// 3. MaintainFire(10s)
-// 4. MoveToCover(enemyBuilding)
-// 5. EngageEnemy(enemyBuilding)
+class ClearObjective extends PrimitiveTask
+    preconditions = {enemySuppressed: true}
+    effects = {objectiveSecure: true}
+    cost = 3.0
 ```
 
-**Advantages**:
-- Natural expression of tactical doctrine
-- Hierarchical structure mirrors military organization
-- Easy to add new tactics as methods
-- Can represent complex multi-step plans
+### 14.4.7 Decision Architecture Selection Guide
 
-**Disadvantages**:
-- Complex implementation
-- Planning can be expensive
-- Requires domain expertise to write methods
-- Debugging plan failures can be difficult
+```mermaid
+flowchart TD
+    START([START: What do you need?]) --> Q1{Simple, discrete behaviors?}
 
-### 14.4.7 Comparative Analysis
+    Q1 -->|Yes| FSM[FSM<br/>Fast, simple, predictable]
+    Q1 -->|No| Q2{Need multi-step planning?}
 
-| Architecture | Best For | Complexity | Performance | Debugging |
-|--------------|----------|------------|-------------|-----------|
-| **Behavior Trees** | Reactive AI, clear behaviors | Medium | O(depth) | Visual, easy |
-| **GOAP** | Complex planning, emergent tactics | High | O(actions^depth) | Hard |
-| **Utility AI** | Fuzzy decisions, continuous scoring | Medium | O(actions) | Moderate |
-| **Finite State Machines** | Simple, discrete behaviors | Low | O(1) | Easy |
-| **HTN** | Hierarchical tactics, military doctrine | High | O(tasks) | Moderate |
+    Q2 -->|Yes| Q3{Actions reusable across goals?}
+    Q2 -->|No| Q4{Reactive, hierarchical logic?}
 
-**Recommendation for Tactical Wargames**:
-- Use **Behavior Trees** for individual soldier reactive behaviors
-- Use **GOAP** or **HTN** for squad-level tactical planning
-- Use **Utility AI** for target selection and position evaluation
-- Combine: GOAP generates high-level plans, Behavior Trees execute individual actions
+    Q3 -->|Yes| GOAP[GOAP]
+    Q3 -->|No| HTN[HTN]
+
+    Q4 -->|Yes| BT[BEHAVIOR TREE<br/>Industry standard]
+    Q4 -->|No| Q5{Fuzzy scoring decisions?}
+
+    Q5 -->|Yes| UTILITY[UTILITY AI<br/>Best for target selection]
+
+    style FSM fill:#90EE90
+    style GOAP fill:#87CEEB
+    style HTN fill:#87CEEB
+    style BT fill:#FFD700
+    style UTILITY fill:#FFB6C1
+```
 
 ---
 
 ## 14.5 Tactical AI
 
-### 14.5.1 Pathfinding with Cover
+### 14.5.1 Squad Coordination
 
-Tactical pathfinding differs from standard pathfinding by incorporating combat considerations into route selection.
-
-```pseudocode
-function FindTacticalPath(start, goal, world, soldier)
-    openSet = PriorityQueue()
-    openSet.Add(Node(start, [], 0))
-    
-    while not openSet.empty()
-        current = openSet.Pop()
-        
-        if current.position == goal
-            return ReconstructPath(current)
-        
-        for neighbor in GetNeighbors(current.position)
-            // Calculate base movement cost
-            movementCost = TerrainCost(neighbor) * Distance(current.position, neighbor)
-            
-            // Add cover bonus/penalty
-            coverValue = EvaluateCover(neighbor, world.enemyPositions)
-            coverCost = (1.0 - coverValue) * COVER_WEIGHT
-            
-            // Add exposure penalty (visible to enemies)
-            if IsVisibleFromAnyEnemy(neighbor, world)
-                coverCost += EXPOSURE_PENALTY
-            
-            // Add suppression risk
-            suppressionRisk = CalculateSuppressionRisk(neighbor, world)
-            coverCost += suppressionRisk * SUPPRESSION_WEIGHT
-            
-            totalCost = movementCost + coverCost
-            
-            if not visited.Contains(neighbor) or totalCost < visited[neighbor].cost
-                visited[neighbor] = Node(neighbor, current, totalCost)
-                openSet.Add(visited[neighbor])
-    
-    return null  // No path found
-```
-
-**Cover Evaluation**:
+Tactical AI coordinates units to achieve objectives through synchronized action.
 
 ```pseudocode
-function EvaluateCover(position, enemyPositions)
-    if enemyPositions.empty()
-        return 0.0  // No enemies, no cover needed
-    
-    totalCover = 0.0
-    
-    for enemyPos in enemyPositions
-        // Check if cover blocks line of sight
-        if HasLineOfSight(enemyPos, position)
-            coverValue = 0.0
+class SquadTacticalAI
+    function CoordinateSquad(squad, objective)
+        // Assess situation
+        threatLevel = AssessThreat(squad, objective)
+        availableForces = CountEffectiveUnits(squad)
+
+        // Select tactic based on situation
+        if threatLevel > availableForces * 2
+            ExecuteTactic(Retreat, squad, objective)
+        else if threatLevel > availableForces
+            ExecuteTactic(SuppressAndFlank, squad, objective)
         else
-            // Calculate how much cover blocks
-            coverValue = CalculateCoverPercentage(enemyPos, position)
-        
-        // Weight by distance (closer enemies more important)
-        distance = Distance(position, enemyPos)
-        weight = 1.0 / (1.0 + distance / 50.0)  // 50m reference distance
-        
-        totalCover += coverValue * weight
-    
-    return totalCover / enemyPositions.Count()
+            ExecuteTactic(DirectAssault, squad, objective)
+
+    function ExecuteTactic(tactic, squad, objective)
+        switch tactic
+            case SuppressAndFlank:
+                // Split squad
+                fireTeam = squad.GetFireTeam()
+                assaultTeam = squad.GetAssaultTeam()
+
+                // Suppression team establishes base of fire
+                fireTeam.Order(SuppressFire(objective.enemyPosition))
+
+                // Assault team flanks
+                flankPosition = FindFlankingPosition(objective)
+                assaultTeam.Order(MoveTo(flankPosition))
+
+            case DirectAssault:
+                squad.Order(Assault(objective))
+
+            case Retreat:
+                safePosition = FindRetreatPosition(squad)
+                squad.Order(RetreatTo(safePosition))
 ```
 
-**OpenCombat's Direction Cost System** (for vehicle pathfinding):
+### 14.5.2 Formation Management
 
-```rust
-const COST_AHEAD: i32 = 0;        // Moving forward
-const COST_DIAGONAL: i32 = 10;    // 45° turn
-const COST_CORNER: i32 = 20;      // 90° turn
-const COST_BACK_CORNER: i32 = 30; // 135° turn
-const COST_BACK: i32 = 50;        // 180° turn (full about-face)
-
-fn pathfind_with_direction_cost(soldier: &Soldier, destination: WorldPoint, map: &Map) -> WorldPaths {
-    let start = soldier.world_point.to_grid();
-    let end = destination.to_grid();
-    
-    a_star(start, end, |node| {
-        let terrain = map.terrain_at(node);
-        let base_cost = terrain.pedestrian_cost;
-        
-        // Add direction change cost
-        let direction_cost = calculate_turn_cost(
-            soldier.looking_direction,
-            node.direction
-        );
-        
-        base_cost + direction_cost
-    })
-}
-```
-
-### 14.5.2 Position Evaluation
-
-Evaluating positions for tactical value involves multiple factors:
+Formations structure squad movement and positioning.
 
 ```pseudocode
-class PositionEvaluator
-    function EvaluatePosition(position, soldier, world): float
-        score = 0.0
-        
-        // Factor 1: Cover quality
-        coverScore = EvaluateCover(position, world.enemyPositions)
-        score += coverScore * COVER_WEIGHT
-        
-        // Factor 2: Line of sight to enemies
-        visibleEnemies = CountVisibleEnemies(position, world)
-        score += visibleEnemies * VISIBILITY_WEIGHT
-        
-        // Factor 3: Field of fire
-        fieldOfFire = CalculateFieldOfFire(position, world)
-        score += fieldOfFire * FIELD_OF_FIRE_WEIGHT
-        
-        // Factor 4: Retreat routes
-        retreatOptions = CountRetreatRoutes(position, world)
-        score += retreatOptions * RETREAT_WEIGHT
-        
-        // Factor 5: Proximity to objective
-        if world.hasObjective
-            distanceToObjective = Distance(position, world.objective)
-            score += (1.0 / (1.0 + distanceToObjective / 100.0)) * OBJECTIVE_WEIGHT
-        
-        // Factor 6: Proximity to squad
-        if soldier.hasSquad
-            distanceToSquad = DistanceToSquad(position, soldier.squad)
-            score += (1.0 / (1.0 + distanceToSquad / 30.0)) * COHESION_WEIGHT
-        
-        // Factor 7: Suppression exposure
-        suppressionRisk = CalculateSuppressionRisk(position, world)
-        score -= suppressionRisk * SUPPRESSION_WEIGHT
-        
-        return score
+enum Formation
+    Column       // Single file, good for roads
+    Line         // Extended front, good for assault
+    Wedge        // V-shape, good for open terrain
+    Diamond      // All-around security
+    Staggered    // Alternating left/right offsets
+
+class FormationManager
+    function CalculatePositions(formation, center, facing, spacing)
+        positions = []
+
+        switch formation
+            case Column:
+                for i in 0..squadSize
+                    offset = Vector2(0, -i * spacing)
+                    positions[i] = center + Rotate(offset, facing)
+
+            case Line:
+                halfWidth = (squadSize - 1) * spacing / 2
+                for i in 0..squadSize
+                    offset = Vector2(i * spacing - halfWidth, 0)
+                    positions[i] = center + Rotate(offset, facing)
+
+            case Wedge:
+                positions[0] = center + Forward(facing) * spacing  // Point
+                for i in 1..squadSize
+                    side = i % 2 == 0 ? 1 : -1
+                    row = (i + 1) / 2
+                    offset = Vector2(side * row * spacing, -row * spacing)
+                    positions[i] = center + Rotate(offset, facing)
+
+        return positions
+
+    function MaintainFormation(squad, formation)
+        idealPositions = CalculatePositions(formation, squad.center,
+                                           squad.facing, squad.spacing)
+
+        for i, soldier in squad.members
+            if Distance(soldier.position, idealPositions[i]) > formationTolerance
+                soldier.Order(MoveTo(idealPositions[i]))
 ```
 
-**Cover Types**:
+**Formation Characteristics**:
 
-| Cover Type | Protection | Visibility | Movement Impact |
-|------------|------------|------------|-----------------|
-| **Hard Cover** (walls, rocks) | 100% from facing | Prone only | Blocks movement |
-| **Soft Cover** (bushes, fences) | 50-75% | Crouched or prone | Slows movement |
-| **Concealment** (tall grass) | 0% (just hides) | All postures | Normal movement |
-| **Elevation** (rooftops, hills) | Varies | Enhanced visibility | Climbing cost |
+| Formation | Best For                   | Vulnerability     | Speed  |
+| --------- | -------------------------- | ----------------- | ------ |
+| Column    | Roads, narrow paths        | Flank attacks     | Fast   |
+| Line      | Assault, maximum firepower | Enfilade fire     | Slow   |
+| Wedge     | Open terrain, all-around   | Concentrated fire | Medium |
+| Diamond   | Defensive positions        | None (balanced)   | Slow   |
+| Staggered | Cover-rich environments    | Aerial attack     | Medium |
 
 ### 14.5.3 Fire and Maneuver
 
-The fundamental tactical principle of fire and maneuver (one element suppresses while another moves) can be implemented through coordinated squad AI:
+The core tactical principle: some units provide covering fire while others advance.
 
 ```pseudocode
-class FireAndManeuverCoordinator
-    function CoordinateAssault(squad, objective, world)
-        // Split squad into elements
-        fireTeam = SelectFireTeam(squad, hasMachineGun: true)
-        maneuverTeam = SelectManeuverTeam(squad, fireTeam)
-        
+class FireAndManeuver
+    function Execute(squad, objective)
+        // Split into fire team and maneuver team
+        fireTeam = squad.GetBestMarksmen(2)
+        maneuverTeam = squad.GetRemaining()
+
         // Phase 1: Establish base of fire
-        for soldier in fireTeam
-            position = FindBestSuppressPosition(soldier, objective, world)
-            soldier.Order(MoveTo(position))
-        
+        baseOfFire = FindBestOverwatchPosition(fireTeam, objective)
+        fireTeam.Order(MoveTo(baseOfFire))
+
+        WaitUntil(Positioned(fireTeam))
+
         // Phase 2: Suppress objective
-        WaitForAllInPosition(fireTeam)
-        
-        for soldier in fireTeam
-            soldier.Order(SuppressFire(objective))
-        
-        // Phase 3: Maneuver element advances
-        for soldier in maneuverTeam
-            flankingPosition = FindFlankingPosition(soldier, objective, world)
-            soldier.Order(MoveFastTo(flankingPosition))
-        
+        fireTeam.Order(SuppressFire(objective))
+
+        // Phase 3: Maneuver team advances
+        advancePositions = FindAdvancePositions(maneuverTeam, objective)
+
+        for position in advancePositions
+            maneuverTeam.Order(MoveTo(position))
+            WaitUntil(CoveredByFire(fireTeam, maneuverTeam))
+
+            // Check if suppression effective
+            if not EffectiveSuppression(fireTeam)
+                // Halt advance, suppress more
+                maneuverTeam.Order(Hold())
+                fireTeam.Order(IncreaseRateOfFire())
+
         // Phase 4: Assault
-        WaitForAllInPosition(maneuverTeam)
-        
-        for soldier in maneuverTeam
-            soldier.Order(EngageAt(objective))
-        
-        // Phase 5: Consolidate
-        WaitForEngagementComplete(maneuverTeam)
-        
-        for soldier in squad
-            coverPosition = FindCoverNear(objective, world)
-            soldier.Order(Defend(coverPosition))
+        maneuverTeam.Order(Assault(objective))
+
+    function FindBestOverwatchPosition(team, objective)
+        candidates = FindElevatedPositionsNear(objective, range: 50..100)
+
+        bestPosition = null
+        bestScore = -infinity
+
+        for pos in candidates
+            score = 0
+
+            // Prefer positions with LoS to objective
+            if HasLineOfSight(pos, objective)
+                score += 100
+
+            // Prefer positions with cover
+            score += CoverQuality(pos) * 50
+
+            // Prefer positions with retreat routes
+            if HasMultipleRetreatPaths(pos)
+                score += 25
+
+            if score > bestScore
+                bestScore = score
+                bestPosition = pos
+
+        return bestPosition
 ```
 
-### 14.5.4 Suppression Tactics
+### 14.5.4 Cover Evaluation and Positioning
 
-Suppression is a core tactical mechanic that affects both friendly and enemy AI behavior.
+AI evaluates cover positions based on multiple factors.
 
 ```pseudocode
+class CoverEvaluator
+    function EvaluateCover(position, soldier, world): float
+        score = 0.0
+
+        // Factor 1: Protection from known threats
+        for threat in soldier.knownEnemies
+            if not HasLineOfSight(threat.position, position)
+                score += 50  // Good cover blocks LoS
+            else
+                score -= 20  // Bad cover exposes soldier
+
+        // Factor 2: Distance to current position
+        distance = Distance(soldier.position, position)
+        score -= distance * 0.5  // Prefer closer cover
+
+        // Factor 3: Protection quality
+        score += CoverThickness(position) * 30
+
+        // Factor 4: Engagement potential
+        for enemy in soldier.knownEnemies
+            if HasLineOfSight(position, enemy.position)
+                score += 10  // Can shoot from this position
+
+        // Factor 5: Escape routes
+        adjacentCover = CountAdjacentCoverPositions(position, radius: 20)
+        score += adjacentCover * 5
+
+        // Factor 6: Vulnerability to grenades
+        if IsEnclosedSpace(position)
+            score -= 20  // Risk of grenades
+
+        return score
+
+    function FindBestCover(soldier, world): Position
+        candidates = FindCoverPositionsWithin(soldier.position, radius: 50)
+
+        bestPosition = null
+        bestScore = -infinity
+
+        for pos in candidates
+            score = EvaluateCover(pos, soldier, world)
+            if score > bestScore
+                bestScore = score
+                bestPosition = pos
+
+        return bestPosition
+```
+
+### 14.5.5 Suppression and Morale
+
+Suppression mechanics create feedback loops where AI behavior degrades under fire.
+
+```pseudocode
+struct SuppressionState
+    level: float  // 0.0 to 1.0
+    source: Vector2  // Direction of suppression
+    duration: float  // How long suppressed
+
 class SuppressionSystem
-    function ApplySuppression(position, radius, intensity, duration)
-        affectedUnits = FindUnitsInRadius(position, radius)
-        
-        for unit in affectedUnits
-            if IsFriendly(unit)
-                continue  // Don't suppress friendlies
-            
-            // Calculate suppression effect based on distance
-            distance = Distance(position, unit.position)
-            falloff = 1.0 - (distance / radius)
-            suppressionAmount = intensity * falloff
-            
-            // Apply to unit
-            unit.suppression += suppressionAmount
-            unit.under_fire.increase(suppressionAmount * 10)
-            
-            // Trigger suppression response if threshold exceeded
-            if unit.suppression > SUPPRESSION_THRESHOLD
-                TriggerSuppressionResponse(unit)
-    
-    function TriggerSuppressionResponse(unit)
-        // Pinning behavior
-        if unit.suppression > PINNING_THRESHOLD
-            unit.ChangeBehavior(Hide(nearestCover))
-            unit.canMove = false
-            unit.accuracy *= 0.3
-        
-        // Seek cover
-        else if unit.suppression > COVER_SEEK_THRESHOLD
-            cover = FindNearestCover(unit)
-            if cover != null
-                unit.ChangeBehavior(MoveTo(cover))
-        
-        // Reduced effectiveness
-        else
-            unit.accuracy *= 0.7
-            unit.movementSpeed *= 0.8
-```
+    function ApplySuppression(soldier, source, intensity)
+        soldier.suppression.level = min(1.0,
+            soldier.suppression.level + intensity)
+        soldier.suppression.source = source
+        soldier.suppression.duration = 0
 
-**Suppression Mechanics**:
+        // Trigger morale check
+        if soldier.suppression.level > 0.7
+            MoraleCheck(soldier)
 
-| Suppression Level | Effect on AI |
-|-------------------|--------------|
-| **None (0-25)** | Normal behavior |
-| **Light (25-50)** | Accuracy -30%, movement -20% |
-| **Medium (50-75)** | Accuracy -50%, seeks cover |
-| **Heavy (75-90)** | Pinned, cannot move, accuracy -70% |
-| **Severe (90-100)** | Broken morale, may retreat |
+    function UpdateSuppression(soldier, dt)
+        if soldier.suppression.level > 0
+            soldier.suppression.duration += dt
 
-### 14.5.5 Coordinated Attacks
+            // Natural decay
+            soldier.suppression.level -= dt * 0.1
 
-Advanced AI can coordinate multi-unit attacks for tactical advantage:
+            // Effects based on suppression level
+            if soldier.suppression.level > 0.5
+                soldier.accuracy *= 0.5
+                soldier.moveSpeed *= 0.7
 
-```pseudocode
-class CoordinatedAttackPlanner
-    function PlanCoordinatedAttack(units, target, world)
-        // Analyze target
-        targetCover = EvaluateTargetCover(target, world)
-        targetStrength = EvaluateTargetStrength(target, world)
-        
-        // Select tactic based on force ratio and cover
-        if targetCover > 0.7 and units.Count() > targetStrength * 1.5
-            return PlanFlankingAttack(units, target, world)
-        else if units.Count() > targetStrength * 2.0
-            return PlanFrontalAssault(units, target, world)
-        else
-            return PlanFireAndManeuver(units, target, world)
-    
-    function PlanFlankingAttack(units, target, world)
-        // Find flanking routes
-        leftFlank = FindFlankingRoute(units[0], target, world, leftSide: true)
-        rightFlank = FindFlankingRoute(units[1], target, world, leftSide: false)
-        
-        // Synchronize timing
-        leftTime = EstimateTravelTime(units[0], leftFlank)
-        rightTime = EstimateTravelTime(units[1], rightFlank)
-        
-        if leftTime > rightTime
-            delay = leftTime - rightTime
-            units[1].AddDelayedOrder(MoveTo(rightFlank), delay)
-            units[0].Order(MoveTo(leftFlank))
-        else
-            delay = rightTime - leftTime
-            units[0].AddDelayedOrder(MoveTo(leftFlank), delay)
-            units[1].Order(MoveTo(rightFlank))
-        
-        // Both engage simultaneously
-        for unit in units
-            unit.AddOrder(EngageTarget(target))
+            if soldier.suppression.level > 0.8
+                // May freeze or retreat
+                if Random() < 0.1 * dt
+                    soldier.Order(TakeCover)
+
+    function MoraleCheck(soldier)
+        baseMorale = soldier.experience * 0.3 + soldier.leadership * 0.2
+        suppressionPenalty = soldier.suppression.level * 50
+        casualtiesPenalty = soldier.squad.casualties * 10
+
+        moraleRoll = Random(0, 100)
+        threshold = baseMorale - suppressionPenalty - casualtiesPenalty
+
+        if moraleRoll > threshold
+            // Failed morale check
+            soldier.behavior = Flee or Surrender
 ```
 
 ---
@@ -1493,14 +1404,14 @@ class CoordinatedAttackPlanner
 
 ### 14.6.1 Higher-Level Decision Making
 
-While tactical AI controls individual units and squads, strategic AI manages the broader battle plan.
+Strategic AI manages the broader battle plan, while tactical AI controls individual units and squads.
 
 ```pseudocode
 class StrategicAI
     function MakeStrategicDecision(commander, battlefield, resources)
         // Evaluate current situation
         situation = AnalyzeSituation(battlefield)
-        
+
         // Generate candidate strategies
         strategies = [
             Strategy(name: "Assault", action: PlanAssault),
@@ -1508,78 +1419,78 @@ class StrategicAI
             Strategy(name: "Flank", action: PlanFlanking),
             Strategy(name: "Retreat", action: PlanRetreat)
         ]
-        
+
         // Score each strategy
         bestStrategy = null
         bestScore = -infinity
-        
+
         for strategy in strategies
             score = strategy.action.Evaluate(commander, battlefield, resources)
             if score > bestScore
                 bestScore = score
                 bestStrategy = strategy
-        
+
         // Execute chosen strategy
         return bestStrategy.action.Execute(commander, battlefield, resources)
 ```
 
 **Strategic Considerations**:
 
-| Factor | Weight | Evaluation |
-|--------|--------|------------|
-| Force Ratio | 1.0 | Friendly vs enemy strength |
-| Position Advantage | 0.8 | Cover, elevation, terrain |
-| Morale | 0.7 | Unit condition and experience |
-| Supply Status | 0.6 | Ammunition and reinforcement availability |
-| Time Pressure | 0.5 | Mission time limits |
-| Casualty Tolerance | 0.4 | Acceptable loss threshold |
+| Factor             | Weight | Evaluation                                |
+| ------------------ | ------ | ----------------------------------------- |
+| Force Ratio        | 1.0    | Friendly vs enemy strength                |
+| Position Advantage | 0.8    | Cover, elevation, terrain                 |
+| Morale             | 0.7    | Unit condition and experience             |
+| Supply Status      | 0.6    | Ammunition and reinforcement availability |
+| Time Pressure      | 0.5    | Mission time limits                       |
+| Casualty Tolerance | 0.4    | Acceptable loss threshold                 |
 
 ### 14.6.2 Resource Allocation
 
-Strategic AI manages limited resources across the battlefield:
+Strategic AI distributes limited resources across the battlefield:
 
 ```pseudocode
 class ResourceAllocator
     function AllocateResources(units, availableResources, priorities)
         allocations = Map<Unit, Resource>()
-        
+
         // Phase 1: Critical needs (ammunition, medical)
         for unit in units
             if unit.ammoLevel < CRITICAL_AMMO_THRESHOLD
                 allocations[unit] = Resource(type: Ammunition, priority: 100)
-            
+
             if unit.casualties > 0 and not unit.hasMedicalSupport
                 allocations[unit] = Resource(type: Medical, priority: 90)
-        
+
         // Phase 2: Reinforce weak sectors
         weakSectors = IdentifyWeakSectors(units)
         for sector in weakSectors
             reinforcements = CalculateNeededReinforcements(sector)
             allocations[sector.commander] = Resource(
-                type: Reinforcements, 
+                type: Reinforcements,
                 amount: reinforcements,
                 priority: 70
             )
-        
+
         // Phase 3: Support main effort
         mainEffort = IdentifyMainEffort(units)
         allocations[mainEffort] = Resource(
             type: FireSupport,
             priority: 80
         )
-        
+
         return allocations
 ```
 
 ### 14.6.3 Mission Planning
 
-Strategic AI decomposes mission objectives into tactical operations:
+Strategic AI breaks down mission objectives into tactical operations:
 
 ```pseudocode
 class MissionPlanner
     function PlanMission(objective, availableForces, battlefield)
         plan = MissionPlan()
-        
+
         // Phase 1: Reconnaissance
         plan.AddPhase(
             name: "Phase 1: Recon",
@@ -1588,7 +1499,7 @@ class MissionPlanner
                 Task(type: Identify, target: enemyPositions)
             ]
         )
-        
+
         // Phase 2: Approach and positioning
         plan.AddPhase(
             name: "Phase 2: Positioning",
@@ -1597,7 +1508,7 @@ class MissionPlanner
                 Task(type: Establish, objective: BaseOfFire)
             ]
         )
-        
+
         // Phase 3: Assault
         plan.AddPhase(
             name: "Phase 3: Assault",
@@ -1607,17 +1518,17 @@ class MissionPlanner
                 Task(type: Consolidate, position: objective)
             ]
         )
-        
+
         // Assign forces to phases
         for phase in plan.phases
             phase.assignedForces = AllocateForces(phase, availableForces)
-        
+
         return plan
 ```
 
 ### 14.6.4 Reinforcement Learning (Optional Discussion)
 
-While traditional AI uses handcrafted rules, reinforcement learning (RL) offers the potential for AI that learns optimal tactics through experience.
+Traditional AI relies on handcrafted rules, but reinforcement learning (RL) enables AI to learn optimal tactics through experience.
 
 **RL for Tactical Decisions**:
 
@@ -1627,14 +1538,14 @@ class TacticalRLAgent
     state: TacticalState      // Position, cover, enemies, etc.
     action: TacticalAction    // Move, Shoot, Hide, etc.
     reward: float             // Casualties inflicted, survival, objective progress
-    
+
     function ChooseAction(state): Action
         // Epsilon-greedy: explore or exploit
         if random() < epsilon
             return RandomAction()  // Explore
         else
             return QTable.BestAction(state)  // Exploit
-    
+
     function Learn(state, action, reward, nextState)
         // Q-learning update
         oldQ = QTable.Get(state, action)
@@ -1644,11 +1555,11 @@ class TacticalRLAgent
 ```
 
 **Challenges for Tactical RL**:
-1. **State Space Size**: Tactical situations have enormous state spaces
+1. **State Space Size**: Tactical situations create enormous state spaces
 2. **Credit Assignment**: Determining which action led to victory
 3. **Training Time**: Requires millions of simulated battles
-4. **Explainability**: RL agents are black boxes
-5. **Determinism**: RL introduces non-determinism (problematic for multiplayer)
+4. **Explainability**: RL agents operate as black boxes
+5. **Determinism**: RL introduces non-determinism, problematic for multiplayer
 
 **Practical RL Applications**:
 - **Offline Training**: Train AI against itself in simulation
@@ -1661,584 +1572,342 @@ class TacticalRLAgent
 
 ### 14.7.1 Why Determinism Matters
 
-Determinism—the property that the same inputs always produce the same outputs—is crucial for:
+Deterministic AI ensures:
+- **Multiplayer Synchronization**: All clients see identical AI behavior
+- **Replay Systems**: Recorded games play back exactly as they occurred
+- **Debugging**: The same inputs always produce the same outputs, making bugs reproducible
+- **Fairness**: Players experience consistent AI behavior across sessions
 
-1. **Multiplayer Synchronization**: All clients must see identical game states
-2. **Replay Systems**: Recordings must play back identically
-3. **Debugging**: Bugs must be reproducible
-4. **Fairness**: AI shouldn't exploit randomness unfairly
+### 14.7.2 Sources of Non-Determinism
 
-**OpenCombat's Deterministic Design**:
+Common causes of non-determinism include:
 
-```rust
-// Deterministic random number generator
-struct DeterministicRNG {
-    seed: u64,
-}
+1. **Floating-Point Operations**
+   - Compilers may reorder operations differently
+   - CPU architectures (x86 vs ARM) produce slightly different results
+   - Vectorization alters operation order
 
-impl DeterministicRNG {
-    fn new(seed: u64) -> Self {
-        Self { seed }
-    }
-    
-    fn next(&mut self) -> u64 {
-        // Linear congruential generator (deterministic)
-        self.seed = self.seed.wrapping_mul(6364136223846793005).wrapping_add(1);
-        self.seed
-    }
-    
-    fn random_float(&mut self) -> f32 {
-        (self.next() as f32) / (u64::MAX as f32)
-    }
-}
+2. **Random Number Generation**
+   - Unseeded RNG generates different sequences each run
+   - Thread-local RNG advances unpredictably
+   - Hardware random sources are inherently non-deterministic
 
-// Usage in AI
-fn make_random_decision(rng: &mut DeterministicRNG, options: &[Action]) -> Action {
-    let index = (rng.random_float() * options.len() as f32) as usize;
-    options[index]
-}
+3. **Timing Dependencies**
+   - Logic tied to frame rate
+   - Real-time timers instead of simulation time
+   - Async operations completing in unpredictable orders
+
+4. **Data Structure Iteration**
+   - Hash map iteration order varies by implementation
+   - Unstable sorting algorithms
+   - Pointer-based ordering
+
+### 14.7.3 Achieving Determinism
+
+**Use Fixed-Point Math**:
+```pseudocode
+// Instead of floating point
+float distance = sqrt(dx*dx + dy*dy)  // Non-deterministic
+
+// Use fixed-point integers
+int32 distance = FixedPointSqrt(dx*dx + dy*dy)  // Deterministic
+
+// Or use deterministic FP libraries that control rounding
 ```
 
-### 14.7.2 Random Seed Management
+**Seeded Random Number Generation**:
+```pseudocode
+class DeterministicRNG
+    seed: uint64
 
-For deterministic behavior, all random decisions must use a controlled seed:
+    function Random(): float
+        // Linear congruential generator (deterministic)
+        seed = (seed * 1103515245 + 12345) % 2^31
+        return seed / 2^31
+
+    function RandomRange(min, max): float
+        return min + Random() * (max - min)
+
+    function SetSeed(newSeed)
+        seed = newSeed
+
+// Usage
+rng = DeterministicRNG(seed: battleSeed + soldier.id)
+decisionRoll = rng.RandomRange(0, 100)
+```
+
+**Simulation Time Instead of Real Time**:
+```pseudocode
+class SimulationClock
+    currentTime: float  // Simulation seconds, not real seconds
+    timeStep: float     // Fixed timestep (e.g., 1/60)
+
+    function Tick()
+        currentTime += timeStep
+
+    function Now(): float
+        return currentTime
+
+// AI updates use simulation time
+if (clock.Now() - lastDecisionTime) > decisionInterval
+    MakeDecision()
+```
+
+**Deterministic Data Structures**:
+```pseudocode
+// Use sorted structures with deterministic ordering
+sortedEnemies = enemies.SortBy(id)  // Sort by stable key
+
+// Or iterate in deterministic order
+for id in sortedEnemyIds
+    enemy = enemies[id]
+    // Process enemy...
+```
+
+### 14.7.4 Testing for Determinism
 
 ```pseudocode
-class DeterministicAI
-    seed: u64
-    rng: DeterministicRNG
-    
-    function Initialize(seed: u64)
-        self.seed = seed
-        self.rng = DeterministicRNG(seed)
-    
-    function MakeDecision(context): Action
-        // All randomness goes through rng
-        if ShouldAddNoise(rng)
-            return SelectRandomly(rng, context.validActions)
-        else
-            return SelectBest(context.validActions)
-    
-    function AdvanceSeed()
-        // Advance seed deterministically
-        self.seed = Hash(self.seed, frameNumber)
-        self.rng = DeterministicRNG(self.seed)
+class DeterminismTest
+    function RunDeterminismTest(scenario, seed, frames)
+        // Run simulation twice with same seed
+        world1 = CreateWorld(scenario, seed)
+        world2 = CreateWorld(scenario, seed)
+
+        for i in 0..frames
+            Update(world1)
+            Update(world2)
+
+            // Check state equality periodically
+            if i % 60 == 0  // Every second at 60fps
+                hash1 = HashWorldState(world1)
+                hash2 = HashWorldState(world2)
+
+                if hash1 != hash2
+                    LogDivergence(world1, world2, i)
+                    return false
+
+        return true
 ```
-
-**Synchronization Strategy**:
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    DETERMINISTIC MULTIPLAYER SYNC                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  SERVER                                          CLIENT                 │
-│  ───────                                         ──────                 │
-│                                                                         │
-│  Frame N:                                    Frame N:                   │
-│  ┌─────────────┐                            ┌─────────────┐            │
-│  │ Receive     │                            │ Receive     │            │
-│  │ Player      │                            │ Player      │            │
-│  │ Inputs      │                            │ Inputs      │            │
-│  └──────┬──────┘                            └──────┬──────┘            │
-│         │                                          │                    │
-│         ▼                                          ▼                    │
-│  ┌─────────────┐                            ┌─────────────┐            │
-│  │ Seed: 1234  │                            │ Seed: 1234  │            │
-│  │ AI Decision │                            │ AI Decision │            │
-│  │ (Determin.) │                            │ (Determin.) │            │
-│  └──────┬──────┘                            └──────┬──────┘            │
-│         │                                          │                    │
-│         │ Both produce identical results           │                    │
-│         ▼                                          ▼                    │
-│  ┌─────────────┐                            ┌─────────────┐            │
-│  │ State Hash  │◄──────────────────────────►│ State Hash  │            │
-│  │ 0xA7B3...   │      Compare               │ 0xA7B3...   │            │
-│  └─────────────┘                            └─────────────┘            │
-│                                                                         │
-│  If hashes match: simulation is synchronized                           │
-│  If mismatch: client must re-synchronize from server                   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### 14.7.3 Sequencing Guarantees
-
-For determinism, AI decisions must be processed in a consistent order:
-
-```rust
-fn tick_ai_system(world: &mut World, rng: &mut DeterministicRNG) {
-    // Process soldiers in deterministic order (by index)
-    let mut soldier_indices: Vec<SoldierIndex> = world.all_soldiers().collect();
-    soldier_indices.sort();  // Ensure consistent ordering
-    
-    for soldier_idx in soldier_indices {
-        // Each AI decision advances the RNG
-        let decision = make_ai_decision(
-            world.soldier(soldier_idx),
-            world,
-            rng
-        );
-        
-        apply_decision(world, soldier_idx, decision);
-    }
-}
-```
-
-**Determinism Checklist**:
-
-- [ ] Use fixed-point math or consistent floating-point operations
-- [ ] Seed random number generators deterministically
-- [ ] Process entities in sorted order
-- [ ] Avoid unordered data structures (HashMap iteration)
-- [ ] Use consistent time steps
-- [ ] Synchronize floating-point precision across platforms
 
 ---
 
 ## 14.8 AI Difficulty Levels
 
-### 14.8.1 Accuracy Modifiers
+### 14.8.1 Dimensions of Difficulty
 
-Adjusting AI accuracy provides a straightforward difficulty tuning mechanism:
+AI difficulty adjusts across several independent dimensions:
 
+| Dimension           | Easy AI     | Normal AI  | Hard AI    |
+| ------------------- | ----------- | ---------- | ---------- |
+| **Accuracy**            | -30%        | 0%         | +15%       |
+| **Reaction Time**       | 1.5s        | 0.8s       | 0.3s       |
+| **Information**         | Limited FoV | Normal FoV | +25% range |
+| **Tactical Skill**      | Basic       | Standard   | Advanced   |
+| **Resource Efficiency** | Wasteful    | Normal     | Optimal    |
+
+### 14.8.2 Implementation Approaches
+
+**Parameter Modulation**:
 ```pseudocode
-class DifficultySettings
-    function CalculateAimAccuracy(baseAccuracy, difficulty): float
-        match difficulty
-            Easy ->
-                return baseAccuracy * 0.6  // -40% accuracy
-            Normal ->
-                return baseAccuracy * 0.9  // -10% accuracy
-            Hard ->
-                return baseAccuracy * 1.0  // Normal accuracy
-            Expert ->
-                return baseAccuracy * 1.1  // +10% accuracy
-            Insane ->
-                return baseAccuracy * 1.25 // +25% accuracy
+class AIDifficultyProfile
+    accuracyModifier: float      // 0.7 to 1.15
+    reactionTimeDelay: float     // 0.3s to 1.5s
+    perceptionRangeMult: float   // 0.8 to 1.25
+    coverEvaluationBias: float   // -0.2 to 0.2
+    tacticalAggression: float    // 0.0 to 1.0
+
+function CalculateShotAccuracy(baseAccuracy, difficulty)
+    return baseAccuracy * difficulty.accuracyModifier
+
+function EvaluateReaction(soldier, stimulus, difficulty)
+    baseReaction = CalculateReactionTime(soldier, stimulus)
+    return baseReaction + difficulty.reactionTimeDelay
 ```
 
-### 14.8.2 Information Cheating
-
-Controlling AI information access affects difficulty dramatically:
-
+**Behavior Restriction**:
 ```pseudocode
-class InformationAccessController
-    function CanSeeEnemy(ai, enemy, difficulty): bool
-        // Check base visibility
-        baseVisible = HasLineOfSight(ai, enemy)
-        
-        match difficulty
-            Easy ->
-                // AI only sees what player sees
-                return baseVisible and enemy.revealedToPlayer
-            
-            Normal ->
-                // Fair play - same LoS rules
-                return baseVisible
-            
-            Hard ->
-                // AI can "hear" nearby enemies
-                if baseVisible
-                    return true
-                distance = Distance(ai, enemy)
-                if distance < HEARING_RANGE and enemy.isMoving
-                    return true  // AI heard movement
-                return false
-            
-            Expert ->
-                // AI has perfect memory of last known positions
-                if baseVisible
-                    ai.memory[enemy.id] = enemy.position
-                    return true
-                if ai.memory.Contains(enemy.id)
-                    and TimeSince(ai.memory[enemy.id]) < MEMORY_DURATION
-                    return true  // AI "remembers" enemy position
-                return false
+class TacticalAI
+    function EvaluateTactics(squad, difficulty)
+        allTactics = [
+            DirectAssault,
+            SuppressAndFlank,
+            BoundAndOverwatch,
+            RetreatAndReorganize
+        ]
+
+        // Filter tactics by difficulty
+        allowedTactics = FilterByDifficulty(allTactics, difficulty)
+
+        // Score available tactics
+        bestTactic = null
+        bestScore = -infinity
+
+        for tactic in allowedTactics
+            score = tactic.Evaluate(squad)
+            if score > bestScore
+                bestScore = score
+                bestTactic = tactic
+
+        return bestTactic
 ```
 
-### 14.8.3 Decision Delays
-
-Adding delays to AI decisions simulates human reaction time:
-
+**Resource Cheating (Last Resort)**:
 ```pseudocode
-class DecisionDelayController
-    function GetDecisionDelay(difficulty): Duration
-        match difficulty
-            Easy -> return Duration::from_millis(800)  // Slow reactions
-            Normal -> return Duration::from_millis(400)  // Human-like
-            Hard -> return Duration::from_millis(200)  // Fast reactions
-            Expert -> return Duration::from_millis(50)  // Near-instant
-    
-    function ShouldMakeDecisionNow(ai, difficulty): bool
-        if not ai.decisionTimer.IsReady()
-            return false
-        
-        ai.decisionTimer.Reset(GetDecisionDelay(difficulty))
-        return true
+// Hard AI gets subtle bonuses without player knowledge
+function CalculateAmmunitionConsumption(difficulty, baseAmount)
+    if difficulty == Easy
+        return baseAmount * 1.2  // AI wastes ammo
+    else if difficulty == Hard
+        return baseAmount * 0.9  // AI conserves ammo
+    else
+        return baseAmount
+
+// Avoid obvious cheating
+// if difficulty == Hard
+//     aiAccuracy = 1.0  // Perfect aim breaks immersion
 ```
 
-### 14.8.4 Tactical Sophistication
+### 14.8.3 Dynamic Difficulty Adjustment
 
-Higher difficulty levels can use more sophisticated tactics:
+For single-player campaigns, dynamic difficulty works well:
 
 ```pseudocode
-class TacticalSophisticationController
-    function GetTacticalOptions(difficulty): TacticalComplexity
-        match difficulty
-            Easy ->
-                return TacticalComplexity {
-                    usesCover: true,
-                    usesFlanking: false,
-                    coordinatesSquads: false,
-                    suppresses: false,
-                    retreatsWhenOvermatched: true,
-                    usesSmoke: false,
-                }
-            
-            Normal ->
-                return TacticalComplexity {
-                    usesCover: true,
-                    usesFlanking: true,
-                    coordinatesSquads: false,
-                    suppresses: true,
-                    retreatsWhenOvermatched: true,
-                    usesSmoke: false,
-                }
-            
-            Hard ->
-                return TacticalComplexity {
-                    usesCover: true,
-                    usesFlanking: true,
-                    coordinatesSquads: true,
-                    suppresses: true,
-                    retreatsWhenOvermatched: true,
-                    usesSmoke: true,
-                }
-            
-            Expert ->
-                return TacticalComplexity {
-                    usesCover: true,
-                    usesFlanking: true,
-                    coordinatesSquads: true,
-                    suppresses: true,
-                    retreatsWhenOvermatched: true,
-                    usesSmoke: true,
-                    usesRecon: true,
-                    adaptsToPlayerTactics: true,
-                }
+class DynamicDifficultyAdjuster
+    playerPerformanceHistory: List<float>  // Recent mission scores
+
+    function UpdateDifficulty(currentDifficulty)
+        avgPerformance = Average(playerPerformanceHistory[-5:])
+
+        if avgPerformance < 0.3  // Player struggling
+            newDifficulty = currentDifficulty.Easier()
+            NotifyPlayer("Difficulty adjusted to help you succeed")
+        else if avgPerformance > 0.8  // Player dominating
+            newDifficulty = currentDifficulty.Harder()
+            // Silent adjustment maintains player confidence
+
+        return newDifficulty
 ```
-
-**Difficulty Level Summary**:
-
-| Difficulty | Accuracy | Info Access | Decision Speed | Tactics |
-|------------|----------|-------------|----------------|---------|
-| **Easy** | -40% | Same as player | 800ms delay | Basic cover only |
-| **Normal** | -10% | Fair play | 400ms delay | Cover + flanking |
-| **Hard** | Normal | Extended hearing | 200ms delay | Coordinated squads |
-| **Expert** | +10% | Perfect memory | 50ms delay | Full tactical playbook |
-| **Insane** | +25% | Near-perfect info | Instant | Adaptive + predictive |
 
 ---
 
 ## 14.9 Implementation Guide
 
-### 14.9.1 Recommended Architecture for New Projects
+### 14.9.1 Getting Started: Minimum Viable AI
 
-Based on the analysis of the three Close Combat clones, here is a recommended hybrid architecture:
+For new projects, begin with the simplest implementation:
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│           RECOMMENDED AI ARCHITECTURE FOR TACTICAL WARGAMES              │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  DATA LAYER                                                             │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • Unit definitions (JSON/YAML)                                    │   │
-│  │ • Behavior configurations                                         │   │
-│  │ • Difficulty settings                                             │   │
-│  │ • Tactical doctrine scripts                                       │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  STRATEGIC AI                                                           │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ HTN or GOAP Planner                                               │   │
-│  │ • Mission planning                                                │   │
-│  │ • Resource allocation                                             │   │
-│  │ • High-level tactics                                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  TACTICAL AI                                                            │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ Squad Coordination System                                         │   │
-│  │ • Formation management                                            │   │
-│  │ • Fire and maneuver                                             │   │
-│  │ • Synchronization                                                 │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  UNIT AI                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ Behavior Trees + Utility AI                                       │   │
-│  │ • Reactive behaviors (trees)                                      │   │
-│  │ • Target selection (utility)                                      │   │
-│  │ • Position evaluation (utility)                                   │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  PERCEPTION SYSTEM                                                      │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • Line of sight calculations                                      │   │
-│  │ • Fog of war integration                                          │   │
-│  │ • Information sharing (squad)                                   │   │
-│  │ • Threat evaluation (feeling system)                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              ↓                                          │
-│  EXECUTION LAYER                                                        │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • Action queuing                                                  │   │
-│  │ • Animation integration                                           │   │
-│  │ • State machines                                                  │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### 14.9.2 Code Examples in Pseudocode
-
-**Complete Soldier AI System**:
-
+**Phase 1: FSM (Week 1)**
 ```pseudocode
-// Main AI update loop
-class SoldierAI
-    soldier: Soldier
-    behaviorTree: BehaviorTree
-    perception: PerceptionSystem
-    memory: AIMemory
-    
-    function Update(deltaTime, world)
-        // 1. Perception update
-        perception.Update(soldier, world)
-        
-        // 2. Update memory
-        UpdateMemory(perception, memory)
-        
-        // 3. Evaluate threats
-        threats = EvaluateThreats(perception, memory)
-        
-        // 4. Run behavior tree
-        context = AIContext(soldier, perception, memory, threats)
-        behaviorTree.Execute(context)
-        
-        // 5. Execute actions
-        soldier.ExecuteCurrentAction(deltaTime)
+enum State
+    Idle
+    Moving
+    Attacking
 
-// Behavior tree definition
-class SoldierBehaviorTree
-    function Build()
-        root = Selector([
-            // Priority 1: Survival
-            BuildSurvivalBranch(),
-            
-            // Priority 2: Combat
-            BuildCombatBranch(),
-            
-            // Priority 3: Orders
-            BuildOrdersBranch(),
-            
-            // Priority 4: Idle
-            BuildIdleBranch()
-        ])
-        return root
-    
-    function BuildSurvivalBranch()
-        return Sequence([
-            Condition(IsUnderHeavyFire),
-            Selector([
-                Sequence([
-                    Condition(HasNearbyCover),
-                    Action(SeekCover)
-                ]),
-                Action(ReturnFire)
-            ])
-        ])
-    
-    function BuildCombatBranch()
-        return Sequence([
-            Condition(CanSeeEnemy),
-            Selector([
-                Sequence([
-                    Condition(IsInGoodPosition),
-                    Action(EngageTarget)
-                ]),
-                Sequence([
-                    Condition(NeedsBetterPosition),
-                    Action(MoveToBetterPosition)
-                ]),
-                Action(SuppressArea)
-            ])
-        ])
-
-// Target selection using utility AI
-class TargetSelector
-    function SelectBestTarget(soldier, visibleEnemies, world)
-        bestTarget = null
-        bestScore = 0.0
-        
-        for enemy in visibleEnemies
-            score = 0.0
-            
-            // Distance consideration (inverse - closer is better)
-            distance = Distance(soldier, enemy)
-            score += (1.0 / (1.0 + distance / 50.0)) * 1.0
-            
-            // Threat consideration
-            threat = enemy.CalculateThreatLevel()
-            score += (threat / 100.0) * 0.8
-            
-            // Vulnerability consideration
-            if not enemy.IsInCover()
-                score += 0.5
-            
-            // Weapon effectiveness
-            effectiveness = CalculateWeaponEffectiveness(soldier.weapon, distance)
-            score += effectiveness * 0.6
-            
-            if score > bestScore
-                bestScore = score
-                bestTarget = enemy
-        
-        return bestTarget
-
-// Cover evaluation
-class CoverEvaluator
-    function EvaluateCover(position, soldier, world)
-        score = 0.0
-        
-        // Check protection from known enemies
-        for enemy in soldier.knownEnemies
-            if HasLineOfSight(enemy.position, position)
-                score -= 1.0  // Penalty for exposure
+function Update()
+    switch state
+        case Idle:
+            if EnemyInRange()
+                state = Attacking
+        case Attacking:
+            if not EnemyInRange()
+                state = Idle
             else
-                coverValue = CalculateCoverPercentage(enemy.position, position)
-                score += coverValue
-        
-        // Check if position offers fields of fire
-        visibleEnemies = CountVisibleEnemies(position, world)
-        score += visibleEnemies * 0.3
-        
-        // Check retreat routes
-        retreatRoutes = CountRetreatRoutes(position, world)
-        score += retreatRoutes * 0.2
-        
-        // Check proximity to squad
-        if soldier.hasSquad
-            squadDistance = DistanceToSquad(position, soldier.squad)
-            score += (1.0 / (1.0 + squadDistance / 30.0)) * 0.4
-        
-        return score
+                FireAtTarget()
 ```
 
-**Squad Coordination**:
+**Phase 2: Add Perception (Week 2)**
+- Line of sight checks
+- Distance-based detection
+- Simple cover evaluation
 
-```pseudocode
-class SquadAI
-    squad: Squad
-    tacticalGoal: TacticalGoal
-    
-    function Update(world)
-        match tacticalGoal.type
-            MoveTo(destination) ->
-                ExecuteMovementFormation(destination)
-            
-            Engage(enemySquad) ->
-                ExecuteFireAndManeuver(enemySquad)
-            
-            Defend(area) ->
-                ExecuteDefensePosture(area)
-            
-            Retreat(rallyPoint) ->
-                ExecuteFightingRetreat(rallyPoint)
-    
-    function ExecuteFireAndManeuver(enemySquad)
-        // Split squad into fire and maneuver elements
-        (fireTeam, maneuverTeam) = SplitSquad(squad)
-        
-        // Position fire team
-        for soldier in fireTeam
-            coverPosition = FindBestSuppressPosition(soldier, enemySquad)
-            soldier.Order(MoveTo(coverPosition))
-        
-        // Wait for fire team in position
-        WaitUntilInPosition(fireTeam)
-        
-        // Begin suppression
-        for soldier in fireTeam
-            soldier.Order(SuppressFire(CenterOf(enemySquad)))
-        
-        // Maneuver team advances
-        for soldier in maneuverTeam
-            flankPosition = FindFlankingPosition(soldier, enemySquad)
-            soldier.Order(MoveFastTo(flankPosition))
-        
-        // Wait for maneuver team
-        WaitUntilInPosition(maneuverTeam)
-        
-        // Transition to direct engagement
-        for soldier in squad.members
-            soldier.Order(EngageSquad(enemySquad))
+**Phase 3: Add Reactivity (Week 3-4)**
+- Cover seeking under fire
+- Basic suppression response
+- Self-preservation behaviors
+
+**Phase 4: Add Coordination (Month 2)**
+- Squad-level tactics
+- Formation management
+- Fire and maneuver
+
+**Phase 5: Polish (Ongoing)**
+- Behavior trees for complex behaviors
+- Utility AI for decision scoring
+- Strategic layer
+
+### 14.9.2 Recommended Architecture for New Projects
+
+Based on analysis of three clones, a hybrid approach works best:
+
+```mermaid
+mindmap
+  root((AIController))
+    PerceptionSystem["PerceptionSystem - LoS, hearing, memory"]
+    DecisionSystem["DecisionSystem - Behavior Tree or GOAP"]
+    TacticalSystem["TacticalSystem - Squad coordination"]
+    ExecutionSystem["ExecutionSystem - Gesture/action timing"]
+  
+  root2((AIBehaviorConfig))
+    perception_ranges["perception_ranges"]
+    reaction_times["reaction_times"]
+    cover_preferences["cover_preferences"]
+    threat_thresholds["threat_thresholds"]
+    tactical_weights["tactical_weights"]
 ```
 
-### 14.9.3 Testing AI Behavior
+**Technology Stack Recommendations**:
 
-Systematic testing is essential for AI quality:
+| Component       | Recommended    | Alternatives     |
+| --------------- | -------------- | ---------------- |
+| Core AI         | Behavior Trees | GOAP, Utility    |
+| Pathfinding     | A* + JPS       | Theta*, RRT      |
+| Spatial Queries | Uniform Grid   | Quadtree, R-tree |
+| Decision Making | Utility + BT   | Pure GOAP        |
+| Scripting       | Lua            | C#, Python       |
 
+### 14.9.3 Testing AI
+
+**Unit Tests**:
 ```pseudocode
 class AITestSuite
-    function RunAllTests()
-        TestCoverSeeking()
-        TestSuppressionResponse()
-        TestFlankingBehavior()
-        TestRetreatLogic()
-        TestSquadCoordination()
-        TestDeterminism()
-    
     function TestCoverSeeking()
         // Setup: Soldier under fire with nearby cover
         soldier = CreateSoldier(position: (100, 100))
         cover = CreateCover(position: (120, 100))
         enemy = CreateEnemy(position: (50, 100))
-        
+
         // Simulate enemy fire
         FireAt(soldier, enemy)
-        
+
         // Update AI
         for i in 0..10
             soldier.AI.Update()
-        
+
         // Verify: Soldier should move to cover
         assert(IsInCover(soldier, cover))
-    
+
     function TestDeterminism()
         // Setup: Same scenario, same seed
         world1 = CreateWorld(seed: 12345)
         world2 = CreateWorld(seed: 12345)
-        
+
         // Run identical simulations
         for i in 0..100
             Update(world1)
             Update(world2)
-        
+
         // Verify: States should be identical
         assert(world1.Hash() == world2.Hash())
-    
+
     function TestSuppressionResponse()
         // Setup: Squad under heavy suppression
         squad = CreateSquad(size: 6)
         mg = CreateMachineGun()
-        
+
         // Suppress with machine gun
         for i in 0..30
             SuppressFire(mg, squad.Center())
-        
+
         // Verify: Squad should seek cover or retreat
         assert(CountInCover(squad) > 3 or IsRetreating(squad))
 ```
@@ -2251,17 +1920,17 @@ class AIDebugVisualizer
         for soldier in world.soldiers
             // Draw perception radius
             renderer.DrawCircle(soldier.position, soldier.perceptionRange, Color.Yellow)
-            
+
             // Draw LoS to visible enemies
             for enemy in soldier.visibleEnemies
                 if HasLineOfSight(soldier, enemy)
                     renderer.DrawLine(soldier.position, enemy.position, Color.Green)
                 else
                     renderer.DrawLine(soldier.position, enemy.position, Color.Red)
-            
+
             // Draw current behavior
             renderer.DrawText(soldier.position, soldier.currentBehavior.ToString())
-            
+
             // Draw cover evaluation
             for cover in FindNearbyCover(soldier, radius: 50)
                 score = EvaluateCover(cover, soldier, world)
@@ -2271,37 +1940,37 @@ class AIDebugVisualizer
 
 ### 14.9.4 Key Takeaways
 
-1. **Start Simple**: Begin with FSM or simple behavior trees, add complexity incrementally
-2. **Separate Concerns**: Keep perception, decision-making, and execution distinct
-3. **Test Determinism**: If multiplayer matters, test determinism from day one
-4. **Visualize Everything**: Debug visualizers are essential for AI development
-5. **Use the Right Tool**: Behavior trees for reactivity, GOAP/HTN for planning, Utility for fuzzy decisions
-6. **Balance Fairness**: AI should be challenging but not omniscient
-7. **Modulate Difficulty**: Multiple knobs (accuracy, info, speed, tactics) for fine-tuning
-8. **Model Emotion**: Systems like OpenCombat's "Feeling" add believability
-9. **Coordinate at Squad Level**: Individual AI + squad coordination = emergent tactics
-10. **Profile Early**: AI can become expensive; profile and optimize hotspots
+1. Start simple with FSM or basic behavior trees, then add complexity
+2. Keep perception, decision-making, and execution separate
+3. Test determinism from the beginning if multiplayer matters
+4. Debug visualizers are essential for AI development
+5. Choose the right tool: behavior trees for reactivity, GOAP for planning, utility for fuzzy decisions
+6. AI should challenge players without feeling omniscient
+7. Use multiple difficulty knobs (accuracy, information, speed, tactics) for fine-tuning
+8. Emotional modeling systems like OpenCombat's "Feeling" add believability
+9. Combine individual AI with squad coordination for emergent tactics
+10. Profile early—AI can become computationally expensive
 
 ---
 
 ## Chapter Summary
 
-This chapter examined AI systems in tactical wargames through the lens of three Close Combat clones, each representing a different point on the sophistication spectrum:
+This chapter explored AI systems in tactical wargames through three Close Combat clones, each representing a different approach:
 
-- **OpenCombat-SDL** demonstrates that no AI can be a valid design choice when player control is paramount
-- **CloseCombatFree** shows how simple state triggers provide basic automation without complexity
-- **OpenCombat** illustrates how reactive systems with emotional modeling create believable soldier behaviors
+- **OpenCombat-SDL** shows that no AI can work when player control is the priority
+- **CloseCombatFree** demonstrates how simple state triggers provide basic automation
+- **OpenCombat** reveals how reactive systems with emotional modeling create believable soldier behaviors
 
-The key architectural decisions for tactical AI include:
-1. **Perception systems** that balance fairness with challenge
-2. **Decision architectures** appropriate to the complexity needs (Behavior Trees, GOAP, Utility AI)
-3. **Tactical coordination** for squad-level operations
-4. **Strategic planning** for higher-level battle management
-5. **Determinism** for multiplayer and replay systems
-6. **Difficulty modulation** through multiple tunable parameters
+Key architectural decisions for tactical AI include:
+1. Perception systems that balance fairness with challenge
+2. Decision architectures suited to complexity needs (Behavior Trees, GOAP, Utility AI)
+3. Tactical coordination for squad operations
+4. Strategic planning for higher-level battle management
+5. Determinism for multiplayer and replay systems
+6. Difficulty modulation through multiple tunable parameters
 
-For new implementations, a hybrid approach combining systems-oriented core simulation with behavior trees for reactive behaviors and utility AI for scoring decisions offers the best balance of power, flexibility, and maintainability.
+For new implementations, a hybrid approach combining systems-oriented core simulation with behavior trees for reactive behaviors and utility AI for decision scoring offers the best balance of power, flexibility, and maintainability.
 
 ---
 
-**Next**: Chapter 15 - Multiplayer and Networking Systems
+*Next: [Chapter 15: Multiplayer Architecture for Tactical Wargames](chapter_15_multiplayer.md)*

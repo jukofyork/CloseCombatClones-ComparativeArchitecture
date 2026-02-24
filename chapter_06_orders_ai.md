@@ -2,31 +2,32 @@
 
 ## 6.1 The Intent-to-Action Pipeline
 
-In tactical wargames, the journey from player thought to unit movement traverses multiple abstraction layers. Understanding this pipeline is essential for game designers seeking to create responsive yet believable command systems.
+Tactical wargames transform player commands into unit movement through layered abstraction. Game designers must understand this pipeline to build command systems that feel responsive yet believable.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    COMMAND ABSTRACTION HIERARCHY                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│   PLAYER INTENT        "Take that hill!"                          │
-│          │                                                        │
-│          ▼                                                        │
-│   ORDERS (Strategic)  High-level objectives with intent           │
-│   • Timescale: Minutes • Authority: Player                        │
-│          │                                                        │
-│          ▼                                                        │
-│   BEHAVIORS (Tactical) Reactive decision-making systems           │
-│   • Timescale: Seconds • Authority: AI/System                     │
-│          │                                                        │
-│          ▼                                                        │
-│   ACTIONS (Physical)   Animation state machines                   │
-│   • Timescale: Milliseconds • Authority: Animation System         │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Hierarchy["COMMAND ABSTRACTION HIERARCHY"]
+        direction TB
+        
+        PI["<b>PLAYER INTENT</b><br/>'Take that hill!'"]
+        
+        ORDERS["<b>ORDERS (Strategic)</b><br/>High-level objectives with intent<br/>• Timescale: Minutes<br/>• Authority: Player"]
+        
+        BEHAVIORS["<b>BEHAVIORS (Tactical)</b><br/>Reactive decision-making systems<br/>• Timescale: Seconds<br/>• Authority: AI/System"]
+        
+        ACTIONS["<b>ACTIONS (Physical)</b><br/>Animation state machines<br/>• Timescale: Milliseconds<br/>• Authority: Animation System"]
+        
+        PI --> ORDERS --> BEHAVIORS --> ACTIONS
+    end
+    
+    style Hierarchy fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style PI fill:#e1f5fe,stroke:#01579b
+    style ORDERS fill:#fff3e0,stroke:#e65100
+    style BEHAVIORS fill:#f3e5f5,stroke:#4a148c
+    style ACTIONS fill:#e8f5e9,stroke:#1b5e20
 ```
 
-The three Close Combat clones approach this hierarchy differently, revealing fundamental trade-offs between player control and AI autonomy.
+Close Combat clones implement this hierarchy in distinct ways, each balancing player control against AI autonomy.
 
 ---
 
@@ -34,7 +35,7 @@ The three Close Combat clones approach this hierarchy differently, revealing fun
 
 ### 6.2.1 OpenCombat-SDL: The Pragmatic Two-Tier System
 
-OpenCombat-SDL adopts a straightforward separation between **Orders** (what the player wants) and **Actions** (what the unit does). This design prioritizes predictability over sophistication.
+OpenCombat-SDL divides gameplay into **Orders** (player intent) and **Actions** (unit execution). This approach favors predictability over complexity.
 
 **Core Architecture:**
 
@@ -48,7 +49,7 @@ class OrderSystem
         Ambush(arc)
         Defend(arc)
         DeploySmoke(target)
-    
+
     // Actions represent physical execution
     enum ActionType
         WalkTo(destination)
@@ -58,15 +59,15 @@ class OrderSystem
         ProneAndFire(target)
         Reload
         TakeCover
-        
+
 class Soldier
     Queue<Order> orders          // High-level commands
     Queue<Action> actionQueue    // Low-level execution
     State currentState
-    
+
     function AddOrder(order)
         orders.enqueue(order)
-        
+
     function ProcessOrders()
         if orders not empty
             order = orders.peek()
@@ -77,48 +78,46 @@ class Soldier
 
 **Automatic Prerequisite Resolution:**
 
-The system's most elegant feature is its automatic handling of prerequisite states. When a player orders a soldier to fire, the system silently inserts required actions:
+The system automatically handles state requirements. When a player orders a soldier to fire, the engine inserts necessary preparation steps:
 
 ```pseudocode
 function AddAction(action)
     // Check what state we need to be in for this action
     requiredState = GetRequiredState(action.type)
-    
+
     // Build prerequisite chain
     while currentState != requiredState
         prereq = DeterminePrerequisite(currentState, requiredState)
         actionQueue.push_front(prereq)
         currentState = GetResultState(prereq)
-    
+
     // Now add the original action
     actionQueue.push_back(action)
 ```
 
-*Example flow*: Player orders "Fire at enemy" → System detects soldier is prone with empty magazine → Automatically inserts: StandUp → Reload → FireAtTarget.
+*Example flow*: A "Fire at enemy" command triggers automatic sequences when needed—StandUp → Reload → FireAtTarget—if the soldier is prone with an empty magazine.
 
 **Formation-Based Movement:**
 
-OpenCombat-SDL optimizes pathfinding by calculating one path per squad rather than per soldier:
+OpenCombat-SDL optimizes pathfinding by calculating one path per squad:
 
 ```pseudocode
 function HandleSquadMoveOrder(squad, destination, formation)
     // Calculate single path for point man
     leaderPath = Pathfind(squad.leader.position, destination)
     squad.pointMan.AssignPath(leaderPath)
-    
+
     // Other soldiers follow with formation offsets
     for each soldier in squad.members where soldier != squad.pointMan
         offset = formation.GetOffset(soldier.formationIndex)
         soldier.AssignFollowBehavior(squad.pointMan, offset)
 ```
 
-This approach reduces computational complexity from O(n) pathfinding operations to O(1), critical for real-time tactical games with dozens of units.
-
----
+This method reduces computational load from O(n) pathfinding operations to O(1), essential for real-time games with many units.
 
 ### 6.2.2 OpenCombat: The Three-Layer Behavior System
 
-OpenCombat introduces an intermediate **Behavior** layer between Orders and physical execution (called "Gestures"). This layer enables reactive AI while maintaining player intent.
+OpenCombat adds a **Behavior** layer between Orders and physical execution (called "Gestures"). This middle layer lets the AI react to changing conditions while still following player intent.
 
 **Core Architecture:**
 
@@ -127,7 +126,7 @@ class Order                     // Player intent
     type: OrderType
     parameters: Map
     nextOrder: Option<Order>    // Supports order chaining
-    
+
 enum OrderType
     Idle
     MoveTo(paths, nextOrder)
@@ -141,7 +140,7 @@ enum OrderType
 class Behavior                  // AI interpretation of orders
     type: BehaviorType
     posture: BodyPosition       // StandUp | Crouched | Lying
-    
+
 enum BehaviorType
     // Movement behaviors
     MoveTo(paths)
@@ -149,14 +148,14 @@ enum BehaviorType
     SneakTo(paths)
     DriveTo(paths)              // Vehicle
     RotateTo(angle)
-    
+
     // Combat behaviors
     Idle(posture)
     Defend(angle)
     Hide(angle)
     SuppressFire(point)
     EngageSoldier(soldierId)
-    
+
     // Terminal states
     Dead
     Unconscious
@@ -164,7 +163,7 @@ enum BehaviorType
 class Gesture                   // Physical execution state
     type: GestureType
     completionFrame: Frame
-    
+
 enum GestureType
     Idle
     Reloading(duration, weaponClass)
@@ -180,13 +179,13 @@ function TranslateOrderToBehavior(order, soldier, worldState)
         Idle ->
             posture = DetermineOptimalPosture(soldier, worldState)
             return Behavior.Idle(posture)
-            
+
         MoveTo(paths, _) ->
             return Behavior.MoveTo(paths)
-            
+
         Defend(angle) ->
             return Behavior.Defend(angle)
-            
+
         EngageSquad(squadId) ->
             target = SelectTargetInSquad(squadId, soldier)
             return Behavior.EngageSoldier(target)
@@ -194,7 +193,7 @@ function TranslateOrderToBehavior(order, soldier, worldState)
 
 **Dynamic Behavior Override:**
 
-The Behavior layer enables reactive AI that can override orders based on battlefield conditions:
+The Behavior layer lets the AI react to threats and override orders when necessary.
 
 ```pseudocode
 function EvaluateThreats(soldier, world)
@@ -202,13 +201,13 @@ function EvaluateThreats(soldier, world)
     visibleEnemy = FindVisibleEnemy(soldier, world)
     if visibleEnemy and CanEngage(soldier, visibleEnemy)
         return Behavior.EngageSoldier(visibleEnemy)
-    
+
     // Check if under fire
     if soldier.feeling == UnderFire(Danger)
         cover = FindNearestCover(soldier, world)
         if cover
             return Behavior.Hide(cover.direction)
-    
+
     // No immediate threats - continue with order
     return null
 
@@ -225,22 +224,35 @@ function UpdateSoldierBehavior(soldier, world)
 
 **Behavior Transition Matrix:**
 
-| From/To | MoveTo | Defend | Engage | Hide |
-|---------|--------|--------|--------|------|
-| **MoveTo** | ✓ | ✓ | ✓* | ✓* |
-| **Defend** | ✓ | - | ✓ | ✓ |
-| **Engage** | ✓* | ✓* | - | ✗ |
-| **Hide** | ✓ | ✓ | ✓ | - |
+```mermaid
+flowchart LR
+    subgraph Matrix["Behavior Transition Matrix"]
+        direction TB
+        
+        header["From/To | MoveTo | Defend | Engage | Hide"]
+        
+        row1["MoveTo | ✓ | ✓ | ✓* | ✓*"]
+        row2["Defend | ✓ | - | ✓ | ✓"]
+        row3["Engage | ✓* | ✓* | - | ✗"]
+        row4["Hide | ✓ | ✓ | ✓ | -"]
+        
+        note["* Only if enemy lost/no ammo"]
+    end
+    
+    style Matrix fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style header fill:#e3f2fd,stroke:#1565c0
+    style row1 fill:#ffffff,stroke:#999
+    style row2 fill:#f5f5f5,stroke:#999
+    style row3 fill:#ffffff,stroke:#999
+    style row4 fill:#f5f5f5,stroke:#999
+    style note fill:#fff8e1,stroke:#f57f17
+```
 
-*\* Only if enemy lost/no ammo*
-
-This matrix defines valid transitions between behaviors, preventing nonsensical state changes (e.g., engaging enemies while actively hiding).
-
----
+The matrix shows valid transitions between behaviors, blocking illogical changes like engaging enemies while actively hiding.
 
 ### 6.2.3 CloseCombatFree: The Queue-Based Sequential System
 
-CloseCombatFree adopts the simplest approach: a sequential order queue with animation-driven completion. This design prioritizes clarity and accessibility over sophisticated AI.
+CloseCombatFree uses a straightforward sequential order queue, where animation drives completion. The design favors clarity and accessibility over complex AI.
 
 **Core Architecture:**
 
@@ -249,7 +261,7 @@ class Unit
     List<Order> orders        // Sequential queue
     int currentOrderIndex     // -1 = none active
     bool isPerforming         // Lock during execution
-    
+
 class Order
     string operation          // "Move", "Move fast", "Sneak", "Attack", "Smoke"
     Point target
@@ -263,9 +275,9 @@ function QueueOrder(operation, targetX, targetY)
     order.performed = false
     order.color = GetColorForOperation(operation)
     order.number = orders.length + 1
-    
+
     orders.append(order)
-    
+
     // Start processing if not already running
     if currentOrderIndex == -1
         ProcessQueue()
@@ -275,9 +287,9 @@ function ProcessQueue()
         order = orders[i]
         if order.performed
             continue
-        
+
         currentOrderIndex = i
-        
+
         switch order.operation
             "Move" ->
                 PerformMovement(order.target, speed=1.0)
@@ -291,10 +303,10 @@ function ProcessQueue()
             "Smoke" ->
                 PerformTurretRotation(order.target)
                 isSmoking = true
-        
+
         order.performed = true
         return  // Execute one at a time
-    
+
     // All orders completed
     ClearOrderQueue()
 
@@ -308,7 +320,7 @@ function OnActionComplete()
 
 **Visual Feedback System:**
 
-CloseCombatFree excels at communicating orders to players through a consistent visual language:
+CloseCombatFree communicates orders clearly with a consistent visual language:
 
 ```pseudocode
 enum OrderColor
@@ -323,7 +335,7 @@ class OrderMarker
     int number              // Sequence number (1, 2, 3...)
     Color color             // Operation type
     bool performed          // Fade when complete
-    
+
     Render()
         if performed
             opacity = 0.3
@@ -337,36 +349,41 @@ class OrderMarker
 
 ## 6.3 The Command Chain: Authority and Delegation
 
-Tactical wargames simulate military command structures. Understanding how orders flow from player to individual units reveals design opportunities for strategic depth.
+Tactical wargames rely on military command structures. How orders move from player to individual units shapes strategic depth.
 
 ### 6.3.1 Command Hierarchy Models
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    COMMAND CHAIN MODELS                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  MODEL A: Direct Control (OpenCombat-SDL, CloseCombatFree)       │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐                        │
-│  │ Player  │───▶│  Unit   │───▶│ Soldier │                        │
-│  └─────────┘    └─────────┘    └─────────┘                        │
-│                                                                   │
-│  MODEL B: Delegated Control (OpenCombat)                         │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐         │
-│  │ Player  │───▶│  Squad  │───▶│  AI     │───▶│ Soldier │         │
-│  │         │    │ Leader  │    │ System  │    │         │         │
-│  └─────────┘    └─────────┘    └─────────┘    └─────────┘         │
-│                                                                   │
-│  MODEL C: Hierarchical (Theoretical)                             │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐         │
-│  │ Player  │───▶│ Company │───▶│  Squad  │───▶│ Soldier │         │
-│  │         │    │Commander│    │ Leader  │    │         │         │
-│  └─────────┘    └─────────┘    └─────────┘    └─────────┘         │
-│       │              │              │                             │
-│       └──────────────┴──────────────┘                             │
-│              Communication Range Limitations                      │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Models["COMMAND CHAIN MODELS"]
+        direction TB
+        
+        subgraph ModelA["MODEL A: Direct Control<br/><i>(OpenCombat-SDL, CloseCombatFree)</i>"]
+            direction LR
+            P1["👤 Player"] --> U1["📋 Unit"] --> S1["🎖️ Soldier"]
+        end
+        
+        subgraph ModelB["MODEL B: Delegated Control<br/><i>(OpenCombat)</i>"]
+            direction LR
+            P2["👤 Player"] --> L2["🎖️ Squad<br/>Leader"] --> AI2["🤖 AI<br/>System"] --> S2["🎖️ Soldier"]
+        end
+        
+        subgraph ModelC["MODEL C: Hierarchical<br/><i>(Theoretical)</i>"]
+            direction LR
+            P3["👤 Player"] --> C3["⭐ Company<br/>Commander"] --> L3["🎖️ Squad<br/>Leader"] --> S3["🎖️ Soldier"]
+        end
+        
+        ModelA --> ModelB --> ModelC
+    end
+    
+    comms["Communication Range Limitations apply to all models"]
+    Models --> comms
+    
+    style Models fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style ModelA fill:#e8f5e9,stroke:#2e7d32
+    style ModelB fill:#e3f2fd,stroke:#1565c0
+    style ModelC fill:#fff3e0,stroke:#e65100
+    style comms fill:#ffebee,stroke:#c62828
 ```
 
 ### 6.3.2 Squad Coordination Patterns
@@ -384,19 +401,19 @@ enum FormationType
 class SquadCoordinator
     function CalculateFormationPositions(formation, destination, memberCount)
         positions = []
-        
+
         match formation
             Column ->
                 for i from 0 to memberCount - 1
                     offset = (0, i * SPACING)
                     positions.append(destination + offset)
-                    
+
             Line ->
                 width = (memberCount - 1) * SPACING
                 startX = destination.x - width / 2
                 for i from 0 to memberCount - 1
                     positions.append((startX + i * SPACING, destination.y))
-                    
+
             Wedge ->
                 // Leader at point, others in expanding V
                 positions.append(destination)  // Leader
@@ -405,12 +422,12 @@ class SquadCoordinator
                     positions.append((destination.x - offset, destination.y + offset))
                     if positions.length < memberCount
                         positions.append((destination.x + offset, destination.y + offset))
-        
+
         return positions
 
     function IssueFormationOrder(squad, destination, formation)
         positions = CalculateFormationPositions(formation, destination, squad.memberCount)
-        
+
         for i, soldier in squad.members
             path = Pathfind(soldier.position, positions[i])
             soldier.AssignOrder(MoveTo(path))
@@ -424,16 +441,16 @@ function CoordinateSquadEngagement(squad, enemySquad)
     for soldier in squad.members
         if soldier.HasWeaponType(MachineGun)
             soldier.SetBehavior(SuppressFire(CenterOf(enemySquad)))
-    
+
     // Riflemen engage specific targets
     availableEnemies = enemySquad.members.Where(e => e.alive)
     riflemen = squad.members.Where(s => s.HasWeaponType(Rifle) and not s.HasWeaponType(MachineGun))
-    
+
     // Distribute targets evenly
     for i, rifleman in riflemen
         target = availableEnemies[i % availableEnemies.length]
         rifleman.SetBehavior(EngageSoldier(target))
-    
+
     // Leader maintains overview
     squad.leader.SetBehavior(Defend(Facing(enemySquad)))
 ```
@@ -442,43 +459,59 @@ function CoordinateSquadEngagement(squad, enemySquad)
 
 ## 6.4 Stance Systems: Posture and Intent
 
-Stance systems communicate unit posture and tactical intent to both players and AI systems. The three games implement stance differently, revealing trade-offs between simplicity and expressiveness.
+Stance systems show unit posture and tactical intent to players and AI. The three games handle stance in distinct ways, each balancing simplicity against expressiveness.
 
 ### 6.4.1 Stance Taxonomy
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    STANCE DIMENSIONS                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  BODY POSTURE (Physical)              COMBAT STANCE (Tactical)  │
-│  ┌──────────────┬────────────────┐    ┌─────────────────────────┐│
-│  │ Standing     │ Fast movement  │    │ Aggressive              ││
-│  │              │ Good visibility│    │ • Engage on sight       ││
-│  │              │ High exposure  │    │ • Advance while firing  ││
-│  ├──────────────┼────────────────┤    ├─────────────────────────┤│
-│  │ Crouching    │ Balanced       │    │ Defensive               ││
-│  │              │ Medium cover   │    │ • Hold position         ││
-│  │              │ Good accuracy  │    │ • Return fire only      ││
-│  ├──────────────┼────────────────┤    ├─────────────────────────┤│
-│  │ Prone        │ Maximum cover  │    │ Ambush                  ││
-│  │              │ Slow movement  │    │ • Wait for optimal shot ││
-│  │              │ Best accuracy  │    │ • Hold fire until range ││
-│  └──────────────┴────────────────┘    └─────────────────────────┘│
-│                                                                   │
-│  MOVEMENT STANCE                      ALERTNESS LEVEL             │
-│  ┌──────────────────────────┐         ┌─────────────────────────┐│
-│  │ Move      - Normal speed │         │ Relaxed                 ││
-│  │ Move Fast - Sprint, loud │         │ Cautious                ││
-│  │ Sneak     - Slow, silent │         │ Alert                   ││
-│  └──────────────────────────┘         │ Combat                  ││
-│                                       └─────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Stance["STANCE DIMENSIONS"]
+        direction TB
+        
+        subgraph BodyPosture["BODY POSTURE (Physical)"]
+            direction TB
+            standing["🧍 Standing<br/>• Fast movement<br/>• Good visibility<br/>• High exposure"]
+            crouching["🧎 Crouching<br/>• Balanced<br/>• Medium cover<br/>• Good accuracy"]
+            prone["🛏️ Prone<br/>• Maximum cover<br/>• Slow movement<br/>• Best accuracy"]
+            standing --> crouching --> prone
+        end
+        
+        subgraph CombatStance["COMBAT STANCE (Tactical)"]
+            direction TB
+            aggressive["⚔️ Aggressive<br/>• Engage on sight<br/>• Advance while firing"]
+            defensive["🛡️ Defensive<br/>• Hold position<br/>• Return fire only"]
+            ambush["👁️ Ambush<br/>• Wait for optimal shot<br/>• Hold fire until range"]
+            aggressive --> defensive --> ambush
+        end
+        
+        subgraph Movement["MOVEMENT STANCE"]
+            move["🚶 Move<br/>Normal speed"]
+            fast["🏃 Move Fast<br/>Sprint, loud"]
+            sneak["🐱 Sneak<br/>Slow, silent"]
+        end
+        
+        subgraph Alertness["ALERTNESS LEVEL"]
+            relaxed["😴 Relaxed"]
+            cautious["👀 Cautious"]
+            alert["⚡ Alert"]
+            combat["🔥 Combat"]
+            relaxed --> cautious --> alert --> combat
+        end
+        
+        BodyPosture ~~~ CombatStance
+        Movement ~~~ Alertness
+    end
+    
+    style Stance fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style BodyPosture fill:#e3f2fd,stroke:#1565c0
+    style CombatStance fill:#fff3e0,stroke:#e65100
+    style Movement fill:#e8f5e9,stroke:#2e7d32
+    style Alertness fill:#f3e5f5,stroke:#7b1fa2
 ```
 
 ### 6.4.2 OpenCombat-SDL: Implicit Stance
 
-OpenCombat-SDL derives stance implicitly from current action:
+OpenCombat-SDL determines stance from the current action:
 
 ```pseudocode
 enum SoldierState
@@ -527,7 +560,7 @@ function GetStanceEffects(stance)
 
 ### 6.4.3 OpenCombat: Explicit Behavior-Derived Stance
 
-OpenCombat separates body position from behavior, allowing sophisticated combinations:
+OpenCombat distinguishes body position from behavior, enabling sophisticated combinations:
 
 ```pseudocode
 enum Body
@@ -549,17 +582,17 @@ function DetermineOptimalBodyPosition(soldier, behavior, threatLevel)
                 return Body.Crouched
             else
                 return Body.StandUp
-                
+
         Defend(_) ->
             // Balance visibility and cover
             if soldier.HasGoodCover
                 return Body.Lying
             else
                 return Body.Crouched
-                
+
         Hide(_) ->
             return Body.Lying  // Always prone when hiding
-            
+
         EngageSoldier(target) ->
             // Dynamic based on target distance
             distance = Distance(soldier, target)
@@ -583,34 +616,53 @@ function Posture.FromBehavior(behavior)
 
 ## 6.5 Proactive vs Reactive AI
 
-The fundamental AI design decision in tactical games is the balance between **proactive** AI (planning and initiative) and **reactive** AI (stimulus-response).
+The core AI design choice in tactical games comes down to initiative: should units act on their own, or respond only to direct commands?
 
 ### 6.5.1 The Autonomy Spectrum
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    AI AUTONOMY SPECTRUM                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  NONE          REACTIVE         TACTICAL        STRATEGIC   FULL │
-│   │               │                │               │          │  │
-│   ▼               ▼                ▼               ▼          ▼  │
-│  ┌──┐           ┌──┐            ┌──┐           ┌──┐        ┌──┐ │
-│  │👤│           │👤│            │👤│           │👤│        │👤│ │
-│  └──┘           └┬┘            └┬┘           └┬┘        └┬┘ │
-│   │              │              ││             ││          ││  │
-│   ▼              ▼              ▼▼             ▼▼          ▼▼  │
-│  ┌──┐           ┌──┐           ┌──┐          ┌──┐        ┌──┐ │
-│  │🤖│           │🤖│           │🤖│          │🤖│        │🤖│ │
-│  └──┘           └┬┘           └┬┬┘          └┬┬┘        └┬┘ │
-│                  │             ││            ││          ││   │
-│  Pure           Return        Flank         Squad      Full   │
-│  Obedience      Fire          Suppress      Coord      Auto   │
-│                                                                   │
-│  OpenCombat-    OpenCombat    Ideal RTS     Planned   Not      │
-│  SDL            (baseline)    Feature       Feature   Desired  │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Spectrum["AI AUTONOMY SPECTRUM"]
+        direction LR
+        
+        subgraph None["NONE<br/>Pure Obedience"]
+            direction TB
+            n1["👤"] --> n2["🤖"]
+        end
+        
+        subgraph Reactive["REACTIVE<br/>Return Fire"]
+            direction TB
+            r1["👤"] --> r2["🤖"]
+        end
+        
+        subgraph Tactical["TACTICAL<br/>Flank/Suppress"]
+            direction TB
+            t1["👤"] --> t2["🤖"]
+        end
+        
+        subgraph Strategic["STRATEGIC<br/>Squad Coord"]
+            direction TB
+            s1["👤"] --> s2["🤖"]
+        end
+        
+        subgraph Full["FULL<br/>Full Auto"]
+            direction TB
+            f1["👤"] --> f2["🤖"]
+        end
+        
+        None --> Reactive --> Tactical --> Strategic --> Full
+    end
+    
+    labels["OpenCombat-SDL → OpenCombat (baseline) → Ideal RTS Feature → Planned Feature → Not Desired"]
+    Spectrum --> labels
+    
+    style Spectrum fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style None fill:#ffebee,stroke:#c62828
+    style Reactive fill:#fff3e0,stroke:#e65100
+    style Tactical fill:#fffde7,stroke:#f9a825
+    style Strategic fill:#e8f5e9,stroke:#2e7d32
+    style Full fill:#f3e5f5,stroke:#7b1fa2
+    style labels fill:#e3f2fd,stroke:#1565c0
 ```
 
 ### 6.5.2 OpenCombat-SDL: Zero Autonomy (Pure Obedience)
@@ -623,22 +675,22 @@ class SoldierAI
         if soldier.orders.empty()
             // Idle state - no scanning, no initiative
             return
-        
+
         order = soldier.orders.peek()
         ExecuteOrder(order)
 ```
 
-**Design Philosophy**: The player controls everything. Soldiers are extensions of player will.
+**Design Philosophy**: Players control every action. Soldiers function as direct extensions of player commands.
 
 **Advantages**:
-- Predictable behavior
-- No "AI did something stupid" frustration
-- Clear player accountability
+- Behavior stays predictable
+- Eliminates "AI stupidity" frustrations
+- Keeps accountability with the player
 
 **Disadvantages**:
-- Heavy micromanagement burden
-- Unrealistic (real soldiers show initiative)
-- Doesn't scale to large unit counts
+- Forces heavy micromanagement
+- Feels unrealistic (real soldiers take initiative)
+- Scales poorly with large unit counts
 
 ### 6.5.3 OpenCombat: Reactive Self-Preservation
 
@@ -651,13 +703,13 @@ class ReactiveSoldierAI
             if cover
                 soldier.SetBehavior(Hide(cover.direction))
                 return
-        
+
         // Priority 2: Engage visible threats
         visibleEnemy = FindVisibleEnemy(soldier, world)
         if visibleEnemy and CanEngage(soldier, visibleEnemy)
             soldier.SetBehavior(EngageSoldier(visibleEnemy))
             return
-        
+
         // Priority 3: Execute player orders
         if soldier.currentOrder
             behavior = TranslateOrderToBehavior(soldier.currentOrder)
@@ -666,7 +718,7 @@ class ReactiveSoldierAI
 
 **The Feeling System:**
 
-OpenCombat implements emotional state through the `Feeling` enum:
+OpenCombat models emotional state through the `Feeling` enum:
 
 ```pseudocode
 enum Feeling
@@ -687,7 +739,7 @@ function UpdateFeeling(soldier, world)
             soldier.feeling.increase(100)
         else
             soldier.feeling.increase(50)
-    
+
     // Increase from nearby bullet impacts
     for bullet in world.recentBulletImpacts
         distance = Distance(soldier, bullet)
@@ -697,16 +749,16 @@ function UpdateFeeling(soldier, world)
             soldier.feeling.increase(35)
         else
             soldier.feeling.increase(1)
-    
+
     // Natural decay
     soldier.feeling.decrease(UNDER_FIRE_TICK)
 ```
 
-**Design Philosophy**: Soldiers have self-preservation instincts but remain loyal to player intent when not threatened.
+**Design Philosophy**: Soldiers protect themselves when threatened but follow player orders otherwise.
 
 ### 6.5.4 Proactive AI: Beyond the Clones
 
-Neither clone implements truly proactive AI. Here's how a tactical planning system might work:
+The existing clones stop at reactive behavior. A true tactical planning system would work differently:
 
 ```pseudocode
 class TacticalPlanner
@@ -714,64 +766,62 @@ class TacticalPlanner
         // Analyze battlefield
         threats = IdentifyThreats(squad, world)
         opportunities = IdentifyOpportunities(squad, world)
-        
+
         // Generate candidate plans
         plans = []
-        
+
         // Plan A: Direct assault
         plans.append(CreateAssaultPlan(squad, strategicGoal, threats))
-        
+
         // Plan B: Flanking maneuver
         if HasFlankingRoute(squad, strategicGoal, world)
             plans.append(CreateFlankPlan(squad, strategicGoal, world))
-        
+
         // Plan C: Suppress and advance
         if HasSuppressionCapability(squad)
             plans.append(CreateSuppressAndAdvancePlan(squad, strategicGoal))
-        
+
         // Evaluate and select best plan
         bestPlan = null
         bestScore = -infinity
-        
+
         for plan in plans
             score = EvaluatePlan(plan, squad, world)
             if score > bestScore
                 bestScore = score
                 bestPlan = plan
-        
+
         return bestPlan
 
 function EvaluatePlan(plan, squad, world)
     score = 0
-    
+
     // Factor 1: Estimated casualties
     estimatedLosses = SimulateCasualties(plan, squad, world)
     score -= estimatedLosses * CASUALTY_WEIGHT
-    
+
     // Factor 2: Time to completion
     estimatedTime = EstimateExecutionTime(plan)
     score -= estimatedTime * TIME_WEIGHT
-    
+
     // Factor 3: Ammunition cost
     ammoCost = EstimateAmmunition(plan)
     score -= ammoCost * AMMO_WEIGHT
-    
+
     // Factor 4: Success probability
     successChance = EstimateSuccess(plan, squad, world)
     score += successChance * SUCCESS_WEIGHT
-    
+
     return score
 ```
 
----
-
 ## 6.6 Decision Architectures: GOAP vs Behavior Trees
 
-Modern game AI typically uses one of two architectural patterns: **Goal-Oriented Action Planning (GOAP)** or **Behavior Trees**. Understanding both helps designers choose the right tool.
+Modern game AI relies on two main architectural patterns: **Goal-Oriented Action Planning (GOAP)** and **Behavior Trees**. Each offers distinct advantages for tactical decision-making.
 
 ### 6.6.1 Behavior Trees
 
-Behavior Trees organize AI logic as a tree of hierarchical behaviors with standardized execution patterns.
+Behavior Trees structure AI logic as hierarchical behaviors with standardized execution patterns.
 
 ```pseudocode
 // Behavior Tree Node Types
@@ -783,7 +833,7 @@ abstract class BTNode
 class Selector extends BTNode
     // Tries children until one succeeds
     children: List<BTNode>
-    
+
     function Execute(context)
         for child in children
             result = child.Execute(context)
@@ -796,7 +846,7 @@ class Selector extends BTNode
 class Sequence extends BTNode
     // Executes children until one fails
     children: List<BTNode>
-    
+
     function Execute(context)
         for child in children
             result = child.Execute(context)
@@ -809,7 +859,7 @@ class Sequence extends BTNode
 class Condition extends BTNode
     // Checks world state
     predicate: Function<Context, bool>
-    
+
     function Execute(context)
         if predicate(context)
             return Success
@@ -819,7 +869,7 @@ class Condition extends BTNode
 class Action extends BTNode
     // Performs game action
     action: Function<Context, Status>
-    
+
     function Execute(context)
         return action(context)
 ```
@@ -841,38 +891,38 @@ class SoldierBehaviorTree
                     Action(ReturnFire)
                 ])
             ]),
-            
+
             // Priority 2: Engage visible enemies
             Sequence([
                 Condition(CanSeeEnemy),
                 Action(EngageTarget)
             ]),
-            
+
             // Priority 3: Follow orders
             Sequence([
                 Condition(HasPendingOrder),
                 Action(ExecuteCurrentOrder)
             ]),
-            
+
             // Priority 4: Idle behavior
             Action(IdleScan)
         ])
 ```
 
-**Advantages of Behavior Trees:**
-- Visual and intuitive structure
-- Easy to debug and modify
+**Behavior Trees offer several benefits:**
+- Clear, visual structure
+- Simple debugging and modification
 - Good performance (O(depth) per tick)
-- Industry standard (used in Unreal Engine, Unity)
+- Industry standard in engines like Unreal and Unity
 
-**Disadvantages:**
-- Can become complex for long-term planning
-- Reactive rather than proactive by default
-- Requires manual structuring of all possibilities
+**Limitations include:**
+- Complexity grows with long-term planning needs
+- Primarily reactive by design
+- Requires manual structuring of all possible behaviors
 
 ### 6.6.2 Goal-Oriented Action Planning (GOAP)
 
-GOAP flips the decision-making process: instead of checking conditions top-down, the AI plans backwards from goals.
+GOAP inverts the decision-making process. Instead of checking conditions top-down, the AI plans backward from goals.
 
 ```pseudocode
 // GOAP Components
@@ -880,13 +930,13 @@ GOAP flips the decision-making process: instead of checking conditions top-down,
 class WorldState
     // Represents the current state of the world
     facts: Map<String, Value>
-    
+
     function Get(key)
         return facts[key]
-    
+
     function Set(key, value)
         facts[key] = value
-    
+
     function DistanceTo(otherState)
         // Returns number of facts that differ
         differences = 0
@@ -900,14 +950,14 @@ class Action
     cost: float
     preconditions: Map<String, Value>
     effects: Map<String, Value>
-    
+
     function IsValid(state)
         // Check if all preconditions are met
         for key, value in preconditions
             if state.Get(key) != value
                 return false
         return true
-    
+
     function Apply(state)
         // Apply effects to state
         newState = state.Clone()
@@ -920,26 +970,26 @@ class GOAPPlanner
         // A* search from current state to goal
         openSet = PriorityQueue()
         openSet.Add(Node(currentState, [], 0))
-        
+
         while not openSet.empty()
             current = openSet.Pop()
-            
+
             // Check if goal reached
             if current.state == goalState
                 return current.actions
-            
+
             // Generate successors
             for action in availableActions
                 if action.IsValid(current.state)
                     newState = action.Apply(current.state)
                     newActions = current.actions + [action]
                     cost = current.cost + action.cost
-                    
+
                     // Heuristic: estimated cost to goal
                     heuristic = newState.DistanceTo(goalState)
-                    
+
                     openSet.Add(Node(newState, newActions, cost + heuristic))
-        
+
         return null  // No plan found
 ```
 
@@ -963,14 +1013,14 @@ actions = [
         preconditions: {IsReloading: false},
         effects: {HasWeaponLoaded: true}
     ),
-    
+
     Action(
         name: "MoveToCover",
         cost: 2.0,
         preconditions: {IsInCover: false},
         effects: {IsInCover: true, IsSafe: true}
     ),
-    
+
     Action(
         name: "EngageEnemy",
         cost: 1.0,
@@ -980,7 +1030,7 @@ actions = [
         },
         effects: {EnemyDead: true}
     ),
-    
+
     Action(
         name: "TakeCover",
         cost: 0.5,
@@ -997,14 +1047,14 @@ function ReactToContact(soldier, world)
         IsSafe: not soldier.underFire,
         CanSeeEnemy: CanSeeEnemy(soldier, world)
     })
-    
+
     goalState = WorldState({
         IsSafe: true,
         EnemyDead: true
     })
-    
+
     plan = GOAPPlanner.Plan(currentState, goalState, actions)
-    
+
     if plan
         ExecutePlan(plan)
     else
@@ -1012,41 +1062,40 @@ function ReactToContact(soldier, world)
         ExecuteAction(MoveToCover)
 ```
 
-**Advantages of GOAP:**
+**GOAP's strengths include:**
 - Emergent behavior from action combinations
-- Handles complex multi-step planning
-- Easy to add new actions without restructuring
-- Proactive rather than purely reactive
+- Natural handling of complex multi-step planning
+- Easy addition of new actions without restructuring
+- Proactive decision-making
 
-**Disadvantages:**
+**Challenges involve:**
 - Higher computational cost (A* search)
-- Can generate unrealistic plans
-- Requires careful cost tuning
-- Debugging planned sequences can be difficult
+- Potential for unrealistic plans
+- Careful cost tuning requirements
+- More difficult debugging of planned sequences
 
 ### 6.6.3 Comparative Analysis
 
-| Aspect | Behavior Trees | GOAP |
-|--------|---------------|------|
-| **Complexity** | Linear in tree size | Exponential in plan length |
-| **Modifiability** | Easy (add nodes) | Easy (add actions) |
-| **Planning** | Reactive | Proactive |
-| **Emergence** | Limited | High |
-| **Debugging** | Visual, intuitive | Requires plan inspection |
-| **Performance** | O(depth) | O(actions^depth) |
-| **Use Cases** | Reactive AI, clear behaviors | Complex planning, emergent tactics |
+| Aspect        | Behavior Trees               | GOAP                               |
+| ------------- | ---------------------------- | ---------------------------------- |
+| **Complexity**    | Linear in tree size          | Exponential in plan length         |
+| **Modifiability** | Easy (add nodes)             | Easy (add actions)                 |
+| **Planning**      | Reactive                     | Proactive                          |
+| **Emergence**     | Limited                      | High                               |
+| **Debugging**     | Visual, intuitive            | Requires plan inspection           |
+| **Performance**   | O(depth)                     | O(actions^depth)                   |
+| **Use Cases**     | Reactive AI, clear behaviors | Complex planning, emergent tactics |
 
-**Recommendation for Tactical Wargames:**
-
-- Use **Behavior Trees** for individual soldier reactive behaviors (OpenCombat's current approach)
-- Use **GOAP** for squad-level tactical planning (advanced feature)
-- Combine both: GOAP generates high-level plans, Behavior Trees execute individual actions
+**Recommendations for tactical wargames:**
+- Implement **Behavior Trees** for individual soldier behaviors (OpenCombat's current approach)
+- Consider **GOAP** for squad-level tactical planning (advanced feature)
+- Combine both approaches: GOAP generates high-level plans while Behavior Trees execute individual actions
 
 ---
 
 ## 6.7 Universal Patterns for Order Systems
 
-Across all three implementations, several patterns emerge as universal requirements for tactical order systems.
+Across all three implementations, tactical order systems share core requirements.
 
 ### 6.7.1 The Order State Machine
 
@@ -1066,14 +1115,14 @@ class Order
     priority: int
     interruptible: bool
     createdAt: Time
-    
+
     function Update(deltaTime)
         match state
             Pending ->
                 if CanStart()
                     state = Active
                     OnStart()
-            
+
             Active ->
                 status = Execute(deltaTime)
                 match status
@@ -1081,12 +1130,12 @@ class Order
                     Failed -> state = Failed
                     Interrupted -> state = Interrupted
                     Running -> // Continue
-            
+
             Interrupted ->
                 if CanResume()
                     state = Active
                     OnResume()
-    
+
     function Interrupt()
         if interruptible
             state = Interrupted
@@ -1106,15 +1155,15 @@ constants
 
 class PriorityOrderQueue
     orders: PriorityQueue<Order>
-    
+
     function Add(order)
         orders.Insert(order, order.priority)
-    
+
     function Update()
         // Check if current order should be interrupted
         if not orders.empty()
             topOrder = orders.peek()
-            
+
             if currentOrder and topOrder.priority > currentOrder.priority
                 if currentOrder.Interrupt()
                     currentOrder = topOrder
@@ -1126,7 +1175,7 @@ class PriorityOrderQueue
 ```pseudocode
 class ChainedOrder extends Order
     nextOrder: Option<Order>
-    
+
     function OnComplete()
         if nextOrder
             return nextOrder  // Automatically queue next
@@ -1136,19 +1185,19 @@ class ChainedOrder extends Order
 function CreateAssaultOrder(squad, objective)
     // Phase 1: Move to cover near objective
     approach = Order.MoveTo(coverPosition)
-    
+
     // Phase 2: Suppress objective while advancing
     suppress = Order.SuppressFire(objective)
     approach.nextOrder = suppress
-    
+
     // Phase 3: Assault the position
     assault = Order.MoveFastTo(objective)
     suppress.nextOrder = assault
-    
+
     // Phase 4: Defend taken position
     defend = Order.Defend(objective.facing)
     assault.nextOrder = defend
-    
+
     return approach
 
 // Parallel composition
@@ -1157,7 +1206,7 @@ function CreateCoordinatedAttack(squad, target)
     suppressOrder = Order.SuppressFire(target)
     for machineGunner in squad.MachineGunners
         machineGunner.GiveOrder(suppressOrder)
-    
+
     // Assault team advances
     moveOrder = Order.MoveFastTo(flankPosition)
     for rifleman in squad.Riflemen
@@ -1179,7 +1228,7 @@ class ConditionalOrder extends Order
     trueOrder: Order    // Execute if condition met
     falseOrder: Order   // Execute if condition not met (optional)
     checkInterval: Time // How often to check
-    
+
     function Execute(deltaTime)
         if TimeSinceLastCheck() >= checkInterval
             if Evaluate(condition)
@@ -1193,14 +1242,14 @@ class ConditionalOrder extends Order
 // Example: "Move to building, engage if enemies spotted"
 function CreateCautiousAdvance(destination)
     moveOrder = Order.MoveTo(destination)
-    
+
     conditional = ConditionalOrder(
         condition: EnemyInRange(50),
         trueOrder: Order.EngageNearest(),
         falseOrder: null,
         checkInterval: 1.0 seconds
     )
-    
+
     moveOrder.nextOrder = conditional
     return moveOrder
 ```
@@ -1209,7 +1258,7 @@ function CreateCautiousAdvance(destination)
 
 ## 6.8 Implementation Recommendations
 
-Based on the comparative analysis, here are recommendations for new tactical wargame projects:
+Based on the comparative analysis, here's how to build a modern tactical wargame:
 
 ### 6.8.1 Recommended Hybrid Architecture
 
@@ -1217,21 +1266,21 @@ Based on the comparative analysis, here are recommendations for new tactical war
 class ModernOrderSystem
     // Data-driven order types for modding
     OrderRegistry orderTypes
-    
+
     // Four-layer hierarchy
     Layer1: PlayerInput        // Translates clicks to orders
     Layer2: OrderInterpreter   // Converts orders to squad strategies
     Layer3: BehaviorSystem     // Individual soldier AI
     Layer4: AnimationSystem    // Physical execution
-    
+
     function Initialize()
         // Load order types from data
         orderTypes.LoadFrom("config/orders.json")
-    
+
     function ProcessPlayerInput(input)
         order = CreateOrderFromInput(input)
         IssueOrder(order, input.selectedUnits)
-    
+
     function IssueOrder(order, recipients)
         for unit in recipients
             if unit.type == Squad
@@ -1296,17 +1345,17 @@ class ModernOrderSystem
 function execute(squad, order)
     local destination = order.parameters.destination
     local speed = order.parameters.speed
-    
+
     -- Select formation based on threat level
     local formation = selectFormation(squad, destination)
-    
+
     -- Calculate individual paths
     local positions = formation:getPositions(destination, #squad.members)
-    
+
     -- Assign to soldiers
     for i, soldier in ipairs(squad.members) do
         local path = findPath(soldier.position, positions[i])
-        
+
         if speed == "sneak" then
             soldier:setBehavior(SneakTo(path))
         elseif speed == "run" then
@@ -1320,11 +1369,11 @@ end
 -- squad_ai/assault.lua (coordinated action)
 function execute(squad, order)
     local destination = order.parameters.destination
-    
+
     -- Split squad by role
     local suppressors = {}
     local assaulters = {}
-    
+
     for _, soldier in ipairs(squad.members) do
         if soldier:hasWeapon("machine_gun") then
             table.insert(suppressors, soldier)
@@ -1332,12 +1381,12 @@ function execute(squad, order)
             table.insert(assaulters, soldier)
         end
     end
-    
+
     -- Phase 1: Suppress target area
     for _, mg in ipairs(suppressors) do
         mg:setBehavior(SuppressFire(destination))
     end
-    
+
     -- Phase 2: After delay, assaulters advance
     schedule(2.0, function()
         for _, rifleman in ipairs(assaulters) do
@@ -1393,7 +1442,7 @@ selector:
                 - action:
                     name: "Return Fire"
                     execute: "behaviors.returnFire"
-    
+
     # Priority 2: Engage enemies
     - sequence:
         name: "Combat Response"
@@ -1404,7 +1453,7 @@ selector:
           - action:
               name: "Engage Target"
               execute: "behaviors.engageBestTarget"
-    
+
     # Priority 3: Follow orders
     - sequence:
         name: "Execute Orders"
@@ -1415,7 +1464,7 @@ selector:
           - action:
               name: "Execute Order"
               execute: "behaviors.executeOrder"
-    
+
     # Priority 4: Idle
     - action:
         name: "Idle Scan"
@@ -1426,59 +1475,59 @@ selector:
 
 ## 6.9 Comparative Summary
 
-| Feature | OpenCombat-SDL | OpenCombat | CloseCombatFree |
-|---------|---------------|------------|-----------------|
-| **Architecture** | Two-tier (Orders→Actions) | Three-layer (Orders→Behavior→Gesture) | Queue-based sequential |
-| **AI Autonomy** | None (pure obedience) | Reactive (self-preservation) | Minimal (state triggers) |
-| **Order Types** | 5 basic types | 8 types + chaining | 7 types |
-| **Queue Support** | Implicit (action queue) | Explicit (order chaining) | Explicit (order list) |
-| **Squad Coordination** | Formation positions | Individual pathing + AI | Not implemented |
-| **Prerequisites** | Automatic (action chaining) | Gesture timing | Animation-driven |
-| **Override Capability** | Player only | AI can override orders | Player only |
-| **Visual Feedback** | Action markers | Debug paths | Order markers |
-| **Stance System** | Implicit (state-derived) | Explicit (Body enum) | Implicit |
-| **Moddability** | Compiled C++ | Compiled Rust | Compiled C++/QML |
+| Feature             | OpenCombat-SDL              | OpenCombat                            | CloseCombatFree          |
+| ------------------- | --------------------------- | ------------------------------------- | ------------------------ |
+| **Architecture**        | Two-tier (Orders→Actions)   | Three-layer (Orders→Behavior→Gesture) | Queue-based sequential   |
+| **AI Autonomy**         | None (pure obedience)       | Reactive (self-preservation)          | Minimal (state triggers) |
+| **Order Types**         | 5 basic types               | 8 types + chaining                    | 7 types                  |
+| **Queue Support**       | Implicit (action queue)     | Explicit (order chaining)             | Explicit (order list)    |
+| **Squad Coordination**  | Formation positions         | Individual pathing + AI               | Not implemented          |
+| **Prerequisites**       | Automatic (action chaining) | Gesture timing                        | Animation-driven         |
+| **Override Capability** | Player only                 | AI can override orders                | Player only              |
+| **Visual Feedback**     | Action markers              | Debug paths                           | Order markers            |
+| **Stance System**       | Implicit (state-derived)    | Explicit (Body enum)                  | Implicit                 |
+| **Moddability**         | Compiled C++                | Compiled Rust                         | Compiled C++/QML         |
 
 **Key Insights:**
 
-1. **Orders vs Actions separation is universal** but implementation varies significantly. The choice between 2-tier and 3-tier architectures depends on desired AI autonomy.
+1. All three clones separate orders from actions, though their approaches differ. A two-tier system works for strict player control, while three layers allow more nuanced AI behavior.
 
-2. **AI autonomy reduces micromanagement** but introduces unpredictability. The right balance depends on target audience—hardcore wargamers prefer obedience, casual players benefit from initiative.
+2. AI that acts independently cuts down on micromanagement but may frustrate players who prefer precision. Hardcore wargamers want obedience; casual players appreciate initiative.
 
-3. **Formation systems reduce pathfinding costs** and enable tactical coordination. Essential for squad-level gameplay.
+3. Formations streamline pathfinding and enable coordinated tactics. They're critical for squad-based gameplay.
 
-4. **Visual feedback is essential** for player understanding. CloseCombatFree's color-coded order markers provide the clearest communication.
+4. Players need clear visual cues to understand what's happening. CloseCombatFree's color-coded order markers stand out as the most intuitive.
 
-5. **Prerequisite handling** should be automatic but visible. Players should understand *why* a soldier is taking time to execute an order.
+5. Prerequisites should happen automatically but remain visible. Soldiers shouldn't just pause—they should make it obvious why they're waiting.
 
-6. **Reactive AI requires feeling systems**. Without emotional state (fear, suppression), soldiers appear robotic and decisions feel arbitrary.
+6. Reactive AI needs emotional context. Without fear or suppression, units feel mechanical, and their choices seem random.
 
-7. **Scriptable behaviors enable modding** without code changes. Data-driven order definitions extend game longevity.
+7. Scriptable behaviors let modders extend the game without touching code. Data-driven order definitions keep the game fresh longer.
 
 ---
 
 ## 6.10 Conclusion
 
-The order and AI systems of tactical wargames represent a fundamental design tension: **player control versus unit autonomy**. Each Close Combat clone resolves this tension differently, revealing valid approaches for different design goals.
+Tactical wargames must balance player control with unit autonomy. Each Close Combat clone handles this differently, offering solutions for distinct design goals.
 
-**OpenCombat-SDL** demonstrates that a simple, predictable system can deliver satisfying tactical gameplay when the simulation fidelity (ballistics, cover, suppression) is high enough. Its automatic prerequisite handling reduces player friction without reducing control.
+OpenCombat-SDL shows that simplicity works when the core simulation—ballistics, cover, suppression—is strong enough. Its automatic prerequisite system keeps control in the player's hands without adding friction.
 
-**OpenCombat** shows how a behavior layer enables reactive AI that feels alive while maintaining player intent. The Feeling system transforms mechanical combat into psychological warfare.
+OpenCombat adds a behavior layer, making AI feel alive while respecting player intent. The Feeling system turns combat into a psychological battle.
 
-**CloseCombatFree** proves that clarity and accessibility matter. Its visual order system communicates intent instantly, making tactical gameplay approachable for newcomers.
+CloseCombatFree prioritizes clarity. Its visual order system makes tactics accessible to newcomers.
 
-For future projects, the synthesis is clear:
+Future projects should:
 
-- **Implement data-driven order types** for modding and extensibility
-- **Use behavior trees** for reactive AI that scales in complexity
-- **Support squad-level strategies** that coordinate multiple units automatically
-- **Provide clear visual feedback** for all orders and states
-- **Allow conditional orders** for complex tactical planning
-- **Balance AI autonomy** with player control through difficulty settings
-- **Implement feeling systems** that make soldiers feel human
+- Build order types as data, not code, for easier modding
+- Use behavior trees for AI that scales in complexity
+- Support squad-level strategies that coordinate units automatically
+- Show clear visual feedback for orders and states
+- Allow conditional orders for advanced planning
+- Let players adjust AI autonomy through difficulty settings
+- Add feeling systems to humanize soldiers
 
-The best tactical wargame order system is not the most complex—it's the one that makes players feel like commanders, not babysitters, while ensuring that when things go wrong, the simulation logic is clear and fair.
+The best order system isn't the most complex. It's the one that makes players feel like commanders, not babysitters, while keeping the simulation's logic transparent and fair.
 
 ---
 
-*Next: [Chapter 7: Moddability & Data-Driven Design](#chapter-7-moddability--data-driven-design)*
+*Next: [Chapter 7: Moddability and Data-Driven Architecture](chapter_07_moddability.md)*

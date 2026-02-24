@@ -2,19 +2,15 @@
 
 ## The Answer Key: What to Do and Why
 
----
-
-*After analyzing three distinct implementations spanning nearly two decades, this chapter provides concrete, actionable recommendations for building your own Close Combat-inspired tactical wargame. This is not theory—it is the distillation of what worked, what didn't, and what you should do differently.*
-
----
+After analyzing three implementations spanning nearly two decades, this chapter offers concrete recommendations for building your own Close Combat-inspired tactical wargame. These suggestions come from what worked, what failed, and what to improve.
 
 ## 10.1 Decision Framework by Game Type
 
-The architecture you choose must serve your game's primary purpose. Different game types demand different architectural commitments.
+Your architecture must align with your game's primary purpose. Each game type requires specific architectural approaches.
 
 ### 10.1.1 Competitive Multiplayer → Use OpenCombat Patterns
 
-**Why**: Competitive multiplayer demands determinism, fairness, and anti-cheat. Players will exploit any ambiguity in game state.
+Competitive multiplayer needs determinism, fairness, and anti-cheat. Players will exploit any ambiguity in game state.
 
 **Required Patterns**:
 - **Server-authoritative simulation**: Server validates all state changes
@@ -49,7 +45,7 @@ fn tick(state: &mut BattleState, messages: &[BattleStateMessage]) {
 
 ### 10.1.2 Single-Player Immersive → Use OpenCombat-SDL Patterns
 
-**Why**: Single-player games prioritize simulation depth, emergent behavior, and the "feel" of combat over synchronization. You want rich interactions, not message passing overhead.
+Single-player games focus on simulation depth, emergent behavior, and combat feel rather than synchronization. Rich interactions matter more than message passing overhead.
 
 **Recommended Patterns**:
 - **Bitfield state system**: 64 orthogonal states for emergent capability combinations
@@ -71,14 +67,14 @@ Pathfinding: A* with custom heuristics
 void Soldier::AddAction(Action* action) {
     // Check what state we need
     int prereq = CheckRequirements(action->Index, &_currentState);
-    
+
     // Automatically insert prerequisite actions
     while (prereq != -1) {
         Action* prereqAction = new Action(prereq);
         _actionQueue.push_front(prereqAction);  // Insert before
         prereq = CheckRequirements(prereqAction, &_currentState);
     }
-    
+
     _actionQueue.push_back(action);
 }
 
@@ -89,13 +85,13 @@ void Soldier::AddAction(Action* action) {
 
 ### 10.1.3 Modding-Focused → Use CloseCombatFree Patterns
 
-**Why**: If your community creates content, you need runtime flexibility. Recompilation is a barrier that kills creativity.
+If your community creates content, runtime flexibility becomes essential. Recompilation creates barriers that stifle creativity.
 
 **Recommended Patterns**:
 - **Declarative composition**: QML-style entity definitions
 - **Runtime instantiation**: Load units/scenarios from data files
 - **Hot reload**: File watcher detects changes, updates game without restart
-- **Property binding**: Reactive UI that IS the game logic
+- **Property binding**: Reactive UI that drives game logic
 
 **Technology Choices**:
 ```
@@ -112,10 +108,10 @@ Tank {
     id: tank
     unitType: "Custom Tank"
     maxSpeed: 15
-    
+
     Hull { id: hull }
     Turret { id: turret }
-    
+
     Soldier { role: "Commander" }
     Soldier { role: "Gunner" }
     Soldier { role: "Driver" }
@@ -126,60 +122,65 @@ Tank {
 
 **The Recommended Architecture for 2026+**:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    HYBRID ARCHITECTURE                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  CORE SIMULATION (OpenCombat patterns)                     │
-│  ├── Deterministic game loop                               │
-│  ├── Message-driven state updates                          │
-│  ├── Server-authoritative (even for single-player)         │
-│  └── Fixed timestep physics                                │
-│                                                             │
-│  ENTITY DEFINITIONS (CloseCombatFree patterns)           │
-│  ├── JSON/YAML data files                                  │
-│  ├── Lua scripting for behaviors                           │
-│  ├── Hot reload for rapid iteration                        │
-│  └── Component composition over inheritance                │
-│                                                             │
-│  SIMULATION DEPTH (OpenCombat-SDL patterns)               │
-│  ├── Bitfield capability tracking                          │
-│  ├── Automatic prerequisite resolution                     │
-│  └── Rich state interactions                               │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph HybridArchitecture["HYBRID ARCHITECTURE"]
+        subgraph CoreSim["CORE SIMULATION (OpenCombat patterns)"]
+            CS1[Deterministic game loop]
+            CS2[Message-driven state updates]
+            CS3[Server-authoritative<br/>even for single-player]
+            CS4[Fixed timestep physics]
+        end
+
+        subgraph EntityDef["ENTITY DEFINITIONS (CloseCombatFree patterns)"]
+            ED1[JSON/YAML data files]
+            ED2[Lua scripting for behaviors]
+            ED3[Hot reload for rapid iteration]
+            ED4[Component composition<br/>over inheritance]
+        end
+
+        subgraph SimDepth["SIMULATION DEPTH (OpenCombat-SDL patterns)"]
+            SD1[Bitfield capability tracking]
+            SD2[Automatic prerequisite resolution]
+            SD3[Rich state interactions]
+        end
+    end
 ```
 
-**Why this synthesis works**:
-1. **Core simulation** uses deterministic patterns for multiplayer capability
-2. **Entity definitions** use declarative patterns for modding
-3. **Simulation depth** uses bitfield patterns for emergent behavior
-4. You get determinism AND moddability AND depth
-
----
+This synthesis works because:
+1. The core simulation uses deterministic patterns for multiplayer capability
+2. Entity definitions use declarative patterns for modding
+3. Simulation depth uses bitfield patterns for emergent behavior
+4. You gain determinism, moddability, and depth
 
 ## 10.2 Core Architecture Recommendations
 
-For each system, here are the concrete recommendations derived from comparative analysis:
+Here are concrete recommendations for each system, based on comparative analysis:
 
 ### 10.2.1 State Management
 
 **Recommendation**: Use State Hierarchy with Bitfield Overlay
 
-```
-Three-Tier Hierarchy for Timescale Separation:
-├── Phase (Game level: Deployment, Battle, End)
-├── Behavior (Tactical: MoveTo, Defend, Engage)
-└── Gesture (Physical: Idle, Aiming, Firing with completion time)
+```mermaid
+graph TD
+    subgraph Hierarchy["Three-Tier Hierarchy for Timescale Separation"]
+        Phase[Phase<br/>Game level: Deployment, Battle, End]
+        Behavior[Behavior<br/>Tactical: MoveTo, Defend, Engage]
+        Gesture[Gesture<br/>Physical: Idle, Aiming, Firing<br/>with completion time]
 
-Bitfield for Orthogonal Capabilities:
-├── CanMove, CanFire, CanSee
-├── IsProne, IsSuppressed, IsInBuilding
-└── IsCrewMember, IsVehicleOccupant
+        Phase --> Behavior --> Gesture
+    end
+
+    subgraph Bitfield["Bitfield for Orthogonal Capabilities"]
+        Cap1[CanMove, CanFire, CanSee]
+        Cap2[IsProne, IsSuppressed, IsInBuilding]
+        Cap3[IsCrewMember, IsVehicleOccupant]
+
+        Cap1 --- Cap2 --- Cap3
+    end
 ```
 
-**Why**: Hierarchy provides clear relationships and timescale separation. Bitfield provides efficient capability queries. Combined, they solve both organizational and performance needs.
+The hierarchy provides clear relationships and timescale separation. The bitfield enables efficient capability queries. Together, they address both organizational and performance needs.
 
 **Implementation Pattern**:
 ```cpp
@@ -188,7 +189,7 @@ struct UnitState {
     Phase phase;           // Global game phase
     Behavior behavior;     // Current tactical behavior
     Gesture gesture;       // Immediate physical action
-    
+
     // Bitfield overlay (from OpenCombat-SDL)
     uint64_t capabilities; // CanMove | CanFire | IsProne
     uint64_t conditions;   // IsSuppressed | IsWounded
@@ -237,19 +238,16 @@ public enum Capabilities : ulong {
 
 ### 10.2.2 Unit Model
 
-**Recommendation**: Use Component Composition with Aggregate Pattern for Squads
+**Recommendation**: Build squads using component composition with an aggregate pattern.
 
-**Why**: 
-- Inheritance creates rigid hierarchies
-- Composition enables novel unit types (flying tanks, crewed artillery)
-- Aggregate pattern naturally models squad relationships
+This approach avoids rigid inheritance hierarchies. It supports unusual unit types like flying tanks or crewed artillery. The aggregate pattern also models squad relationships naturally.
 
 **Universal Pattern**:
 ```pseudocode
 Entity Unit {
     uuid: EntityId
     components: Map<ComponentType, Component>
-    
+
     // Aggregation (not inheritance)
     parentSquad: Option<EntityReference>
     children: List<EntityReference>
@@ -275,7 +273,7 @@ Aggregate Squad {
     leader: EntityReference
     members: List<EntityReference>
     formation: FormationType
-    
+
     function issueOrder(order: Order) {
         // Distribute to members based on role
         for member in members {
@@ -326,12 +324,9 @@ pub struct Squad {
 
 ### 10.2.3 Order System
 
-**Recommendation**: Use Two-Tier (Orders→Actions) with Prerequisite Chain
+**Recommendation**: Implement a two-tier system with orders and actions, linked by prerequisite chains.
 
-**Why**:
-- Two tiers (Orders→Actions) balance player control with automation
-- Prerequisite chain eliminates micromanagement
-- Data-driven action definitions enable modding
+The two-tier structure balances player control with automation. Prerequisite chains reduce micromanagement. Data-driven action definitions make the system moddable.
 
 **Universal Pattern**:
 ```pseudocode
@@ -367,38 +362,31 @@ function queueAction(unit, action) {
     // Automatic prerequisite resolution
     currentState = unit.getCurrentState()
     requiredState = action.getRequiredState()
-    
+
     while currentState != requiredState {
         prereqAction = findActionThatAchieves(requiredState)
         unit.actionQueue.push_front(prereqAction)
         currentState = prereqAction.getResultState()
     }
-    
+
     unit.actionQueue.push_back(action)
 }
 ```
 
 **Example Flow**:
-```
-Player issues: "Fire at enemy"
-Soldier state: Prone, Empty magazine
+When a player orders "Fire at enemy," the system checks the soldier's state—prone with an empty magazine. It automatically inserts the necessary steps:
 
-System automatically inserts:
 1. StandUp (prerequisite for firing)
 2. Reload (prerequisite for having ammo)
 3. FireAtTarget (the requested action)
 
-Player sees smooth, intelligent behavior without micromanagement
-```
+The result is smooth, intelligent behavior without micromanagement.
 
 ### 10.2.4 AI System
 
-**Recommendation**: Use Reactive Behavior System with Optional Proactive Planning
+**Recommendation**: Use a reactive behavior system with optional proactive planning.
 
-**Why**:
-- Reactive AI handles immediate threats (survival first)
-- Behavior trees provide clear, debuggable logic
-- GOAP (Goal-Oriented Action Planning) can be added for squad-level tactics
+Reactive AI handles immediate threats first. Behavior trees provide clear, debuggable logic. GOAP can be added later for squad-level tactics.
 
 **Universal Pattern (Behavior Tree)**:
 ```pseudocode
@@ -415,19 +403,19 @@ Selector Root [
             Action: ReturnFire
         ]
     ]
-    
+
     // Priority 2: Engage threats
     Sequence [
         Condition: CanSeeEnemy
         Action: EngageTarget
     ]
-    
+
     // Priority 3: Follow orders
     Sequence [
         Condition: HasPendingOrder
         Action: ExecuteOrder
     ]
-    
+
     // Priority 4: Idle
     Action: IdleScan
 ]
@@ -454,7 +442,7 @@ behavior_tree:
                   execute: "move_to_cover"
             - type: action
               execute: "return_fire"
-    
+
     - type: sequence
       name: "Combat Response"
       children:
@@ -466,24 +454,21 @@ behavior_tree:
 
 ### 10.2.5 World and Terrain System
 
-**Recommendation**: Use Entity-Based World with Spatial Hashing
+**Recommendation:** Use an entity-based world with spatial hashing.
 
-**Why**:
-- Tile-based grids are fast but inflexible
-- Pure entity systems are flexible but slow
-- Spatial hashing provides O(1) queries with flexibility
+This approach combines speed and flexibility. Tile-based grids offer performance but lack adaptability, while pure entity systems provide flexibility at the cost of speed. Spatial hashing delivers O(1) queries without sacrificing flexibility.
 
-**Universal Pattern**:
+**Universal Pattern:**
 ```pseudocode
 struct World {
     // Entity storage (contiguous for cache efficiency)
     soldiers: Vec<Soldier>
     vehicles: Vec<Vehicle>
     props: Vec<Prop>
-    
+
     // Spatial index for queries
     spatialHash: SpatialHash<EntityId>
-    
+
     // Terrain data (grid-based for pathfinding)
     terrainGrid: Grid<TerrainType>
     elevationGrid: Grid<float>
@@ -492,17 +477,17 @@ struct World {
 struct SpatialHash {
     cellSize: float = 100.0
     cells: Map<uint64_t, List<EntityId>>
-    
+
     function hash(position: Vec2) -> uint64_t {
         x = position.x / cellSize
         y = position.y / cellSize
         return (x << 32) | y
     }
-    
+
     function queryRadius(center: Vec2, radius: float) -> List<EntityId> {
         results = []
         radiusInCells = radius / cellSize + 1
-        
+
         for dy in -radiusInCells..radiusInCells {
             for dx in -radiusInCells..radiusInCells {
                 cellHash = hash(center + Vec2(dx, dy) * cellSize)
@@ -513,13 +498,13 @@ struct SpatialHash {
                 }
             }
         }
-        
+
         return results
     }
 }
 ```
 
-**Terrain Representation**:
+**Terrain Representation:**
 ```json
 {
     "terrain_types": [
@@ -543,34 +528,31 @@ struct SpatialHash {
 
 ### 10.2.6 Modding System
 
-**Recommendation**: Use Data-Driven JSON + Optional Scripting
+**Recommendation:** Use data-driven JSON with optional scripting.
 
-**Why**:
-- JSON/YAML for structure (schemas, validation)
-- Lua/Wren for behavior (performance, sandboxing)
-- Hot reload for iteration (file watching)
-- Mod manager for dependencies (load order, conflicts)
+JSON or YAML handles structure, while Lua or Wren manages behavior. This setup supports hot reloading for iteration and includes a mod manager to handle dependencies, load order, and conflicts.
 
-**Universal Pattern**:
-```
-mods/
-├── mod_name/
-│   ├── mod.json           # Metadata
-│   ├── dependencies.json  # Required mods
-│   ├── data/
-│   │   ├── units/
-│   │   ├── weapons/
-│   │   └── vehicles/
-│   ├── scripts/
-│   │   ├── ai/
-│   │   └── behaviors/
-│   ├── maps/
-│   └── assets/
-│       ├── images/
-│       └── audio/
+**Universal Pattern:**
+```mermaid
+mindmap
+  root((mods/))
+    mod_name["mod_name/"]
+      mod.json["mod.json - Metadata"]
+      dependencies.json["dependencies.json - Required mods"]
+      data["data/"]
+        units["units/"]
+        weapons["weapons/"]
+        vehicles["vehicles/"]
+      scripts["scripts/"]
+        ai["ai/"]
+        behaviors["behaviors/"]
+      maps["maps/"]
+      assets["assets/"]
+        images["images/"]
+        audio["audio/"]
 ```
 
-**Mod Metadata (mod.json)**:
+**Mod Metadata (mod.json):**
 ```json
 {
     "name": "Elite Units Pack",
@@ -586,7 +568,7 @@ mods/
 }
 ```
 
-**Data-Driven Unit Definition**:
+**Data-Driven Unit Definition:**
 ```yaml
 # data/units/sniper_team.yaml
 entity_type: infantry
@@ -595,15 +577,15 @@ name: Sniper Team
 components:
   visual:
     sprite: sprites/sniper_team.png
-  
+
   squad:
     max_size: 2
     roles: [spotter, sniper]
-  
+
   equipment:
     spotter: [binoculars, rifle]
     sniper: [sniper_rifle]
-  
+
   ai:
     script: ai/sniper_team.lua
 
@@ -613,7 +595,7 @@ attributes:
   accuracy: 0.95
 ```
 
-**Scriptable Behavior (Lua)**:
+**Scriptable Behavior (Lua):**
 ```lua
 -- scripts/ai/sniper_team.lua
 function onInit(team)
@@ -629,13 +611,13 @@ function onUpdate(team, dt, world)
             visibleOnly = true
         })
     end
-    
+
     -- Engage if target found
     if team.target and team.state ~= "FIRING" then
         if world.hasLineOfSight(team.spotter, team.target) then
             team.state = "AIMING"
             team.sniper:aimAt(team.target)
-            
+
             -- Wait for aim
             world.schedule(2.0, function()
                 team.state = "FIRING"
@@ -643,7 +625,7 @@ function onUpdate(team, dt, world)
             end)
         end
     end
-    
+
     -- Relocate if compromised
     if team.isUnderFire then
         team.state = "RELOCATING"
@@ -653,18 +635,16 @@ function onUpdate(team, dt, world)
 end
 ```
 
----
-
 ## 10.3 Technology-Agnostic Patterns
 
-The following patterns are abstract—implement them in any language using appropriate constructs.
+These patterns work in any language with the right constructs.
 
 ### 10.3.1 Pattern: Type-Safe Entity References
 
-**Problem**: Pointers/references create lifetime and ownership issues
-**Solution**: Use type-safe indices with central storage
+**Problem:** Pointers and references create lifetime and ownership issues.
+**Solution:** Use type-safe indices with central storage.
 
-**Universal Concept**:
+**Universal Concept:**
 ```pseudocode
 // Instead of pointers
 Soldier* soldier;  // Dangerous: dangling, null, ownership unclear
@@ -674,17 +654,17 @@ SoldierIndex idx;  // Just a number
 Soldier& soldier = world.soldiers[idx.value];  // Access via central storage
 ```
 
-**Language Implementations**:
+**Language Implementations:**
 
-**C++**:
+**C++:**
 ```cpp
-struct SoldierIndex { 
-    size_t value; 
+struct SoldierIndex {
+    size_t value;
     explicit SoldierIndex(size_t v) : value(v) {}
 };
 
-struct VehicleIndex { 
-    size_t value; 
+struct VehicleIndex {
+    size_t value;
     explicit VehicleIndex(size_t v) : value(v) {}
 };
 
@@ -693,7 +673,7 @@ void healSoldier(SoldierIndex idx);      // OK
 void healSoldier(VehicleIndex idx);      // Compile error!
 ```
 
-**Rust**:
+**Rust:**
 ```rust
 #[derive(Debug, Clone, Copy)]
 pub struct SoldierIndex(pub usize);
@@ -706,7 +686,7 @@ let soldier = &world.soldiers[soldier_idx.0];  // OK
 let soldier = &world.soldiers[vehicle_idx.0];  // Compile error!
 ```
 
-**C#**:
+**C#:**
 ```csharp
 public readonly struct SoldierIndex {
     public readonly int Value;
@@ -718,12 +698,12 @@ public void HealSoldier(SoldierIndex idx) { }
 public void RepairVehicle(VehicleIndex idx) { }
 ```
 
-**TypeScript**:
+**TypeScript:**
 ```typescript
 type SoldierIndex = { readonly kind: 'soldier'; readonly value: number };
 type VehicleIndex = { readonly kind: 'vehicle'; readonly value: number };
 
-const createSoldierIndex = (value: number): SoldierIndex => 
+const createSoldierIndex = (value: number): SoldierIndex =>
     ({ kind: 'soldier', value });
 
 // Type system prevents mixing
@@ -731,15 +711,15 @@ const createSoldierIndex = (value: number): SoldierIndex =>
 
 ### 10.3.2 Pattern: Message-Driven State Updates
 
-**Problem**: Direct mutation makes debugging, replay, and networking difficult
-**Solution**: All changes flow through messages
+**Problem**: Direct mutation complicates debugging, replay, and networking.
+**Solution**: Route all changes through messages.
 
-**Universal Concept**:
+**Example**:
 ```pseudocode
-// Instead of direct mutation
-soldier.health -= damage;  // Who changed this? When? Why?
+// Direct mutation hides context
+soldier.health -= damage;  // Who caused this? When?
 
-// Use messages
+// Messages preserve context
 message SoldierDamaged {
     soldierId: SoldierIndex
     damage: int
@@ -751,27 +731,27 @@ bus.publish(SoldierDamaged(soldierIdx, 10, attacker));
 ```
 
 **Benefits**:
-1. **Debugging**: Log shows all state changes
-2. **Replay**: Reprocess message log to recreate any game
-3. **Networking**: Messages serialize naturally
-4. **Determinism**: Same messages + same initial state = same result
+1. **Debugging**: Every state change appears in logs.
+2. **Replay**: Reprocess messages to recreate any game state.
+3. **Networking**: Messages serialize easily.
+4. **Determinism**: Same messages plus same initial state produce identical results.
 
 ### 10.3.3 Pattern: Spatial Partitioning
 
-**Problem**: Finding entities in radius is O(n)
-**Solution**: Spatial hash for O(1) insertion, O(cells_in_radius) query
+**Problem**: Checking every entity for proximity creates O(n) bottlenecks.
+**Solution**: Use a spatial hash for O(1) insertion and O(cells_in_radius) queries.
 
-**Universal Concept**:
+**Example**:
 ```pseudocode
 struct SpatialHash {
     cellSize: float
-    
+
     // Insert entity at position
     insert(entityId, position) {
         cell = position / cellSize
         cells[hash(cell)].add(entityId)
     }
-    
+
     // Query entities within radius
     queryRadius(center, radius) -> List<EntityId> {
         results = []
@@ -789,15 +769,15 @@ struct SpatialHash {
 
 ### 10.3.4 Pattern: Component Composition
 
-**Problem**: Inheritance creates rigid hierarchies
-**Solution**: Compose entities from reusable components
+**Problem**: Inheritance chains create rigid hierarchies.
+**Solution**: Build entities from reusable components.
 
-**Universal Concept**:
+**Example**:
 ```pseudocode
-// Instead of inheritance
-class Sniper : public Soldier { ... }  // Rigid
+// Inheritance forces rigid types
+class Sniper : public Soldier { ... }
 
-// Use composition
+// Components allow flexible combinations
 Entity soldier {
     Transform { x, y, rotation }
     Health { current, max }
@@ -805,17 +785,15 @@ Entity soldier {
     AI { behavior: "sniper_ai.lua" }
 }
 
-// Query entities with specific components
+// Query for specific component sets
 for entity in world.query([Transform, Weapon, AI]) {
-    // Process sniper AI
+    // Process sniper logic
 }
 ```
 
----
-
 ## 10.4 The Hybrid Reference Architecture
 
-After analyzing all three Close Combat clones, here is the synthesized reference architecture for a modern tactical wargame:
+The three Close Combat clones share a common architectural foundation. Here's how to build a modern tactical wargame using their best ideas:
 
 ### 10.4.1 Architecture Overview
 
@@ -823,32 +801,32 @@ After analyzing all three Close Combat clones, here is the synthesized reference
 flowchart TB
     subgraph "Reference Architecture"
         direction TB
-        
+
         subgraph "Core Layer (Performance)"
             SIM[Deterministic Simulation]
             MSG[Message Bus]
             STATE[Centralized BattleState]
         end
-        
+
         subgraph "Data Layer (Modding)"
             JSON[JSON/YAML Definitions]
             LUA[Lua Scripts]
             TMUX[Tiled Maps]
         end
-        
+
         subgraph "Systems Layer (Logic)"
             AI[AI System]
             COM[Combat System]
             PF[Pathfinding]
             PHY[Physics]
         end
-        
+
         subgraph "Presentation Layer (UI)"
             RENDER[Renderer]
             INPUT[Input Handler]
             UI[User Interface]
         end
-        
+
         JSON -->|Defines| STATE
         LUA -->|Controls| AI
         MSG <-->|Updates| STATE
@@ -863,17 +841,17 @@ flowchart TB
 
 ### 10.4.2 Key Design Decisions
 
-| System | Pattern | Implementation |
-|--------|---------|----------------|
-| **State Management** | Three-tier hierarchy + Bitfield | Phase→Behavior→Gesture + Capability flags |
-| **Entity Model** | Component composition | Entities are bags of components |
-| **Entity References** | Type-safe indices | SoldierIndex, VehicleIndex wrappers |
-| **Order System** | Two-tier with prerequisites | Orders→Actions + automatic chain |
-| **AI** | Behavior trees | Reactive + optional GOAP |
-| **World** | Entity-based + Spatial hash | Contiguous storage + spatial index |
-| **Modding** | JSON + Lua | Data definitions + scripting |
-| **Networking** | Message-driven | Event sourcing for sync |
-| **Determinism** | Fixed timestep | Seeded RNG, no floating-point accumulation |
+| System            | Pattern                         | Implementation                            |
+| ----------------- | ------------------------------- | ----------------------------------------- |
+| **State Management**  | Three-tier hierarchy + Bitfield | Phase→Behavior→Gesture + Capability flags |
+| **Entity Model**      | Component composition           | Entities as component containers          |
+| **Entity References** | Type-safe indices               | SoldierIndex, VehicleIndex wrappers       |
+| **Order System**      | Two-tier with prerequisites     | Orders→Actions + automatic chaining       |
+| **AI**                | Behavior trees                  | Reactive + optional GOAP                  |
+| **World**             | Entity-based + Spatial hash     | Contiguous storage + spatial index        |
+| **Modding**           | JSON + Lua                      | Data definitions + scripting              |
+| **Networking**        | Message-driven                  | Event sourcing for synchronization        |
+| **Determinism**       | Fixed timestep                  | Seeded RNG, no floating-point drift       |
 
 ### 10.4.3 Technology Stack Recommendations
 
@@ -909,109 +887,108 @@ Build: qmake or Unity
 
 ### 10.4.4 Directory Structure
 
+```mermaid
+mindmap
+  root((my-tactical-game/))
+    src["src/"]
+      core["core/ - Core systems"]
+      simulation["simulation/ - Game logic"]
+      ai["ai/ - Behavior trees, GOAP"]
+      graphics["graphics/ - Rendering"]
+      input["input/ - Input handling"]
+      network["network/ - Multiplayer"]
+      main.cpp["main.cpp"]
+    include["include/ - Public headers"]
+    data["data/"]
+      units["units/ - Unit definitions"]
+      weapons["weapons/ - Weapon data"]
+      behaviors["behaviors/ - AI behaviors"]
+      scenarios["scenarios/ - Mission definitions"]
+    scripts["scripts/"]
+      ai_scripts["ai/ - Lua AI scripts"]
+      behavior_scripts["behaviors/ - Unit behavior scripts"]
+    maps["maps/ - Tiled TMX files"]
+    assets["assets/"]
+      images["images/ - Sprites, textures"]
+      audio["audio/ - Sound effects, music"]
+      fonts["fonts/"]
+    mods["mods/ - Mods directory"]
+    docs["docs/ - Documentation"]
+    tests["tests/ - Unit tests"]
+    CMakeLists.txt["CMakeLists.txt - Build config"]
+    README.md["README.md"]
 ```
-my-tactical-game/
-├── src/
-│   ├── core/              # Core systems (world, entities, messages)
-│   ├── simulation/        # Game logic (combat, orders, AI)
-│   ├── ai/                # Behavior trees, GOAP
-│   ├── graphics/          # Rendering (or use engine)
-│   ├── input/             # Input handling
-│   ├── network/           # Multiplayer (optional)
-│   └── main.cpp
-├── include/               # Public headers
-├── data/
-│   ├── units/             # Unit definitions (JSON)
-│   ├── weapons/           # Weapon data (JSON)
-│   ├── behaviors/         # AI behaviors (YAML/JSON)
-│   └── scenarios/         # Mission definitions (JSON)
-├── scripts/
-│   ├── ai/                # Lua AI scripts
-│   └── behaviors/           # Unit behavior scripts
-├── maps/                  # Tiled TMX files
-├── assets/
-│   ├── images/            # Sprites, textures
-│   ├── audio/             # Sound effects, music
-│   └── fonts/
-├── mods/                  # Mods directory
-├── docs/                  # Documentation
-├── tests/                 # Unit tests
-├── CMakeLists.txt        # Build configuration
-└── README.md
-```
-
----
 
 ## 10.5 Checklist for New Projects
 
 ### 10.5.1 Pre-Development Questions
 
-Before writing a single line of code, answer these questions:
+Before writing code, answer these questions:
 
-**Game Design**:
-- [ ] Single-player, multiplayer, or both?
-- [ ] Competitive multiplayer (requires determinism)?
-- [ ] Modding support needed?
-- [ ] Target audience (hardcore wargamers vs casual)?
-- [ ] Scale (max units on screen)?
+**Game Design**
+- Single-player, multiplayer, or both?
+- Competitive multiplayer? (Requires determinism)
+- Modding support needed?
+- Target audience: hardcore wargamers or casual players?
+- Scale: maximum units on screen?
 
-**Technical**:
-- [ ] Target platforms (PC, mobile, console)?
-- [ ] Team size and expertise?
-- [ ] Timeline (rapid prototype vs long-term)?
-- [ ] Performance constraints (mobile vs desktop)?
-- [ ] Budget (engine licensing costs)?
+**Technical**
+- Target platforms: PC, mobile, or console?
+- Team size and expertise?
+- Timeline: rapid prototype or long-term development?
+- Performance constraints: mobile or desktop?
+- Budget: engine licensing costs?
 
-**Architecture Decisions**:
-- [ ] Language (based on team and performance needs)?
-- [ ] State management pattern (hierarchy vs bitfield vs hybrid)?
-- [ ] Entity model (inheritance vs composition vs ECS)?
-- [ ] Modding approach (data-only vs scripting)?
-- [ ] Networking model (client-authoritative vs server-authoritative)?
+**Architecture Decisions**
+- Language: based on team skills and performance needs
+- State management: hierarchy, bitfield, or hybrid
+- Entity model: inheritance, composition, or ECS
+- Modding approach: data-only or scripting
+- Networking model: client-authoritative or server-authoritative
 
 ### 10.5.2 Architecture Validation Checklist
 
-**State Management**:
-- [ ] Can a unit be in multiple orthogonal states simultaneously?
-- [ ] Can you serialize and deserialize game state completely?
-- [ ] Can you query "what is this unit doing?" easily?
-- [ ] Are state transitions explicit (not scattered in code)?
-- [ ] Can two clients stay synchronized (determinism check)?
+**State Management**
+- Can a unit be in multiple orthogonal states at once?
+- Can you serialize and deserialize the entire game state?
+- Can you easily query "what is this unit doing?"
+- Are state transitions explicit, not scattered in code?
+- Can two clients stay synchronized? (Determinism check)
 
-**Entity System**:
-- [ ] Can you add new unit types without code changes?
-- [ ] Are entity references type-safe (can't mix Soldier/Vehicle)?
-- [ ] Is memory layout cache-friendly (contiguous arrays)?
-- [ ] Can entities be composed of reusable components?
-- [ ] Does the system scale to target entity count?
+**Entity System**
+- Can you add new unit types without code changes?
+- Are entity references type-safe? (No mixing Soldier/Vehicle)
+- Is memory layout cache-friendly? (Contiguous arrays)
+- Can entities be composed of reusable components?
+- Does the system scale to your target entity count?
 
-**Order System**:
-- [ ] Can players issue orders without micromanagement?
-- [ ] Are prerequisites handled automatically?
-- [ ] Can AI override orders appropriately (survival > orders)?
-- [ ] Is the order queue visible and debuggable?
-- [ ] Can orders be chained/composed?
+**Order System**
+- Can players issue orders without micromanagement?
+- Are prerequisites handled automatically?
+- Can AI override orders appropriately? (Survival takes priority)
+- Is the order queue visible and debuggable?
+- Can orders be chained or composed?
 
-**AI System**:
-- [ ] Does AI react to threats immediately?
-- [ ] Can AI show initiative (not pure obedience)?
-- [ ] Is AI behavior configurable/scriptable?
-- [ ] Can you debug why an AI made a decision?
-- [ ] Does AI use cover and tactical positioning?
+**AI System**
+- Does AI react to threats immediately?
+- Can AI show initiative, not just blind obedience?
+- Is AI behavior configurable or scriptable?
+- Can you debug why an AI made a decision?
+- Does AI use cover and tactical positioning?
 
-**World System**:
-- [ ] Can you query entities in radius efficiently?
-- [ ] Is line-of-sight realistic (accumulated opacity)?
-- [ ] Does terrain affect movement meaningfully?
-- [ ] Can cover be evaluated and used by AI?
-- [ ] Is the world representation moddable?
+**World System**
+- Can you efficiently query entities in a radius?
+- Is line-of-sight realistic? (Accumulated opacity)
+- Does terrain meaningfully affect movement?
+- Can cover be evaluated and used by AI?
+- Is the world representation moddable?
 
-**Modding**:
-- [ ] Can modders add new units without recompilation?
-- [ ] Can modders add new behaviors/script AI?
-- [ ] Is there a mod manager (dependencies, load order)?
-- [ ] Can modders create new scenarios/maps?
-- [ ] Is hot reload supported for rapid iteration?
+**Modding**
+- Can modders add new units without recompilation?
+- Can modders add new behaviors or script AI?
+- Is there a mod manager for dependencies and load order?
+- Can modders create new scenarios or maps?
+- Is hot reload supported for rapid iteration?
 
 ### 10.5.3 Testing Requirements
 
@@ -1022,7 +999,7 @@ TEST(StateManagement, CanCombineOrthogonalStates) {
     s.set(Prone);
     s.set(Reloading);
     s.set(Suppressed);
-    
+
     EXPECT_TRUE(s.isSet(Prone));
     EXPECT_TRUE(s.isSet(Reloading));
     EXPECT_TRUE(s.isSet(Suppressed));
@@ -1033,10 +1010,10 @@ TEST(OrderSystem, PrerequisiteChainAutomatic) {
     Soldier soldier = world.createSoldier();
     soldier.setState(Prone);
     soldier.weapon.ammo = 0;
-    
+
     // Order soldier to fire
     soldier.addOrder(FireAt(enemy));
-    
+
     // System should automatically queue: StandUp, Reload, Fire
     EXPECT_EQ(soldier.actionQueue.size(), 3);
     EXPECT_EQ(soldier.actionQueue[0].type, StandUp);
@@ -1048,116 +1025,98 @@ TEST(Determinism, SameInputsProduceSameOutputs) {
     // Run simulation twice with same seed
     State state1 = runSimulation(seed, inputs);
     State state2 = runSimulation(seed, inputs);
-    
+
     EXPECT_EQ(hash(state1), hash(state2));
 }
 ```
 
 **Integration Tests** (Required):
-- [ ] Full scenario playthrough (no crashes)
-- [ ] AI behavior validation (takes cover when fired upon)
-- [ ] Mod loading and hot reload
-- [ ] Network synchronization (if multiplayer)
-- [ ] Save/load roundtrip (state survives serialization)
+- Full scenario playthrough without crashes
+- AI behavior validation: takes cover when fired upon
+- Mod loading and hot reload
+- Network synchronization (if multiplayer)
+- Save/load roundtrip: state survives serialization
 
 **Performance Tests** (Required):
-- [ ] 100 units at 60 FPS (minimum)
-- [ ] 500 units at 30 FPS (target)
-- [ ] Spatial query benchmark (radius search)
-- [ ] Pathfinding benchmark (A* with terrain)
-- [ ] Memory usage under load
+- 100 units at 60 FPS (minimum)
+- 500 units at 30 FPS (target)
+- Spatial query benchmark: radius search
+- Pathfinding benchmark: A* with terrain
+- Memory usage under load
 
 ### 10.5.4 Milestone Checklist
 
 **Phase 1: Foundation (Months 1-3)**
-- [ ] Basic rendering (SDL2/engine)
-- [ ] Entity system with type-safe indices
-- [ ] State management (hierarchy + bitfield)
-- [ ] Simple terrain (Tiled integration)
-- [ ] One soldier moves on screen
+- Basic rendering (SDL2 or engine)
+- Entity system with type-safe indices
+- State management (hierarchy + bitfield)
+- Simple terrain (Tiled integration)
+- One soldier moves on screen
 
 **Phase 2: Gameplay (Months 4-6)**
-- [ ] Order system with prerequisites
-- [ ] Combat (shooting, damage)
-- [ ] Terrain effects (cover, LOS)
-- [ ] Basic AI (reactive behaviors)
-- [ ] Squad command hierarchy
+- Order system with prerequisites
+- Combat: shooting and damage
+- Terrain effects: cover and line-of-sight
+- Basic AI: reactive behaviors
+- Squad command hierarchy
 
 **Phase 3: Content (Months 7-9)**
-- [ ] Data-driven unit definitions
-- [ ] JSON scenario system
-- [ ] Lua scripting support
-- [ ] Mod loading system
-- [ ] Hot reload implementation
+- Data-driven unit definitions
+- JSON scenario system
+- Lua scripting support
+- Mod loading system
+- Hot reload implementation
 
 **Phase 4: Polish (Months 10-12)**
-- [ ] UI/UX improvements
-- [ ] Sound effects and music
-- [ ] Visual effects
-- [ ] Performance optimization
-- [ ] 500 units at 60 FPS
+- UI and UX improvements
+- Sound effects and music
+- Visual effects
+- Performance optimization
+- 500 units at 60 FPS
 
 **Phase 5: Multiplayer (Optional, Months 13-15)**
-- [ ] Deterministic simulation verified
-- [ ] Network message system
-- [ ] Client-server architecture
-- [ ] Lag compensation
-- [ ] Replay recording
-
----
+- Deterministic simulation verified
+- Network message system
+- Client-server architecture
+- Lag compensation
+- Replay recording
 
 ## 10.6 Conclusion: The Path Forward
 
-After analyzing three implementations across nearly two decades, certain truths emerge:
+Three implementations across nearly two decades reveal key insights:
 
-**What Always Works**:
-1. **Separation of concerns** (Orders vs Behaviors vs Gestures)
-2. **Type safety** (indices over pointers, enums over strings where possible)
-3. **Data-driven design** (JSON/YAML over hardcoded values)
-4. **Spatial partitioning** (essential for performance)
-5. **Message-driven updates** (enables replay, debugging, networking)
+**What Always Works**
+1. Separation of concerns: orders, behaviors, and gestures
+2. Type safety: indices over pointers, enums over strings
+3. Data-driven design: JSON or YAML over hardcoded values
+4. Spatial partitioning: essential for performance
+5. Message-driven updates: enables replay, debugging, and networking
 
-**What Depends on Context**:
-1. **Inheritance vs Composition** (inheritance for simple games, composition for complex)
-2. **Determinism overhead** (worth it for multiplayer, unnecessary for single-player)
-3. **Scripting complexity** (Lua for deep modding, JSON for simple data)
-4. **State representation** (bitfields for capabilities, hierarchy for timescales)
+**What Depends on Context**
+1. Inheritance vs composition: inheritance for simple games, composition for complex ones
+2. Determinism overhead: worth it for multiplayer, unnecessary for single-player
+3. Scripting complexity: Lua for deep modding, JSON for simple data
+4. State representation: bitfields for capabilities, hierarchy for timescales
 
-**Final Recommendations**:
+**Final Recommendations**
 
-**For Your First Tactical Game**:
-- Start with OpenCombat-SDL patterns (simpler, intuitive)
-- Use C++ with SDL2 or C# with Unity
-- Focus on single-player with rich simulation
-- Add modding later if community forms
+**For Your First Tactical Game**
+Start with OpenCombat-SDL patterns. They're simpler and more intuitive. Use C++ with SDL2 or C# with Unity. Focus on single-player with a rich simulation. Add modding later if a community forms.
 
-**For a Commercial Multiplayer Game**:
-- Use OpenCombat patterns (deterministic, server-authoritative)
-- Invest in Rust or C++ with custom networking
-- Build multiplayer from day one (hard to retrofit)
-- Prioritize replay and anti-cheat
+**For a Commercial Multiplayer Game**
+Use OpenCombat patterns. They're deterministic and server-authoritative. Invest in Rust or C++ with custom networking. Build multiplayer from day one—it's hard to retrofit. Prioritize replay and anti-cheat.
 
-**For a Community-Driven Modding Platform**:
-- Use CloseCombatFree patterns (declarative, hot reload)
-- Invest in QML or Unity with extensive scripting API
-- Build mod manager and dependency system
-- Documentation and examples are as important as features
+**For a Community-Driven Modding Platform**
+Use CloseCombatFree patterns. They're declarative with hot reload. Invest in QML or Unity with an extensive scripting API. Build a mod manager and dependency system. Documentation and examples matter as much as features.
 
-**The Universal Truth**:
+**The Universal Truth**
 
-There is no single "right" architecture—only trade-offs. The Close Combat clones demonstrate that the same game concept can be implemented successfully with radically different approaches. Your job is to understand the trade-offs and choose based on your specific constraints.
+No single "right" architecture exists—only trade-offs. The Close Combat clones prove the same game concept can succeed with radically different approaches. Understand the trade-offs and choose based on your constraints.
 
-**The patterns in this book provide the vocabulary. The recommendations in this chapter provide the guidance. Your execution determines the result.**
+The patterns in this book give you the vocabulary. The recommendations provide guidance. Your execution determines the result.
 
 Choose wisely. Build carefully. Ship bravely.
 
 ---
 
-**End of Chapter 10**
-
----
-
-*This chapter synthesizes patterns from three Close Combat clone implementations: OpenCombat-SDL (2005-2008), CloseCombatFree (2011-2012), and OpenCombat (2020-2024). The recommendations represent the distilled wisdom of nearly two decades of tactical wargame development.*
-
-*Version: 2.0 (February 2026)*
-*Status: Final Recommendation Document*
+*Next: [Chapter 11: The Close Combat Pattern Language](chapter_11_universal_patterns.md)*

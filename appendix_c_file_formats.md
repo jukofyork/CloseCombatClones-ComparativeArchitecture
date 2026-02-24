@@ -2,7 +2,7 @@
 
 ## C.1 Comparative Overview
 
-This appendix provides a detailed technical analysis of the file formats and data hierarchies employed by three Close Combat clone implementations. Understanding these formats is essential for modding, data migration between projects, and designing new tactical wargame architectures.
+This appendix analyzes the file formats and data hierarchies used by three Close Combat clone implementations. These formats support modding, data migration between projects, and the design of new tactical wargame architectures.
 
 ### C.1.1 File Format Comparison Table
 
@@ -20,12 +20,12 @@ This appendix provides a detailed technical analysis of the file formats and dat
 
 **OpenCombat-SDL** uses a hierarchical XML structure where game entities are defined in separate configuration files with cross-references by name. Data is organized by entity type (Weapons, Soldiers, Squads) rather than by scenario.
 
-**OpenCombat** employs a modern approach using industry-standard formats (TMX for maps, JSON for deployments) with strict separation between:
+**OpenCombat** uses industry-standard formats (TMX for maps, JSON for deployments) with strict separation between:
 - Static world data (maps, terrain)
 - Dynamic game state (unit deployments)
 - Asset definitions (sprites, audio)
 
-**CloseCombatFree** utilizes QML's declarative nature, treating data files as executable code. This allows complex behaviors to be embedded directly in data files, blurring the line between data and logic.
+**CloseCombatFree** uses QML's declarative nature and treats data files as executable code. Complex behaviors can be embedded directly in data files, which blurs the line between data and logic.
 
 ### C.1.3 Modding Capabilities Summary
 
@@ -44,56 +44,57 @@ This appendix provides a detailed technical analysis of the file formats and dat
 
 ### C.2.1 Directory Structure
 
-```
-OpenCombat-SDL/
-├── config/                    # Core game configuration
-│   ├── Soldiers.xml           # Soldier type definitions
-│   ├── Weapons.xml            # Weapon specifications
-│   ├── Vehicles.xml           # Vehicle definitions
-│   ├── Squads.xml             # Squad compositions
-│   ├── Terrain.xml            # Terrain widget definitions
-│   ├── Effects.xml            # Visual effects (explosions, muzzle flash)
-│   ├── SoundEffects.xml       # Audio effect mappings
-│   ├── Nationalities.xml      # Faction definitions
-│   ├── SoldierAnimations.xml  # Animation specifications
-│   ├── BazookaAnimations.xml  # Weapon-specific animations
-│   ├── MachineGunAnimations.xml
-│   ├── SoldierDeaths.xml      # Death animation sequences
-│   ├── Icons.xml              # UI icon definitions
-│   ├── CombatUI.xml           # Combat interface layout
-│   ├── Colors.xml             # Color palette definitions
-│   ├── ColorModifiers.xml     # Team color modifications
-│   ├── Elements.xml           # UI element definitions
-│   ├── ContextMenuWidgets.xml # Context menu configuration
-│   └── WeaponIcons.xml        # Weapon icon mappings
-├── maps/                      # Scenario/map data
-│   └── Acqueville/
-│       ├── Acqueville.xml     # Main map file
-│       └── Acqueville.buildings.xml  # Building data
-├── graphics/                  # Visual assets
-│   ├── Soldiers/              # Soldier sprites by state
-│   │   ├── Rifle/
-│   │   ├── Rifle Kneeling/
-│   │   ├── Prone/
-│   │   ├── Walking/
-│   │   ├── Running/
-│   │   ├── Standing Deaths/
-│   │   ├── Prone Burning/
-│   │   └── Dead */
-│   ├── Vehicles/              # Vehicle sprites
-│   ├── Effects/               # Effect animations
-│   ├── Terrain/               # Terrain tiles
-│   └── UI/                    # Interface graphics
-├── sounds/                    # Audio assets
-│   └── Effects/               # Sound effects
-└── src/                       # Source code (not data)
+```mermaid
+mindmap
+  root((OpenCombat-SDL))
+    config
+      Soldiers.xml
+      Weapons.xml
+      Vehicles.xml
+      Squads.xml
+      Terrain.xml
+      Effects.xml
+      SoundEffects.xml
+      Nationalities.xml
+      SoldierAnimations.xml
+      BazookaAnimations.xml
+      MachineGunAnimations.xml
+      SoldierDeaths.xml
+      Icons.xml
+      CombatUI.xml
+      Colors.xml
+      ColorModifiers.xml
+      Elements.xml
+      ContextMenuWidgets.xml
+      WeaponIcons.xml
+    maps
+      Acqueville
+        Acqueville.xml
+        Acqueville.buildings.xml
+    graphics
+      Soldiers
+        Rifle
+        Rifle Kneeling
+        Prone
+        Walking
+        Running
+        Standing Deaths
+        Prone Burning
+        Dead
+      Vehicles
+      Effects
+      Terrain
+      UI
+    sounds
+      Effects
+    src
 ```
 
 ### C.2.2 XML File Specifications
 
 #### C.2.2.1 Soldiers.xml Structure
 
-The soldier definition file establishes unit types with state machines linking to animation resources.
+The soldier definition file establishes unit types and links state machines to animation resources.
 
 **Root Element**: `<Soldiers>`
 
@@ -162,7 +163,7 @@ The soldier definition file establishes unit types with state machines linking t
 
 #### C.2.2.2 Weapons.xml Structure
 
-Weapon definitions include ballistic properties, timing, and resource references.
+Weapon definitions specify ballistic properties, timing, and resource references.
 
 **Root Element**: `<Weapons>`
 
@@ -215,7 +216,7 @@ Weapon definitions include ballistic properties, timing, and resource references
 
 #### C.2.2.3 Vehicles.xml Structure
 
-Vehicle definitions use nested structures for turret and hull components.
+Vehicle definitions nest structures for turret and hull components.
 
 **Root Element**: `<Vehicles>`
 
@@ -311,33 +312,44 @@ Squad templates define unit compositions for scenario deployment.
 
 Sprite files follow a strict naming pattern for automatic loading:
 
+```mermaid
+flowchart LR
+    subgraph Pattern["Sprite File Naming Pattern"]
+        name["[name]"]
+        offsetX["[offsetX]"]
+        offsetY["[offsetY]"]
+        width["[width]"]
+        height["[height]"]
+        ext[".tga"]
+    end
+    
+    name ---|."| offsetX ---|."| offsetY ---|."| width ---|."| height ---|."| ext
+    
+    subgraph Examples["Examples"]
+        ex1["spr2596.39.33.tga<br/>Soldier sprite<br/>pivot at (39, 33)"]
+        ex2["panzer_IVG_turret.8.30.tga<br/>Turret sprite<br/>pivot at (8, 30)"]
+        ex3["ui_game_donut_fat_green.6.7.tga<br/>UI element<br/>pivot at (6, 7)"]
+    end
 ```
-[name].[offsetX].[offsetY].[width].[height].tga
-```
-
-**Examples**:
-- `spr2596.39.33.tga` - Soldier sprite with pivot at (39, 33)
-- `panzer_IVG_turret.8.30.tga` - Turret sprite with pivot at (8, 30)
-- `ui_game_donut_fat_green.6.7.tga` - UI element with pivot at (6, 7)
 
 #### C.2.3.2 Animation File Organization
 
 Animations are stored in directional subdirectories:
 
-```
-graphics/Effects/
-├── bazooka_n/          # North-facing bazooka effect
-├── bazooka_ne/         # Northeast-facing
-├── bazooka_e/
-├── bazooka_se/
-├── bazooka_s/
-├── bazooka_sw/
-├── bazooka_w/
-├── bazooka_nw/
-├── rifle_n/
-├── rifle_ne/
-...
-└── muzzle_n/
+```mermaid
+mindmap
+  root((graphics/Effects))
+    bazooka_n["bazooka_n<br/>(North-facing)"]
+    bazooka_ne["bazooka_ne<br/>(Northeast-facing)"]
+    bazooka_e["bazooka_e"]
+    bazooka_se["bazooka_se"]
+    bazooka_s["bazooka_s"]
+    bazooka_sw["bazooka_sw"]
+    bazooka_w["bazooka_w"]
+    bazooka_nw["bazooka_nw"]
+    rifle_n["rifle_n"]
+    rifle_ne["rifle_ne"]
+    muzzle_n["muzzle_n"]
 ```
 
 ### C.2.4 Hardcoded vs Configurable Elements
@@ -376,72 +388,73 @@ The OpenCombat-SDL project includes documentation (`docs/MODDING_ARCHITECTURE_ID
 
 ### C.3.1 Directory Structure
 
-```
-OpenCombat/
-├── Cargo.toml                    # Workspace configuration
-├── oc_core/
-│   └── Cargo.toml               # Core library manifest
-├── oc_launcher/
-│   └── Cargo.toml               # Launcher application manifest
-├── battle_core/
-│   └── Cargo.toml               # Battle simulation library
-├── battle_server/
-│   └── Cargo.toml               # Network server manifest
-├── battle_gui/
-│   └── Cargo.toml               # GUI application manifest
-├── battle_tools/
-│   └── Cargo.toml               # Development tools manifest
-├── examples/
-│   └── Cargo.toml               # Example code manifest
-├── assets/                       # Deployment definitions
-│   ├── demo1_deployment.json    # Scenario unit placements
-│   ├── demo1_deployment2.json
-│   ├── demo2_deployment.json
-│   ├── demo2_deployment2.json
-│   └── map1_deployment.json
-└── resources/                    # Game assets
-    ├── soldiers.png             # Infantry spritesheet
-    ├── soldiers__HD.png         # High-definition variant
-    ├── vehicles.png             # Vehicle spritesheet
-    ├── vehicles__HD.png
-    ├── explosions.png           # Effect spritesheet
-    ├── explosions__HD.png
-    ├── cannon_blasts.png
-    ├── cannon_blasts__HD.png
-    ├── flags.xcf                # Source graphics (GIMP)
-    ├── ui.xcf
-    ├── soldiers.xcf
-    ├── vehicles.xcf
-    ├── weapon_riffle.xcf
-    ├── explosions.xcf
-    ├── audio/                   # Sound assets
-    │   ├── MauserRiffleFire2.ogg
-    │   ├── MauserRiffleFire3.ogg
-    │   ├── MauserRiffleReload1.ogg
-    │   ├── MosinNagantReload1.ogg
-    │   ├── MosinNagantReload2.ogg
-    │   ├── Mg34x7.ogg
-    │   ├── BrenMark2x1.ogg
-    │   ├── BrenMark2x8.ogg
-    │   ├── BrenMark2x10.ogg
-    │   ├── MaleDie5.ogg
-    │   ├── MaleDie8.ogg
-    │   ├── BulletMetalmpact1.wav
-    │   └── Clac1.ogg
-    └── maps/                    # Tiled map files
-        ├── map1/
-        │   ├── map1.tmx        # Main map file
-        │   ├── map1.png        # Background image
-        │   ├── interiors.png   # Building interiors
-        │   ├── terrain.tsx     # Tileset definition
-        │   ├── trees_64x64.tsx
-        │   └── trees_32x32.tsx
-        ├── map2/
-        │   └── map2.tmx
-        ├── Demo1/
-        │   └── Demo1.tmx
-        └── Demo2/
-            └── Demo2.tmx
+```mermaid
+mindmap
+  root((OpenCombat))
+    Cargo.toml
+    oc_core
+      Cargo.toml
+    oc_launcher
+      Cargo.toml
+    battle_core
+      Cargo.toml
+    battle_server
+      Cargo.toml
+    battle_gui
+      Cargo.toml
+    battle_tools
+      Cargo.toml
+    examples
+      Cargo.toml
+    assets
+      demo1_deployment.json
+      demo1_deployment2.json
+      demo2_deployment.json
+      demo2_deployment2.json
+      map1_deployment.json
+    resources
+      soldiers.png
+      soldiers__HD.png
+      vehicles.png
+      vehicles__HD.png
+      explosions.png
+      explosions__HD.png
+      cannon_blasts.png
+      cannon_blasts__HD.png
+      flags.xcf
+      ui.xcf
+      soldiers.xcf
+      vehicles.xcf
+      weapon_riffle.xcf
+      explosions.xcf
+      audio
+        MauserRiffleFire2.ogg
+        MauserRiffleFire3.ogg
+        MauserRiffleReload1.ogg
+        MosinNagantReload1.ogg
+        MosinNagantReload2.ogg
+        Mg34x7.ogg
+        BrenMark2x1.ogg
+        BrenMark2x8.ogg
+        BrenMark2x10.ogg
+        MaleDie5.ogg
+        MaleDie8.ogg
+        BulletMetalmpact1.wav
+        Clac1.ogg
+      maps
+        map1
+          map1.tmx
+          map1.png
+          interiors.png
+          terrain.tsx
+          trees_64x64.tsx
+          trees_32x32.tsx
+        map2
+          map2.tmx
+        Demo1
+          Demo1.tmx
+        Demo2
+          Demo2.tmx
 ```
 
 ### C.3.2 JSON Deployment Format
@@ -717,112 +730,113 @@ image = "0.24.7"       # Image processing
 
 ### C.4.1 Directory Structure
 
-```
-closecombatfree/
-├── closecombatfree.pro      # Qt project file
-├── config                   # User configuration file
-├── config_old               # Backup configuration
-├── developer.docconf        # Developer settings
-├── user.docconf             # User settings
-├── ccf_icon.png             # Application icon
-├── qml/                     # Core QML modules
-│   ├── main.qml             # Application entry point
-│   ├── campaigns/
-│   │   ├── CampaignList.qml
-│   │   ├── CampaignMapList.qml
-│   │   └── CampaignDescriptionGui.qml
-│   ├── effects/
-│   │   ├── Effect.qml
-│   │   ├── GunFireEffect.qml
-│   │   ├── Shadow.qml
-│   │   ├── VehicleExhaust.qml
-│   │   └── VehicleExplosion.qml
-│   ├── gui/
-│   │   ├── DefenceSphere.qml
-│   │   ├── OrderMarker.qml
-│   │   ├── PopUpArrow.qml
-│   │   ├── RubberBand.qml
-│   │   ├── SimpleInfoBox.qml
-│   │   ├── UnitSelectionBox.qml
-│   │   ├── ZoomBox.qml
-│   │   ├── ZoomButton.qml
-│   │   ├── menus/
-│   │   │   ├── AboutMenu.qml
-│   │   │   ├── BottomMenu.qml
-│   │   │   ├── ContextMenu.qml
-│   │   │   ├── OptionsMenu.qml
-│   │   │   ├── PreferencesMenu.qml
-│   │   │   ├── PreferencesMenu2.qml
-│   │   │   ├── PreferencesSingleTextInputEntry.qml
-│   │   │   ├── RosterMenu.qml
-│   │   │   ├── SoldierMenu.qml
-│   │   │   ├── StatusMessageMenu.qml
-│   │   │   └── TopMenu.qml
-│   │   └── menuEntries/
-│   │       ├── CardMenuEntry.qml
-│   │       ├── ContextMenuEntry.qml
-│   │       ├── LoadGameEntries.qml
-│   │       ├── MenuEntry.qml
-│   │       ├── PreferencesCheckboxEntry.qml
-│   │       ├── PreferencesScreenSizeEntry.qml
-│   │       ├── RosterMenuEntry.qml
-│   │       ├── ScenarioMenuEntry.qml
-│   │       └── StatusMessageMenuEntry.qml
-│   ├── maps/
-│   │   ├── MapCluster.qml
-│   │   └── props/
-│   │       ├── Prop.qml
-│   │       ├── PropCluster.qml
-│   │       └── PropRectangle.qml
-│   ├── menus/
-│   │   ├── CampaignMenu.qml
-│   │   ├── LoadGameMenu.qml
-│   │   ├── MainMenu.qml
-│   │   ├── SavedGamesMenu.qml
-│   │   └── ScenarioMenu.qml
-│   ├── scenarios/
-│   │   └── Scenario.qml
-│   ├── units/
-│   │   ├── Unit.qml
-│   │   └── tanks/
-│   │       ├── Hull.qml
-│   │       ├── Tank.qml
-│   │       ├── Turret.qml
-│   │       └── TurretImage.qml
-│   └── weather/
-│       └── Weather.qml
-├── maps/                    # Map definitions
-│   ├── Map_tst1.qml
-│   ├── Map_tst2.qml
-│   ├── Map_tst3.qml
-│   ├── Map_tst4.qml
-│   └── props/
-│       ├── HouseBasic_tst.qml
-│       └── Tree_tst.qml
-├── units/                   # Unit definitions
-│   └── tanks/
-│       └── tests/
-│           ├── Tank_tst1.qml
-│           ├── Tank_tst1_hull.qml
-│           ├── Tank_tst1_turret.qml
-│           ├── Tank_tst2.qml
-│           ├── Tank_tst2_turret.qml
-│           ├── Tank_tst3.qml
-│           └── Tank_tst3_hull.qml
-├── scenarios/               # Scenario definitions
-│   ├── Scenario_tst1.qml
-│   ├── Scenario_tst2.qml
-│   ├── Scenario_tst3.qml
-│   └── Scenario_tst4.qml
-├── campaigns/               # Campaign definitions
-│   └── Campaign_tst1.qml
-├── saves/                   # Save game files
-│   ├── temp_save1.qml
-│   ├── temp_save2.qml
-│   ├── temp_save3.qml
-│   └── temp_save4.qml
-└── editor/                  # Scenario editor
-    └── ScenarioEditor.qml
+```mermaid
+mindmap
+  root((closecombatfree))
+    closecombatfree.pro
+    config
+    config_old
+    developer.docconf
+    user.docconf
+    ccf_icon.png
+    qml
+      main.qml
+      campaigns
+        CampaignList.qml
+        CampaignMapList.qml
+        CampaignDescriptionGui.qml
+      effects
+        Effect.qml
+        GunFireEffect.qml
+        Shadow.qml
+        VehicleExhaust.qml
+        VehicleExplosion.qml
+      gui
+        DefenceSphere.qml
+        OrderMarker.qml
+        PopUpArrow.qml
+        RubberBand.qml
+        SimpleInfoBox.qml
+        UnitSelectionBox.qml
+        ZoomBox.qml
+        ZoomButton.qml
+        menus
+          AboutMenu.qml
+          BottomMenu.qml
+          ContextMenu.qml
+          OptionsMenu.qml
+          PreferencesMenu.qml
+          PreferencesMenu2.qml
+          PreferencesSingleTextInputEntry.qml
+          RosterMenu.qml
+          SoldierMenu.qml
+          StatusMessageMenu.qml
+          TopMenu.qml
+        menuEntries
+          CardMenuEntry.qml
+          ContextMenuEntry.qml
+          LoadGameEntries.qml
+          MenuEntry.qml
+          PreferencesCheckboxEntry.qml
+          PreferencesScreenSizeEntry.qml
+          RosterMenuEntry.qml
+          ScenarioMenuEntry.qml
+          StatusMessageMenuEntry.qml
+      maps
+        MapCluster.qml
+        props
+          Prop.qml
+          PropCluster.qml
+          PropRectangle.qml
+      menus
+        CampaignMenu.qml
+        LoadGameMenu.qml
+        MainMenu.qml
+        SavedGamesMenu.qml
+        ScenarioMenu.qml
+      scenarios
+        Scenario.qml
+      units
+        Unit.qml
+        tanks
+          Hull.qml
+          Tank.qml
+          Turret.qml
+          TurretImage.qml
+      weather
+        Weather.qml
+    maps
+      Map_tst1.qml
+      Map_tst2.qml
+      Map_tst3.qml
+      Map_tst4.qml
+      props
+        HouseBasic_tst.qml
+        Tree_tst.qml
+    units
+      tanks
+        tests
+          Tank_tst1.qml
+          Tank_tst1_hull.qml
+          Tank_tst1_turret.qml
+          Tank_tst2.qml
+          Tank_tst2_turret.qml
+          Tank_tst3.qml
+          Tank_tst3_hull.qml
+    scenarios
+      Scenario_tst1.qml
+      Scenario_tst2.qml
+      Scenario_tst3.qml
+      Scenario_tst4.qml
+    campaigns
+      Campaign_tst1.qml
+    saves
+      temp_save1.qml
+      temp_save2.qml
+      temp_save3.qml
+      temp_save4.qml
+    editor
+      ScenarioEditor.qml
 ```
 
 ### C.4.2 QML Declarative Data
@@ -1181,84 +1195,90 @@ Based on the analysis of all three projects, here are recommendations for new Cl
 
 #### C.6.1.2 Format Selection Decision Tree
 
-```
-Is data edited by non-programmers?
-├── Yes → Use TMX (maps) or JSON with schema
-└── No → Is performance critical?
-    ├── Yes → Binary (MessagePack, FlatBuffers)
-    └── No → Is hierarchical structure complex?
-        ├── Yes → YAML or TOML
-        └── No → JSON (simple, universal support)
+```mermaid
+flowchart TD
+    A["Is data edited by non-programmers?"] -->|Yes| B["Use TMX maps or JSON with schema"]
+    A -->|No| C["Is performance critical?"]
+    C -->|Yes| D["Binary MessagePack FlatBuffers"]
+    C -->|No| E["Is hierarchical structure complex?"]
+    E -->|Yes| F["YAML or TOML"]
+    E -->|No| G["JSON simple universal support"]
 ```
 
 ### C.6.2 Directory Organization
 
 Recommended structure combining best practices:
 
-```
-GameRoot/
-├── data/
-│   ├── units/
-│   │   ├── infantry.json
-│   │   ├── vehicles.json
-│   │   └── weapons.json
-│   ├── factions/
-│   │   ├── allies.json
-│   │   └── axis.json
-│   └── abilities.json
-├── maps/
-│   ├── normandy/
-│   │   ├── map.tmx
-│   │   ├── terrain.png
-│   │   └── metadata.json
-│   └── stalingrad/
-│       └── ...
-├── scenarios/
-│   ├── tutorial.json
-│   ├── campaign_mission_1.json
-│   └── skirmish.json
-├── config/
-│   ├── settings.toml
-│   ├── keybindings.toml
-│   └── video.toml
-├── assets/
-│   ├── sprites/
-│   │   ├── infantry.png
-│   │   └── vehicles/
-│   ├── audio/
-│   │   ├── weapons/
-│   │   ├── voices/
-│   │   └── music/
-│   └── fonts/
-├── mods/
-│   └── (user-installed mods)
-└── saves/
-    └── (binary save files)
+```mermaid
+mindmap
+  root((GameRoot))
+    data
+      units
+        infantry.json
+        vehicles.json
+        weapons.json
+      factions
+        allies.json
+        axis.json
+      abilities.json
+    maps
+      normandy
+        map.tmx
+        terrain.png
+        metadata.json
+      stalingrad
+    scenarios
+      tutorial.json
+      campaign_mission_1.json
+      skirmish.json
+    config
+      settings.toml
+      keybindings.toml
+      video.toml
+    assets
+      sprites
+        infantry.png
+        vehicles
+      audio
+        weapons
+        voices
+        music
+      fonts
+    mods
+      user-installed mods
+    saves
+      binary save files
 ```
 
 ### C.6.3 Modding Support Architecture
 
 #### C.6.3.1 Mod Loading Priority
 
-```
-Resolution Order (highest to lowest):
-1. User mod overrides
-2. Official DLC/expansions
-3. Base game data
+```mermaid
+flowchart TD
+    subgraph Priority["Mod Loading Priority"]
+        direction TB
+        P1["1. User mod overrides"]
+        P2["2. Official DLC/expansions"]
+        P3["3. Base game data"]
+    end
+    
+    P1 --> P2 --> P3
 ```
 
 #### C.6.3.2 Mod Package Structure
 
-```
-mods/
-└── my_mod/
-    ├── mod.json              # Mod metadata
-    ├── data/
-    │   └── overrides/        # Replacement files
-    ├── assets/
-    │   └── custom/           # New assets
-    └── scripts/
-        └── extensions.js     # Optional scripting
+```mermaid
+mindmap
+  root((mods))
+    my_mod
+      mod.json["mod.json Mod metadata"]
+      data
+        overrides["overrides Replacement files"]
+      assets
+        custom["custom New assets"]
+      scripts
+        extensions.js["extensions.js Optional scripting"]
 ```
 
 **mod.json**:
@@ -1354,14 +1374,14 @@ For maximum compatibility between projects:
 
 ## C.7 Summary
 
-This appendix has provided a comprehensive technical analysis of the file formats and data hierarchies used by three Close Combat clone implementations:
+This appendix analyzes the file formats and data hierarchies used by three Close Combat clone implementations:
 
-1. **OpenCombat-SDL** utilizes XML-based configuration with hierarchical entity definitions, emphasizing data-driven content but requiring specialized knowledge for editing.
+1. **OpenCombat-SDL** uses XML-based configuration with hierarchical entity definitions. It supports data-driven content but requires specialized knowledge for editing.
 
-2. **OpenCombat** adopts modern industry standards (JSON, TMX) with strict separation of concerns, enabling professional tooling and clear data boundaries.
+2. **OpenCombat** uses modern industry standards (JSON, TMX) with strict separation of concerns, enabling professional tooling and clear data boundaries.
 
-3. **CloseCombatFree** leverages QML's declarative nature, blurring the line between data and code for maximum flexibility but requiring understanding of Qt/QML paradigms.
+3. **CloseCombatFree** uses QML's declarative nature, blurring the line between data and code for maximum flexibility, though it requires understanding of Qt/QML paradigms.
 
-Each approach offers distinct advantages: XML provides explicit structure, JSON enables modern tooling integration, and QML offers runtime flexibility. New projects should consider their target audience (modders vs. players), available tooling, and team expertise when selecting file formats.
+Each approach has distinct advantages: XML provides explicit structure, JSON enables modern tooling integration, and QML offers runtime flexibility. New projects should consider their target audience (modders vs. players), available tooling, and team expertise when selecting file formats.
 
-The recommendations in Section C.6 provide a roadmap for new implementations, suggesting JSON for unit definitions, TMX for maps, and a structured modding architecture that could support content from all three existing projects.
+Section C.6 provides a roadmap for new implementations, suggesting JSON for unit definitions, TMX for maps, and a structured modding architecture that could support content from all three existing projects.

@@ -2,30 +2,30 @@
 
 ## A Practical Guide to Navigating This Comparative Analysis
 
-This book contains fifteen chapters and five technical appendices spanning over 200,000 words. This guide will help you find the content most relevant to your needs, whether you're a game designer looking for design patterns, a programmer seeking implementation guidance, a modder exploring extensibility, or a researcher studying game architecture.
+This book spans fifteen chapters and five technical appendices across over 200,000 words. Use this guide to find content relevant to your needs, whether you design games, implement systems, create mods, or study game architecture.
 
 ---
 
 ## Quick Start: Four Reading Paths
 
-Choose the path that matches your role and goals:
+Choose the path that matches your role:
 
 ### Path 1: The Game Designer
 *Focus: Design patterns, player experience, and design-technology trade-offs*
 
 **Essential Chapters** (6-8 hours):
-1. **Preface** - Understanding why these games matter
-2. **Introduction** - The Close Combat formula and what this book covers
-3. **Chapter 1: Executive Summary** - Universal design decisions at a glance
-4. **Chapter 2: Architectural Philosophy** - How architecture shapes player experience
+1. **Preface** - Why these games matter
+2. **Introduction** - The Close Combat formula and book coverage
+3. **Chapter 1: Executive Summary** - Key design decisions at a glance
+4. **Chapter 2: Architectural Philosophy** - How architecture influences player experience
 5. **Chapter 6: Order & AI System Design** - Command abstraction and AI autonomy
-6. **Chapter 9: Lessons Learned** - What worked and what didn't
+6. **Chapter 9: Lessons Learned** - What worked and what failed
 7. **Chapter 11: Universal Patterns** - The pattern catalog (focus on problem statements)
 
 **Key Insights for Designers**:
-- The three-layer command abstraction (Order → Behavior → Gesture) is essential for player clarity
-- Morale systems create emergent narrative but require careful tuning to avoid player frustration
-- Moddability must be designed in from day one; it cannot be retrofitted
+- The three-layer command abstraction (Order → Behavior → Gesture) clarifies player intent
+- Morale systems generate narrative but need careful tuning to avoid frustration
+- Moddability requires upfront design; retrofitting rarely succeeds
 
 ### Path 2: The Programmer
 *Focus: Implementation details, algorithms, and code architecture*
@@ -46,33 +46,33 @@ Choose the path that matches your role and goals:
 13. **Appendices A-C** - Detailed technical reference
 
 **Key Technical Takeaways**:
-- OpenCombat's modified ECS provides the best balance of type safety and performance
-- Three-tier state hierarchy (Phase → Behavior → Gesture) cleanly separates timescales
-- Deterministic simulation requires message-driven state updates and fixed timesteps
-- Spatial partitioning is essential for performance with 100+ units
+- OpenCombat's modified ECS balances type safety and performance
+- A three-tier state hierarchy (Phase → Behavior → Gesture) separates timescales cleanly
+- Deterministic simulation needs message-driven state updates and fixed timesteps
+- Spatial partitioning becomes essential with 100+ units
 
 ### Path 3: The Modder
 *Focus: Extensibility, file formats, and content creation*
 
 **Essential Chapters** (4-6 hours):
-1. **Introduction** - What's covered and conventions used
+1. **Introduction** - Coverage and conventions
 2. **Chapter 1: Executive Summary** - Content definition strategies compared
-3. **Chapter 7: Moddability & Data-Driven Design** - Deep dive on extensibility
+3. **Chapter 7: Moddability & Data-Driven Design** - Extensibility deep dive
 4. **Chapter 9: Lessons Learned** - Modding successes and failures
 5. **Chapter 10: Recommendations** - Designing for moddability
 6. **Appendix C: File Formats** - Complete format specifications
 
 **Key Modding Insights**:
-- CloseCombatFree's QML approach offers maximum flexibility but requires learning Qt
-- JSON data + Lua scripting provides the best balance of power and accessibility
+- CloseCombatFree's QML approach offers flexibility but requires learning Qt
+- JSON data with Lua scripting balances power and accessibility
 - XML (OpenCombat-SDL style) supports content but not new mechanics
-- Hot reload capability dramatically improves iteration speed
+- Hot reload capability speeds up iteration
 
 ### Path 4: The Researcher
 *Focus: Architectural evolution, pattern theory, and comparative analysis*
 
 **Essential Chapters** (20+ hours):
-1. **Preface** - Context and why this study matters
+1. **Preface** - Context and study significance
 2. **Introduction** - Methodology and scope
 3. **All Chapters 1-10** - Complete comparative analysis
 4. **Chapter 11: Universal Patterns** - Pattern language and relationships
@@ -81,8 +81,8 @@ Choose the path that matches your role and goals:
 7. **Appendix E: Index** - Cross-referenced pattern and concept index
 
 **Research Focus Areas**:
-- Chapter 2: Paradigm evolution (OOP → Declarative → Systems-oriented)
-- Chapter 3-5: State representation evolution
+- Chapter 2: Paradigm evolution from OOP to declarative to systems-oriented
+- Chapters 3-5: State representation evolution
 - Chapter 9: Longitudinal analysis of design decisions
 - Chapter 11: Pattern relationships and dependency graphs
 
@@ -94,39 +94,39 @@ Choose the path that matches your role and goals:
 
 **Chapter 1: Executive Summary**  
 *30 pages | 1-2 hour read*  
-Seven universal architectural decisions that every tactical wargame must make, with comparative analysis of how each project approached them. Includes decision matrix and quick reference tables.
+Seven universal architectural decisions for tactical wargames, with comparative analysis of each project's approach. Includes decision matrices and quick reference tables.
 
 **Chapter 2: Architectural Philosophy Comparison**  
 *40 pages | 2-3 hour read*  
-Deep comparison of three paradigms: OpenCombat-SDL's classical OOP, OpenCombat's systems-oriented approach, and CloseCombatFree's declarative architecture. Includes communication patterns and state synchronization strategies.
+Comparison of three paradigms: OpenCombat-SDL's classical OOP, OpenCombat's systems-oriented approach, and CloseCombatFree's declarative architecture. Covers communication patterns and state synchronization.
 
 ### Part II: Core Systems
 
 **Chapter 3: State Management Deep Dive**  
 *45 pages | 2-3 hour read*  
-Comparative analysis of state representation: 64-bit bitfields (OpenCombat-SDL), three-tier hierarchy (OpenCombat), and dual-state system (CloseCombatFree). Includes code examples and performance analysis.
+State representation analysis: 64-bit bitfields (OpenCombat-SDL), three-tier hierarchy (OpenCombat), and dual-state system (CloseCombatFree). Includes code examples and performance analysis.
 
 **Chapter 4: World & Terrain Design Patterns**  
 *50 pages | 2-3 hour read*  
-The three pillars of tactical terrain: cover, hindrance, and elevation. Analysis of spatial partitioning, line-of-sight algorithms, and terrain interaction systems.
+The three pillars of tactical terrain: cover, hindrance, and elevation. Examines spatial partitioning, line-of-sight algorithms, and terrain interaction systems.
 
 **Chapter 5: Unit Hierarchy & Object Models**  
 *45 pages | 2-3 hour read*  
-Entity composition strategies: deep inheritance (OpenCombat-SDL), modified ECS (OpenCombat), and component composition (CloseCombatFree). Trade-offs and modern recommendations.
+Entity composition strategies: deep inheritance (OpenCombat-SDL), modified ECS (OpenCombat), and component composition (CloseCombatFree). Trade-offs and recommendations.
 
 **Chapter 6: Order & AI System Design**  
 *55 pages | 3-4 hour read*  
-Command abstraction spectrum from single-layer to three-layer systems. AI autonomy patterns: scripted, state-based, and perception-driven. Includes decision trees and behavior evaluation.
+Command abstraction from single-layer to three-layer systems. AI autonomy patterns: scripted, state-based, and perception-driven. Includes decision trees and behavior evaluation.
 
 ### Part III: Extensibility and Patterns
 
 **Chapter 7: Moddability & Data-Driven Design**  
 *50 pages | 2-3 hour read*  
-The modding spectrum from data-only to full scripting. XML vs JSON vs QML content definition. Designing APIs for community content.
+The modding spectrum from data-only to full scripting. XML, JSON, and QML content definition. Designing APIs for community content.
 
 **Chapter 8: Modern GameDev Pattern Adoption**  
 *35 pages | 1-2 hour read*  
-Classic patterns (Command, Observer, State, Factory) and modern patterns (ECS, Event Sourcing, Data-Oriented Design) as applied in tactical wargames.
+Classic patterns (Command, Observer, State, Factory) and modern patterns (ECS, Event Sourcing, Data-Oriented Design) in tactical wargames.
 
 **Chapter 9: Strengths, Weaknesses & Lessons Learned**  
 *40 pages | 2 hour read*  
@@ -134,35 +134,35 @@ Detailed analysis of each project's successes and failures. Comparative feature 
 
 **Chapter 10: Recommendations for New Implementations**  
 *45 pages | 2-3 hour read*  
-Complete technology stack recommendations. Architecture blueprints for state management, entity systems, AI, and modding. Implementation roadmap.
+Technology stack recommendations. Architecture blueprints for state management, entity systems, AI, and modding. Implementation roadmap.
 
 ### Part IV: Pattern Catalog and Implementation
 
 **Chapter 11: The Close Combat Pattern Language**  
 *80 pages | 4-5 hour read*  
-Complete catalog of 17 design patterns organized into five categories. Each pattern includes problem statement, solution, variations across projects, and decision framework.
+Catalog of 17 design patterns in five categories. Each pattern includes problem statement, solution, project variations, and decision framework.
 
 **Chapter 12: Implementation Guide**  
 *90 pages | 4-5 hour read*  
-Practical blueprints for building a Close Combat clone today. Architecture Decision Record (ADR) templates, system implementation guides, and code examples.
+Practical blueprints for building a Close Combat clone. Architecture Decision Record templates, system implementation guides, and code examples.
 
 **Chapter 13: Case Studies**  
 *60 pages | 3-4 hour read*  
-Detailed walkthroughs of specific scenarios: implementing a movement system, designing morale mechanics, building a modding API.
+Detailed walkthroughs: implementing movement systems, designing morale mechanics, building modding APIs.
 
 **Chapter 14: AI Systems**  
 *75 pages | 4-5 hour read*  
-Comprehensive analysis of tactical AI: perception systems, decision-making architectures, behavior trees, and emergent behavior design.
+Tactical AI analysis: perception systems, decision-making architectures, behavior trees, and emergent behavior design.
 
 **Chapter 15: Multiplayer Architecture**  
 *65 pages | 3-4 hour read*  
-Deterministic simulation, state synchronization, networking patterns, and anti-cheat considerations specific to tactical wargames.
+Deterministic simulation, state synchronization, networking patterns, and anti-cheat considerations for tactical wargames.
 
 ### Part V: Technical Appendices
 
 **Appendix A: State and World Systems**  
 *40 pages*  
-Technical reference for state management implementations. Bitfield architecture details, three-tier hierarchy specification, dual-state system analysis.
+Technical reference for state management. Bitfield architecture details, three-tier hierarchy specification, dual-state system analysis.
 
 **Appendix B: Unit, Vehicle, and Squad Attribute Systems**  
 *55 pages*  
@@ -184,7 +184,7 @@ Complete index of patterns, concepts, code elements, and projects.
 
 ## Pattern Index Location
 
-The 17 universal patterns are documented in **Chapter 11** and cross-referenced throughout the book:
+The 17 universal patterns appear in **Chapter 11** and are cross-referenced throughout:
 
 ### Entity Patterns
 1. **Soldier/Squad Aggregate Pattern** (Ch. 11, Sec. 11.3) - Hierarchical unit organization
@@ -223,7 +223,7 @@ The 17 universal patterns are documented in **Chapter 11** and cross-referenced 
 
 ## Code Repository References
 
-This book analyzes three open-source projects. You may wish to examine the source code directly:
+This book analyzes three open-source projects. Examine the source code directly:
 
 ### OpenCombat-SDL
 - **Location**: `/closecombatsdl/` or GitHub archive
@@ -257,9 +257,9 @@ This book analyzes three open-source projects. You may wish to examine the sourc
 
 ### Reading Code Alongside This Book
 
-When this book references specific implementations:
+When the book references implementations:
 1. Chapter/section citations point to relevant source files
-2. Code excerpts are marked with source language and project
+2. Code excerpts show source language and project
 3. Line numbers reference specific implementations (may vary by version)
 
 **Recommended Code Reading Order**:
@@ -272,36 +272,36 @@ When this book references specific implementations:
 
 ## Decision Frameworks
 
-Throughout this book, we provide decision frameworks to help you choose between architectural options:
+Decision frameworks help choose between architectural options:
 
 ### Quick Decision Reference
 
 **State Representation** (Ch. 1, Ch. 3):
-| Need | Choose |
-|------|--------|
+| Need                | Choose                                      |
+| ------------------- | ------------------------------------------- |
 | Maximum moddability | String-based states (CloseCombatFree style) |
-| Type safety | Hierarchical enums (OpenCombat style) |
-| Memory efficiency | Bitfield compositing (OpenCombat-SDL style) |
+| Type safety         | Hierarchical enums (OpenCombat style)       |
+| Memory efficiency   | Bitfield compositing (OpenCombat-SDL style) |
 
 **Command Abstraction** (Ch. 1, Ch. 6):
-| Game Type | Layers |
-|-----------|--------|
-| Fast-paced action | 1 (direct) |
-| Traditional tactical | 2 (Order → Action) |
-| Simulation-focused | 3 (Order → Behavior → Gesture) |
+| Game Type            | Layers                         |
+| -------------------- | ------------------------------ |
+| Fast-paced action    | 1 (direct)                     |
+| Traditional tactical | 2 (Order → Action)             |
+| Simulation-focused   | 3 (Order → Behavior → Gesture) |
 
 **Entity Composition** (Ch. 1, Ch. 5):
-| Priority | Approach |
-|----------|----------|
-| Type safety | Modified ECS with embedded components |
-| Maximum flexibility | Component composition |
-| Familiarity | Deep inheritance (with caution) |
+| Priority            | Approach                              |
+| ------------------- | ------------------------------------- |
+| Type safety         | Modified ECS with embedded components |
+| Maximum flexibility | Component composition                 |
+| Familiarity         | Deep inheritance (with caution)       |
 
 **Multiplayer Architecture** (Ch. 1, Ch. 15):
-| Requirement | Architecture |
-|-------------|--------------|
-| Single-player only | Client-authoritative |
-| Local multiplayer | Deterministic recommended |
+| Requirement         | Architecture                         |
+| ------------------- | ------------------------------------ |
+| Single-player only  | Client-authoritative                 |
+| Local multiplayer   | Deterministic recommended            |
 | Network multiplayer | Deterministic + server-authoritative |
 
 See Chapter 11, Section 11.8 for the complete decision framework covering all pattern variations.
@@ -310,26 +310,26 @@ See Chapter 11, Section 11.8 for the complete decision framework covering all pa
 
 ## Common Questions
 
-**Q: Do I need to read the book cover-to-cover?**  
-A: No. Use the reading paths above or jump to specific chapters of interest. Cross-references will guide you to prerequisite material.
+**Q: Do I need to read the book cover-to-cover?**
+A: Use the reading paths or jump to specific chapters. Cross-references guide you to prerequisite material.
 
-**Q: Which project should I study first?**  
+**Q: Which project should I study first?**
 A: Depends on your goals:
-- For classical patterns: OpenCombat-SDL
-- For modern architecture: OpenCombat
-- For moddability: CloseCombatFree
+- Classical patterns: OpenCombat-SDL
+- Modern architecture: OpenCombat
+- Moddability: CloseCombatFree
 
-**Q: Are these projects still maintained?**  
-A: As of this writing, all three are inactive but their code remains available. OpenCombat is the most recent (2024).
+**Q: Are these projects still maintained?**
+A: All three are inactive but their code remains available. OpenCombat is the most recent (2024).
 
-**Q: Can I use code from these projects?**  
-A: Check each project's license. This book focuses on architectural patterns rather than code copying.
+**Q: Can I use code from these projects?**
+A: Check each project's license. This book focuses on architectural patterns.
 
-**Q: What's the best architecture for a new project in 2026?**  
-A: See Chapter 12 for specific recommendations, but generally: modified ECS, three-tier state hierarchy, deterministic simulation, JSON data + Lua scripting.
+**Q: What's the best architecture for a new project in 2026?**
+A: Chapter 12 recommends modified ECS, three-tier state hierarchy, deterministic simulation, and JSON data with Lua scripting.
 
-**Q: How do I contribute to this analysis?**  
-A: This is a published book, but the underlying research continues. See the repository for any addenda or errata.
+**Q: How do I contribute to this analysis?**
+A: This is a published book, but the underlying research continues. Check the repository for addenda or errata.
 
 ---
 
@@ -352,21 +352,19 @@ A: This is a published book, but the underlying research continues. See the repo
 
 ## Final Recommendations
 
-1. **Start with the Preface and Introduction** to understand the context and scope
-2. **Read Chapter 1 (Executive Summary)** for the "greatest hits"
-3. **Choose your reading path** based on your role and goals
-4. **Keep Chapter 11 handy** as a pattern reference
-5. **Use Appendix E (Index)** for quick lookups
-6. **Refer to Chapter 12** when you're ready to implement
+1. Start with the Preface and Introduction to understand context
+2. Read Chapter 1 (Executive Summary) for key insights
+3. Choose your reading path based on your role
+4. Keep Chapter 11 handy as a pattern reference
+5. Use Appendix E (Index) for quick lookups
+6. Refer to Chapter 12 when ready to implement
 
-This book is designed as both a cover-to-cover read and a reference work. Don't feel obligated to read everything—find the sections relevant to your current needs and return to others as your project progresses.
+This book works as both a cover-to-cover read and a reference. Focus on relevant sections and return to others as your project progresses.
 
-The patterns and insights within have been hard-won through years of development. May they save you time and guide you to create tactical wargames that honor the legacy of Close Combat while pushing the genre forward.
+The patterns and insights come from years of development. May they save you time and help create tactical wargames that honor Close Combat's legacy while advancing the genre.
 
----
-
-**Happy reading, and may your squads always find good cover.**
+Happy reading, and may your squads always find good cover.
 
 ---
 
-*End of How to Use This Book*
+*Next: [Chapter 1: Executive Summary](chapter_01_executive_summary.md)*

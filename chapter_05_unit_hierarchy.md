@@ -2,27 +2,27 @@
 
 ## 5.1 Introduction: The Evolution of Entity Design
 
-How you structure game entities fundamentally shapes every other system in your tactical wargame. The three Close Combat clones demonstrate a nearly 20-year evolution in game architecture:
+How you structure game entities shapes every other system in your tactical wargame. The three Close Combat clones span nearly 20 years of architectural evolution:
 
-| Game | Year | Pattern | Core Philosophy |
-|------|------|---------|-----------------|
-| **OpenCombat-SDL** | 2005 | Deep Inheritance | "Everything IS-A Object" |
-| **CloseCombatFree** | 2011 | Component Composition | "Entities are composed of parts" |
-| **OpenCombat** | 2024 | Modified ECS | "Entities are data processed by systems" |
+| Game            | Year | Pattern               | Core Philosophy                          |
+| --------------- | ---- | --------------------- | ---------------------------------------- |
+| **OpenCombat-SDL**  | 2005 | Deep Inheritance      | "Everything IS-A Object"                 |
+| **CloseCombatFree** | 2011 | Component Composition | "Entities are composed of parts"         |
+| **OpenCombat**      | 2024 | Modified ECS          | "Entities are data processed by systems" |
 
-This chapter examines these approaches through the lens of tactical wargame requirements: **hierarchical command structures**, **aggregate relationships** (squads containing soldiers), **dynamic capabilities** (crew affecting vehicle function), and **moddability** (adding new unit types without recompilation).
+This chapter explores these approaches through tactical wargame requirements: **hierarchical command structures**, **aggregate relationships** like squads containing soldiers, **dynamic capabilities** where crew affects vehicle function, and **moddability** that allows adding new unit types without recompilation.
 
 ### Key Design Questions
 
-Before diving into implementations, consider these questions for your own project:
+Before examining implementations, ask these questions about your own project:
 
-1. **Hierarchy vs. Flattening**: Should a squad "be" an object or "contain" objects?
-2. **Ownership vs. Referencing**: Who owns a soldier when they're in a vehicle?
-3. **Capabilities**: How does a vehicle "know" it can move without a driver?
-4. **Extensibility**: Can modders add a "sniper team" without source code changes?
-5. **Performance**: Does cache efficiency matter when you have 500 entities, not 50,000?
+1. **Hierarchy vs. Flattening**: Should a squad be an object or contain objects?
+2. **Ownership vs. Referencing**: Who owns a soldier when they board a vehicle?
+3. **Capabilities**: How does a vehicle recognize it can't move without a driver?
+4. **Extensibility**: Can modders add a sniper team without source code changes?
+5. **Performance**: Does cache efficiency matter with 500 entities instead of 50,000?
 
-The three projects answer these differently, reflecting their eras and constraints.
+Each project answers these differently, reflecting its era and constraints.
 
 ---
 
@@ -30,33 +30,28 @@ The three projects answer these differently, reflecting their eras and constrain
 
 ### 5.2.1 OpenCombat-SDL: Classical Inheritance (2005)
 
-OpenCombat-SDL represents traditional object-oriented design where everything inherits from a common base:
+OpenCombat-SDL follows traditional object-oriented design. Everything inherits from a common base:
 
-```
-                    ┌─────────────┐
-                    │    Object   │  ← Base class with position,
-                    │             │    orders, selection, health
-                    └──────┬──────┘
-           ┌───────────────┼───────────────┐
-           │               │               │
-      ┌────┴────┐    ┌────┴────┐    ┌────┴────┐
-      │ Soldier │    │ Vehicle │    │  Squad  │
-      └─────────┘    └─────────┘    └─────────┘
+```mermaid
+graph TD
+    Object["Object<br/>Base class with position, orders, selection, health"] --> Soldier
+    Object --> Vehicle
+    Object --> Squad
 ```
 
 #### The "Squad as Object" Decision
 
-**Why inheritance seemed right:**
-- Squads can be selected, receive orders, and have positions (like Soldiers)
-- Code reuse: Squad inherits order queue management from Object
-- Polymorphism: Any Object pointer could reference a Soldier, Vehicle, OR Squad
+**Why the team chose inheritance:**
+- Squads share behaviors with Soldiers: selection, orders, and positions
+- Code reuse came from inheriting order queue management
+- Polymorphism allowed any Object pointer to reference Soldiers, Vehicles, or Squads
 
 ```cpp
 // Squad inherits all Object capabilities
 class Squad : public Object {
     std::vector<Soldier*> _soldiers;  // Non-owning refs
     std::vector<Vehicle*> _vehicles;  // Non-owning refs
-    
+
     void Simulate(long dt, World* world) override {
         // Delegate to members
         for (auto* soldier : _soldiers) {
@@ -68,23 +63,21 @@ class Squad : public Object {
 
 #### The Command Flow
 
-Inheritance enables a unified command interface:
+A unified command interface emerged from inheritance:
 
-```
-Player gives order → Squad::AddOrder() → Distributes to members
-                                    ↓
-                          ┌───────────────┐
-                          │  Order Queue  │
-                          └───────┬───────┘
-                                  │
-                    ┌─────────────┼─────────────┐
-                    ↓             ↓             ↓
-              Soldier #1    Soldier #2    Vehicle #1
+```mermaid
+flowchart LR
+    A["Player gives order"] --> B["Squad::AddOrder()"]
+    B --> C["Distributes to members"]
+    C --> D["Order Queue"]
+    D --> E["Soldier #1"]
+    D --> F["Soldier #2"]
+    D --> G["Vehicle #1"]
 ```
 
 #### Aggregation: What a Squad "Has" vs "Is"
 
-The critical distinction emerges in ownership:
+Ownership revealed the critical distinction:
 
 ```cpp
 // Squad does NOT own its members
@@ -92,17 +85,17 @@ class Squad : public Object {
     std::vector<Soldier*> _soldiers;  // Non-owning: World owns soldiers
 };
 
-// Squad composition is aggregation (HAS-A), not inheritance (IS-A)
+// Squad composition uses aggregation (HAS-A), not inheritance (IS-A)
 // Soldier IS-A Object, Squad HAS-A Soldiers
 ```
 
-This creates a hybrid model:
-- **Inheritance**: Squad IS-A Object (for game engine uniformity)
-- **Aggregation**: Squad HAS-A Soldiers (for tactical organization)
+The model became hybrid:
+- **Inheritance**: Squad IS-A Object for game engine uniformity
+- **Aggregation**: Squad HAS-A Soldiers for tactical organization
 
 #### The Crew Problem
 
-Vehicles expose the limitation of pure inheritance:
+Vehicles highlighted the limits of pure inheritance:
 
 ```cpp
 class Vehicle : public Object {
@@ -110,9 +103,9 @@ class Vehicle : public Object {
         Soldier* soldier;  // Non-owning reference
         int weaponSlot;
     };
-    
+
     std::array<CrewSlot, MAX_CREW> _crew;
-    
+
     bool CanMove() {
         // Must check if driver slot is filled
         return _crew[0].soldier != nullptr;
@@ -120,19 +113,19 @@ class Vehicle : public Object {
 };
 ```
 
-**The awkwardness**: A Vehicle "is" an Object, but it also "has" Soldiers who "are" Objects. This creates circular conceptual dependencies.
+**The complication:** A Vehicle is an Object, but it also contains Soldiers who are Objects. This created circular dependencies in the design.
 
 ### 5.2.2 CloseCombatFree: Component Composition (2011)
 
-CloseCombatFree abandons deep inheritance for declarative composition using Qt's QML:
+CloseCombatFree replaces deep inheritance with declarative composition using Qt's QML:
 
-```
-Unit (QML Component)
-├── Hull.qml        ← Visual + collision
-├── Turret.qml      ← Rotating weapon mount
-├── Soldier {}      ← Crew member (reusable component)
-├── Soldier {}      ← Another crew member
-└── Effects.qml     ← Particles
+```mermaid
+graph TD
+    Unit["Unit QML Component"] --> Hull["Hull.qml<br/>Visual + collision"]
+    Unit --> Turret["Turret.qml<br/>Rotating weapon mount"]
+    Unit --> Soldier1["Soldier {}<br/>Crew member"]
+    Unit --> Soldier2["Soldier {}<br/>Another crew member"]
+    Unit --> Effects["Effects.qml<br/>Particles"]
 ```
 
 #### Composition in Practice
@@ -143,11 +136,11 @@ Unit {
     id: tank
     unitType: "Heavy Tank"
     maxSpeed: 15
-    
+
     // Visual composition
     HeavyTank_hull { id: hull }
     HeavyTank_turret { id: turret }
-    
+
     // Crew composition
     Soldier { role: "Commander" }
     Soldier { role: "Gunner" }
@@ -155,7 +148,7 @@ Unit {
 }
 ```
 
-**Key insight**: The tank doesn't "inherit" crew capability—it "contains" Soldier components.
+The tank contains Soldier components instead of inheriting crew capability.
 
 #### Capabilities Through Composition
 
@@ -164,7 +157,7 @@ Unit {
 function canMove() {
     // Query children for Driver role
     for (var i = 0; i < children.length; i++) {
-        if (children[i].role === "Driver" && 
+        if (children[i].role === "Driver" &&
             children[i].status !== "KIA") {
             return true;
         }
@@ -173,23 +166,24 @@ function canMove() {
 }
 ```
 
-**Benefit**: Capabilities emerge from composition. No inheritance hierarchy needed.
+Capabilities emerge from composition without inheritance hierarchies.
 
 #### Runtime Instantiation for Modding
 
-The breakthrough: new unit types without recompilation:
+The design allows new unit types without recompilation:
 
 ```cpp
 void Scenario::loadUnit(const QString& qmlFile) {
     QQmlComponent component(&engine, qmlFile);
     QObject* unit = component.create();  // Runtime instantiation!
-    
+
     // Add to scenario
     units.append(unit);
 }
 ```
 
-Modders create `SniperTeam.qml`:
+Modders can create `SniperTeam.qml`:
+
 ```qml
 Unit {
     unitType: "Sniper Team"
@@ -198,26 +192,22 @@ Unit {
 }
 ```
 
-No C++ code changes. No recompilation. Pure data-driven design.
+This approach requires no C++ code changes or recompilation, enabling pure data-driven design.
 
 ### 5.2.3 OpenCombat: Modified ECS (2024)
 
-OpenCombat represents modern data-oriented design:
+OpenCombat demonstrates modern data-oriented design:
 
-```
-┌─────────────────────────────────────────────────────┐
-│                  BattleState                         │
-├─────────────────────────────────────────────────────┤
-│ soldiers: Vec&lt;Soldier&gt;          [contiguous]         │
-│ vehicles: Vec&lt;Vehicle&gt;          [contiguous]         │
-│ squads: HashMap&lt;Uuid, Squad&gt;   [lookup]             │
-└─────────────────────────────────────────────────────┘
-        ↓                        ↓
-   ┌─────────┐             ┌─────────┐
-   │ Systems │             │ Systems │
-   │ - AI    │             │ - Move  │
-   │ - Combat│             │ - Render│
-   └─────────┘             └─────────┘
+```mermaid
+graph TD
+    subgraph BattleState["BattleState"]
+        BS1["soldiers: Vec<Soldier> [contiguous]"]
+        BS2["vehicles: Vec<Vehicle> [contiguous]"]
+        BS3["squads: HashMap&lt;Uuid, Squad&gt; [lookup]"]
+    end
+
+    BattleState --> Sys1["Systems: AI, Combat"]
+    BattleState --> Sys2["Systems: Move, Render"]
 ```
 
 #### Type-Safe Indices Replace Pointers
@@ -236,10 +226,10 @@ pub struct Soldier {
 ```
 
 **Benefits**:
-- **Type safety**: Cannot confuse SoldierIndex with VehicleIndex (compile-time check)
-- **Serialization**: Indices are just numbers
-- **No lifetimes**: No borrowing complexity
-- **Cache efficiency**: Contiguous Vec storage
+- **Type safety**: The compiler prevents mixing SoldierIndex with VehicleIndex
+- **Serialization**: Indices serialize as simple numbers
+- **No lifetimes**: Eliminates borrowing complexity
+- **Cache efficiency**: Uses contiguous Vec storage
 
 #### Squad as Lightweight Aggregate
 
@@ -256,7 +246,7 @@ pub struct BattleState {
 }
 ```
 
-**Critical difference**: Squad is not an entity type—it's a relationship structure.
+Squads function as relationship structures rather than entity types.
 
 #### Bidirectional Vehicle Boarding
 
@@ -264,33 +254,31 @@ pub struct BattleState {
 pub struct BattleState {
     // Soldier → Vehicle lookup
     soldiers_on_board: HashMap<SoldierIndex, VehicleBoardPlace>,
-    
-    // Vehicle → Soldiers lookup  
+
+    // Vehicle → Soldiers lookup
     vehicle_board: HashMap<VehicleIndex, HashMap<OnBoardPlace, SoldierIndex>>,
 }
 ```
 
-Both lookups are O(1). No pointer chasing. No ownership confusion.
+Both lookups achieve O(1) performance without pointer chasing or ownership confusion.
 
 ---
 
 ## 5.3 Universal Composition Patterns
 
-Extracting patterns that work across all three approaches:
-
 ### 5.3.1 The Aggregate Pattern
 
-**Problem**: How do you represent "a squad contains soldiers"?
+**Problem**: How do you represent a squad containing soldiers?
 
 **Three Approaches**:
 
-| Aspect | Inheritance (SDL) | Composition (CCF) | ECS (OpenCombat) |
-|--------|-------------------|-------------------|------------------|
+| Aspect       | Inheritance (SDL)     | Composition (CCF)      | ECS (OpenCombat)           |
+| ------------ | --------------------- | ---------------------- | -------------------------- |
 | **Relationship** | Squad inherits Object | Unit contains Soldiers | Squad struct holds indices |
-| **Storage** | Pointers in Squad | QML child objects | Vec in BattleState |
-| **Lifecycle** | World owns all | Qt parent-child | BattleState owns |
-| **Access** | O(1) pointer | O(n) traversal | O(1) index |
-| **Type Safety** | Runtime casts | Dynamic QML | Compile-time indices |
+| **Storage**      | Pointers in Squad     | QML child objects      | Vec in BattleState         |
+| **Lifecycle**    | World owns all        | Qt parent-child        | BattleState owns           |
+| **Access**       | O(1) pointer          | O(n) traversal         | O(1) index                 |
+| **Type Safety**  | Runtime casts         | Dynamic QML            | Compile-time indices       |
 
 **Universal Pattern**:
 
@@ -299,7 +287,7 @@ Extracting patterns that work across all three approaches:
 Aggregate UnitGroup {
     // Members are referenced, not owned
     members: List<EntityReference>
-    
+
     // Operations delegate to members
     function issueOrder(order) {
         for member in members {
@@ -313,15 +301,15 @@ Aggregate UnitGroup {
 
 ### 5.3.2 The Capability Pattern
 
-**Problem**: How does a vehicle "know" it can move?
+**Problem**: How does a vehicle determine if it can move?
 
 **Three Approaches**:
 
 **Inheritance approach** (problematic):
 ```cpp
 class Vehicle : public Object {
-    // Hardcoded: Vehicle is mobile
-    bool IsMobile() override { return true; }  // Wrong if no driver!
+    // Hardcoded mobility creates issues
+    bool IsMobile() override { return true; }  // Fails if no driver
 };
 ```
 
@@ -329,8 +317,8 @@ class Vehicle : public Object {
 ```qml
 // Capabilities depend on current state
 function canMove() {
-    return hasFunctionalCrew("Driver") && 
-           fuel > 0 && 
+    return hasFunctionalCrew("Driver") &&
+           fuel > 0 &&
            !isDestroyed;
 }
 ```
@@ -343,8 +331,7 @@ pub fn can_vehicle_move(
 ) -> bool {
     let vehicle = &state.vehicles[vehicle_idx.0];
     let crew = state.vehicle_board.get(&vehicle_idx);
-    
-    // Check for driver
+
     crew.map(|c| c.contains_key(&OnBoardPlace::Driver))
         .unwrap_or(false)
 }
@@ -356,25 +343,25 @@ pub fn can_vehicle_move(
 // Capabilities are calculated, not inherited
 function getCapabilities(entity) {
     capabilities = {}
-    
-    // Check components/parts
+
+    // Check components or parts
     for component in entity.components {
         capabilities.add(component.provides)
     }
-    
-    // Check state
+
+    // Adjust for state
     if entity.health <= 0 {
         capabilities.remove(Move)
         capabilities.remove(Fire)
     }
-    
+
     return capabilities
 }
 ```
 
 ### 5.3.3 The Behavior Pattern
 
-**Problem**: How do different unit types act differently?
+**Problem**: How do different unit types exhibit distinct actions?
 
 **Inheritance approach** (rigid):
 ```cpp
@@ -436,21 +423,22 @@ BehaviorSystem {
 
 ### 5.4.1 The OOB Challenge
 
-Order of Battle (OOB) structures in tactical games:
+Order of Battle (OOB) structures in tactical games follow this pattern:
 
-```
-Platoon (15-40 soldiers)
-├── Squad 1 (8-12 soldiers)
-│   ├── Team Alpha (4 soldiers)
-│   └── Team Bravo (4 soldiers)
-├── Squad 2
-│   └── ...
-└── Vehicle Section
-    ├── Vehicle 1 (Tank)
-    └── Vehicle 2 (Tank)
+```mermaid
+graph TD
+    Platoon["Platoon<br/>15-40 soldiers"] --> Squad1["Squad 1<br/>8-12 soldiers"]
+    Platoon --> Squad2["Squad 2<br/>..."]
+    Platoon --> VehicleSection["Vehicle Section"]
+
+    Squad1 --> TeamAlpha["Team Alpha<br/>4 soldiers"]
+    Squad1 --> TeamBravo["Team Bravo<br/>4 soldiers"]
+
+    VehicleSection --> Vehicle1["Vehicle 1 Tank"]
+    VehicleSection --> Vehicle2["Vehicle 2 Tank"]
 ```
 
-**Key insight**: This is a tree structure, not an inheritance hierarchy.
+The structure forms a tree, not an inheritance hierarchy.
 
 ### 5.4.2 Implementing the Hierarchy
 
@@ -465,8 +453,8 @@ class Squad : public UnitGroup {
     std::vector<Team*> teams;
 };
 
-// Problem: Platoon IS-A UnitGroup, Squad IS-A UnitGroup
-// But Platoon contains Squads, creating parallel hierarchies
+// Platoon and Squad both inherit from UnitGroup,
+// but Platoon also contains Squads, creating conflicting relationships
 ```
 
 **ECS approach** (flat with parent references):
@@ -478,18 +466,18 @@ pub struct Unit {
     children: Vec<UnitIndex>,   // Children in hierarchy
 }
 
-// Hierarchy is a property, not a type
+// Hierarchy becomes a property, not a type distinction
 ```
 
 **Universal Pattern**:
 
 ```pseudocode
-// Tree structure with explicit parent/child
+// Tree structure with explicit parent/child links
 Entity Unit {
     unitType: enum { Soldier, Squad, Platoon }
     parent: Option<EntityReference>
     children: List<EntityReference>
-    
+
     // Navigation
     function getRoot() -> Unit {
         if parent == null {
@@ -497,13 +485,13 @@ Entity Unit {
         }
         return parent.getRoot()
     }
-    
+
     // Operations propagate down
     function issueOrder(order) {
-        // Issue to self
+        // Execute locally
         execute(order)
-        
-        // Issue to children
+
+        // Forward to children
         for child in children {
             child.issueOrder(order)
         }
@@ -513,14 +501,14 @@ Entity Unit {
 
 ### 5.4.3 Formation Following
 
-Formations work by offsetting from a leader:
+Formations position units by offsetting from a leader:
 
 ```pseudocode
 Formation Column {
     // Member 0 is leader at position P
-    // Member 1 is at P - (spacing behind leader)
-    // Member 2 is at P - (2 * spacing behind leader)
-    
+    // Member 1 follows at P - (spacing behind leader)
+    // Member 2 follows at P - (2 × spacing behind leader)
+
     function getPosition(memberIndex, leaderPosition, leaderHeading) {
         offset = memberIndex * spacing
         return leaderPosition - (leaderHeading * offset)
@@ -537,13 +525,13 @@ Formation Line {
 }
 ```
 
-**Implementation in each pattern**:
+**Implementation patterns**:
 
-| Pattern | Formation Storage | Application |
-|---------|-------------------|-------------|
-| **Inheritance** | Squad field | Each soldier calculates position relative to leader |
-| **Composition** | Formation component | QML calculates target positions |
-| **ECS** | Formation system | System updates soldier positions each frame |
+| Pattern     | Formation Storage   | Application                                         |
+| ----------- | ------------------- | --------------------------------------------------- |
+| **Inheritance** | Squad field         | Each soldier calculates position relative to leader |
+| **Composition** | Formation component | QML calculates target positions                     |
+| **ECS**         | Formation system    | System updates soldier positions each frame         |
 
 ---
 
@@ -553,24 +541,22 @@ Formation Line {
 
 **Flow**: Player → Selected Unit → Subordinates
 
-```
-Player clicks "Move to X"
-    ↓
-Squad receives MoveOrder
-    ↓
-Squad::HandleMoveOrder():
-  - Calculate path for leader
-  - Leader gets FollowPath order
-  - Others get Follow order (targeting leader)
-    ↓
-Soldier AI converts orders to actions
-    ↓
-Physics system executes movement
+```mermaid
+flowchart TD
+    A["Player clicks 'Move to X'"] --> B["Squad receives MoveOrder"]
+    B --> C["Squad::HandleMoveOrder()"]
+    C --> D["Calculate path for leader"]
+    C --> E["Leader gets FollowPath order"]
+    C --> F["Others get Follow order targeting leader"]
+    D --> G["Soldier AI converts orders to actions"]
+    E --> G
+    F --> G
+    G --> H["Physics system executes movement"]
 ```
 
 ### 5.5.2 Leadership Dynamics
 
-When the squad leader dies, the squad must reorganize:
+When the squad leader dies, the squad reorganizes.
 
 **Inheritance approach**:
 ```cpp
@@ -592,7 +578,7 @@ void Squad::Update() {
 fn tick_update_squad_leaders(state: &mut BattleState) {
     for (squad_uuid, composition) in &mut state.squads {
         let leader = &state.soldiers[composition.0.0];
-        
+
         if !leader.alive || leader.unconscious {
             // Promote next eligible
             for member_idx in &composition.2 {
@@ -609,21 +595,18 @@ fn tick_update_squad_leaders(state: &mut BattleState) {
 
 ### 5.5.3 Vehicle Command Structure
 
-Vehicles add complexity: crew are soldiers, but the vehicle acts as a unit.
+Vehicles complicate command. Crew members are soldiers, but the vehicle functions as a single unit.
 
-```
-Player orders Tank Squad to move
-    ↓
-Squad orders each tank to move
-    ↓
-Tank checks: Do I have a driver?
-    - Yes: Calculate path and move
-    - No: Report "immobilized"
-    ↓
-Driver (soldier) executes steering
+```mermaid
+flowchart TD
+    A["Player orders Tank Squad to move"] --> B["Squad orders each tank to move"]
+    B --> C{"Tank checks: Do I have a driver?"}
+    C -->|Yes| D["Calculate path and move"]
+    C -->|No| E["Report immobilized"]
+    D --> F["Driver soldier executes steering"]
 ```
 
-**Key insight**: Command flows through the organizational hierarchy, but capability depends on the composition state.
+Command flows through the hierarchy, but execution depends on the crew's status.
 
 ---
 
@@ -631,76 +614,76 @@ Driver (soldier) executes steering
 
 ### 5.6.1 The Recompilation Barrier
 
-**Scenario**: Add a "Sniper Team" unit (2 soldiers, special behaviors).
+**Scenario**: Add a "Sniper Team" unit with two soldiers and special behaviors.
 
-**OpenCombat-SDL (requires recompile)**:
+**OpenCombat-SDL** requires recompilation:
 ```cpp
 // 1. Modify Soldier enum
-enum SoldierType { Rifleman, MachineGunner, Sniper };  // Recompile!
+enum SoldierType { Rifleman, MachineGunner, Sniper };
 
 // 2. Add to SoldierManager
 void SoldierManager::CreateSoldier(Type type) {
     switch(type) {
-        case Sniper: /* ... */ break;  // Recompile!
+        case Sniper: /* ... */ break;
     }
 }
 ```
 
-**OpenCombat (requires recompile)**:
+**OpenCombat** also requires recompilation:
 ```rust
 // 1. Modify SoldierType enum
-pub enum SoldierType { Type1, Bren, Mg34, Sniper };  // Recompile!
+pub enum SoldierType { Type1, Bren, Mg34, Sniper };
 
 // 2. Add behavior in AI system
 match soldier.type_ {
-    Sniper => sniper_behavior(soldier),  // Recompile!
+    Sniper => sniper_behavior(soldier),
     _ => standard_behavior(soldier),
 }
 ```
 
-**CloseCombatFree (no recompile)**:
+**CloseCombatFree** needs no recompilation:
 ```qml
 // Create units/SniperTeam.qml
 Unit {
     unitType: "Sniper Team"
-    
+
     Soldier { role: "Spotter"; behavior: "Recon" }
     Soldier { role: "Sniper"; behavior: "SniperAI" }
 }
 ```
 
-**Runtime**: `Scenario::loadUnit("units/SniperTeam.qml")`
+Load at runtime with `Scenario::loadUnit("units/SniperTeam.qml")`.
 
 ### 5.6.2 Designing for Modding
 
-**Principle**: Separate **identity** from **implementation**.
+Good design separates identity from implementation.
 
-**Identity** (data):
+**Identity** (data) includes:
 - Unit type name: "Sniper Team"
-- Composition: 2 soldiers (Spotter, Sniper)
-- Equipment: Sniper rifle, binoculars
+- Composition: two soldiers (Spotter, Sniper)
+- Equipment: sniper rifle, binoculars
 
-**Implementation** (code):
-- How snipers select targets
-- How spotters mark enemies
+**Implementation** (code) covers:
+- Target selection for snipers
+- Enemy marking by spotters
 - Accuracy calculations
 
-**Modding-friendly architecture**:
+A modding-friendly architecture looks like this:
 
 ```pseudocode
 // Data-driven unit definition
 UnitTemplate {
     name: "Sniper Team"
-    
+
     // Composition
     members: [
         { role: "Spotter", behavior: "recon.lua" },
         { role: "Sniper", behavior: "sniper.lua" }
     ]
-    
+
     // Capabilities
     capabilities: [CanMove, CanHide, CanFire]
-    
+
     // Behavior scripts
     onEnemySpotted: "sniper_team_enemy_spotted.lua"
     onUnderFire: "sniper_team_under_fire.lua"
@@ -709,12 +692,12 @@ UnitTemplate {
 
 ### 5.6.3 Hot-Reloading Behaviors
 
-For rapid iteration, behaviors should reload without restarting:
+For fast iteration, behaviors should reload without restarting the game:
 
 ```pseudocode
 BehaviorSystem {
     scriptCache: Map<String, Script>
-    
+
     function getBehavior(name) -> Script {
         // Check if file modified
         if fileChanged(name) || !scriptCache.contains(name) {
@@ -725,10 +708,10 @@ BehaviorSystem {
 }
 ```
 
-**Benefits**:
-- Modders test changes instantly
-- Balance tweaks without patches
-- AI improvements mid-development
+This approach offers several advantages:
+- Modders see changes immediately
+- Balance tweaks require no patches
+- AI improvements can be tested mid-development
 
 ---
 
@@ -736,44 +719,39 @@ BehaviorSystem {
 
 ### 5.7.1 The Hybrid Approach
 
-Synthesize the best of all three:
+Combine the strengths of all three systems:
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    ENTITY STORAGE                            │
-│         (Contiguous arrays - cache efficient)                │
-├──────────────────────────────────────────────────────────────┤
-│ soldiers: Vec&lt;Soldier&gt;                                       │
-│ vehicles: Vec&lt;Vehicle&gt;                                       │
-└──────────────────────────────────────────────────────────────┘
-                          ↓
-┌──────────────────────────────────────────────────────────────┐
-│                   COMPONENT SYSTEM                           │
-│         (Composition over inheritance)                       │
-├──────────────────────────────────────────────────────────────┤
-│ Entity = ID + ComponentMask                                  │
-│ Component = Plain data struct                                │
-└──────────────────────────────────────────────────────────────┘
-                          ↓
-┌──────────────────────────────────────────────────────────────┐
-│                 SCRIPTABLE BEHAVIORS                         │
-│         (Modding without recompilation)                      │
-├──────────────────────────────────────────────────────────────┤
-│ role: "Sniper" → behavior: "sniper_ai.lua"                   │
-│ onEvent: callback from script                                │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Layer1["ENTITY STORAGE<br/>Contiguous arrays - cache efficient"]
+        L1A["soldiers: Vec&lt;Soldier&gt;"]
+        L1B["vehicles: Vec&lt;Vehicle&gt;"]
+    end
+
+    subgraph Layer2["COMPONENT SYSTEM<br/>Composition over inheritance"]
+        L2A["Entity = ID + ComponentMask"]
+        L2B["Component = Plain data struct"]
+    end
+
+    subgraph Layer3["SCRIPTABLE BEHAVIORS<br/>Modding without recompilation"]
+        L3A["role: 'Sniper' → behavior: 'sniper_ai.lua'"]
+        L3B["onEvent: callback from script"]
+    end
+
+    Layer1 --> Layer2
+    Layer2 --> Layer3
 ```
 
 ### 5.7.2 Type-Safe Indices
 
-Always use wrapper types for entity references:
+Use wrapper types for entity references to prevent errors:
 
 ```cpp
 // C++
 struct SoldierIndex { size_t value; };
 struct VehicleIndex { size_t value; };
 
-// Cannot accidentally mix up
 void moveVehicle(VehicleIndex idx);  // Compiler error if passed SoldierIndex
 ```
 
@@ -782,39 +760,38 @@ void moveVehicle(VehicleIndex idx);  // Compiler error if passed SoldierIndex
 #[derive(Debug, Clone, Copy)]
 pub struct SoldierIndex(pub usize);
 
-// Type safety at compile time
 let soldier = state.soldiers[soldier_idx.0];  // OK
-let soldier = state.soldiers[vehicle_idx.0];  // Compile error!
+let soldier = state.soldiers[vehicle_idx.0];  // Compile error
 ```
 
 ### 5.7.3 Universal Entity API
 
-Clean interface for all entity operations:
+Design a clean interface for all entity operations:
 
 ```pseudocode
 EntityManager {
     // Creation
     createEntity(type: String) -> EntityId
     destroyEntity(id: EntityId)
-    
+
     // Component access
-    getComponent&lt;T&gt;(id: EntityId) -> Option&lt;T&gt;
-    addComponent&lt;T&gt;(id: EntityId, component: T)
-    removeComponent&lt;T&gt;(id: EntityId)
-    
+    getComponent<T>(id: EntityId) -> Option<T>
+    addComponent<T>(id: EntityId, component: T)
+    removeComponent<T>(id: EntityId)
+
     // Relationships
     setParent(child: EntityId, parent: EntityId)
-    getChildren(parent: EntityId) -> List&lt;EntityId&gt;
-    
+    getChildren(parent: EntityId) -> List<EntityId>
+
     // Queries
-    query(mask: ComponentMask) -> List&lt;EntityId&gt;
-    queryInRadius(center: Point, radius: float) -> List&lt;EntityId&gt;
+    query(mask: ComponentMask) -> List<EntityId>
+    queryInRadius(center: Point, radius: float) -> List<EntityId>
 }
 ```
 
 ### 5.7.4 Template/Prefab System
 
-Define base templates, override for instances:
+Define base templates and override them for specific instances:
 
 ```json
 {
@@ -834,42 +811,42 @@ Define base templates, override for instances:
 
 ## 5.8 Conclusion
 
-The evolution from OpenCombat-SDL (2005) to OpenCombat (2024) reveals a clear trajectory:
+The progression from OpenCombat-SDL (2005) to OpenCombat (2024) shows key trends:
 
-1. **Inheritance to Composition**: Modern games favor composition for flexibility
-2. **Pointers to Indices**: Type-safe references prevent bugs
-3. **Code to Data**: Data-driven design enables modding
-4. **Scattered to Contiguous**: Cache efficiency matters even for moderate entity counts
+1. **Composition over inheritance** – Modern games use composition for flexibility.
+2. **Indices over pointers** – Type-safe references prevent bugs.
+3. **Data-driven design** – This approach enables modding.
+4. **Contiguous storage** – Cache efficiency matters even with moderate entity counts.
 
 ### Decision Matrix
 
-| If you need... | Consider... |
-|----------------|-------------|
-| Maximum moddability | Component composition (QML/JSON) |
-| Maximum performance | Modified ECS with contiguous storage |
-| Rapid development | Deep inheritance (if team knows OOP well) |
-| Console deployment | Data-oriented ECS (cache-friendly) |
-| Community content | Scriptable behaviors + templates |
+| If you need...      | Consider...                                   |
+| ------------------- | --------------------------------------------- |
+| Maximum moddability | Component composition (QML/JSON)              |
+| Maximum performance | Modified ECS with contiguous storage          |
+| Rapid development   | Deep inheritance (if the team knows OOP well) |
+| Console deployment  | Data-oriented ECS (cache-friendly)            |
+| Community content   | Scriptable behaviors + templates              |
 
 ### Final Recommendation
 
-For a new Close Combat clone in 2024:
+For a new Close Combat clone in 2024, build a system with:
 
-1. **Storage**: Contiguous arrays (ECS-style) for cache efficiency
-2. **Relationships**: Type-safe indices, not pointers
-3. **Composition**: Component-based (entities are bags of components)
-4. **Hierarchy**: Explicit parent/child relationships, not inheritance
-5. **Behavior**: Scriptable (Lua/Wren) for moddability
-6. **Templates**: JSON-based prefabs for rapid content creation
+1. **Storage**: Contiguous arrays (ECS-style) for cache efficiency.
+2. **Relationships**: Type-safe indices instead of pointers.
+3. **Composition**: Component-based entities.
+4. **Hierarchy**: Explicit parent/child relationships.
+5. **Behavior**: Scriptable logic (Lua/Wren) for moddability.
+6. **Templates**: JSON-based prefabs for rapid content creation.
 
-The goal is a system where:
-- Adding a sniper team requires only data files
-- Cache misses don't kill performance with 500 entities
-- Type errors are caught at compile time
-- Command hierarchies are explicit and debuggable
+The ideal system should:
+- Let designers add a sniper team using only data files.
+- Avoid performance hits from cache misses with 500 entities.
+- Catch type errors at compile time.
+- Keep command hierarchies explicit and debuggable.
 
-This is the architecture that will serve the next generation of tactical wargames.
+This architecture will serve the next generation of tactical wargames well.
 
 ---
 
-**Next**: [Chapter 6: Order & AI System Design](#chapter-6-order--ai-system-design)
+*Next: [Chapter 6: Orders, Behaviors, and AI Architecture](chapter_06_orders_ai.md)*

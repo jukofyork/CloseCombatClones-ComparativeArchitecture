@@ -2,64 +2,64 @@
 
 ## A.1 Comparative Overview
 
-This appendix provides a comprehensive technical reference for the State and World Systems implemented across three Close Combat clone projects: OpenCombat-SDL (2005-2008), OpenCombat (2020-2024), and CloseCombatFree (2011-2012). These systems form the foundational architecture for tactical wargame simulation, managing unit behavior, environmental interaction, and spatial reasoning.
+This appendix details the State and World Systems used in three Close Combat clones: OpenCombat-SDL (2005-2008), OpenCombat (2020-2024), and CloseCombatFree (2011-2012). These systems handle unit behavior, environmental interaction, and spatial reasoning for tactical wargame simulation.
 
 ### Side-by-Side Comparison Table
 
-| Aspect | OpenCombat-SDL | OpenCombat (Rust) | CloseCombatFree |
-|--------|---------------|-------------------|-----------------|
-| **State Representation** | 64-bit bitfield | Three-tier hierarchy (Phase/Behavior/Gesture) | Dual-state (Runtime Status + Health State) |
-| **Max States** | 64 hardcoded | Unlimited (enums) | Unlimited (QString strings) |
-| **Composition Model** | Orthogonal (bitwise AND/OR) | Hierarchical containment | Single value (mutually exclusive) |
-| **State Transitions** | Action-based with auto-prerequisites | Message-driven with event sourcing | Imperative with order queue |
-| **Type Safety** | Compile-time (enum indices) | Compile-time (Rust enums) | Runtime (string comparison) |
-| **Visual Sync** | Manual animation state tracking | Manual with frame-counted gestures | Automatic via QML State system |
-| **Networking** | Not implemented | Message-based synchronization | Not implemented |
-| **Persistence** | Single integer serialization | JSON message log replay | QML file human-readable format |
+| Aspect               | OpenCombat-SDL                       | OpenCombat (Rust)                             | CloseCombatFree                            |
+| -------------------- | ------------------------------------ | --------------------------------------------- | ------------------------------------------ |
+| **State Representation** | 64-bit bitfield                      | Three-tier hierarchy (Phase/Behavior/Gesture) | Dual-state (Runtime Status + Health State) |
+| **Max States**           | 64 hardcoded                         | Unlimited (enums)                             | Unlimited (QString strings)                |
+| **Composition Model**    | Orthogonal (bitwise AND/OR)          | Hierarchical containment                      | Single value (mutually exclusive)          |
+| **State Transitions**    | Action-based with auto-prerequisites | Message-driven with event sourcing            | Imperative with order queue                |
+| **Type Safety**          | Compile-time (enum indices)          | Compile-time (Rust enums)                     | Runtime (string comparison)                |
+| **Visual Sync**          | Manual animation state tracking      | Manual with frame-counted gestures            | Automatic via QML State system             |
+| **Networking**           | Not implemented                      | Message-based synchronization                 | Not implemented                            |
+| **Persistence**          | Single integer serialization         | JSON message log replay                       | QML file human-readable format             |
 
 ### Strengths and Weaknesses Summary
 
 **OpenCombat-SDL (Bitfield Approach)**
 
 *Strengths:*
-- Memory efficient: 64 states in 8 bytes
-- Fast queries via bitwise operations
-- Orthogonal composition allows complex state combinations
+- Memory efficiency: 64 states in 8 bytes
+- Fast queries through bitwise operations
+- Orthogonal composition supports complex state combinations
 - Cache-friendly single-integer storage
 
 *Weaknesses:*
-- Hard limit of 64 concurrent states
-- Adding states requires recompilation
-- No inherent state hierarchy
-- Manual enforcement of mutex states (e.g., Standing vs Prone)
+- Limited to 64 concurrent states
+- Requires recompilation to add states
+- Lacks built-in state hierarchy
+- Developers must manually enforce mutex states (e.g., Standing vs Prone)
 
 **OpenCombat (Three-Tier Hierarchy)**
 
 *Strengths:*
-- Natural temporal separation (Phase/Behavior/Gesture timescales)
-- Event sourcing enables deterministic replay and network sync
-- Explicit state relationships via containment
-- Frame-accurate gesture completion tracking
+- Separates temporal scales (Phase/Behavior/Gesture)
+- Event sourcing enables deterministic replay and network synchronization
+- Explicit state relationships through containment
+- Tracks gesture completion with frame accuracy
 
 *Weaknesses:*
-- Verbosity: three state systems to manage
-- Higher cognitive load for developers
-- Message passing overhead
-- Complex state synchronization across tiers
+- Requires managing three state systems
+- Increases developer cognitive load
+- Adds message passing overhead
+- Synchronization across tiers becomes complex
 
 **CloseCombatFree (Dual-State System)**
 
 *Strengths:*
-- Maximum moddability via string-based states
-- Declarative visual transitions via QML
-- Human-readable debugging
-- No recompilation needed for new states
+- Fully moddable through string-based states
+- Uses QML for declarative visual transitions
+- Debugging remains human-readable
+- New states require no recompilation
 
 *Weaknesses:*
-- No orthogonal composition (single status at a time)
-- String comparison overhead
-- No compile-time type safety
-- Implicit state machine (no transition validation)
+- Only one status at a time (no orthogonal composition)
+- String comparison creates overhead
+- Lacks compile-time type safety
+- State machine remains implicit (no transition validation)
 
 ---
 
@@ -67,22 +67,52 @@ This appendix provides a comprehensive technical reference for the State and Wor
 
 ### A.2.1 Bitfield Architecture
 
-OpenCombat-SDL uses a **64-bit bitfield** to represent all unit states simultaneously. This compact representation enables efficient storage and fast queries while supporting orthogonal state composition.
+OpenCombat-SDL represents all unit states in a **64-bit bitfield**. This compact format stores states efficiently and enables fast queries while supporting orthogonal state composition.
 
 **Bitfield Layout:**
 
-```
-Bit Position:  63 62 ... 22 21 20 19 18 17 16 15 14 13 12 11 10 9  8  7  6  5  4  3  2  1  0
-               |  |      |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-State:       (unused)  Wait Amb Def FIF Fol FCov NoT OOA Rld  D  DyF DyB DyB Rld Run Cra WS Wal Fir Mov Sto Pro St
-                                                                                           
-Legend:
-  St = Standing (Posture)
-  Pro = Prone (Posture)
-  Sto = Stopped (Movement)
-  Mov = Moving (Movement)
-  Fir = Firing (Combat)
-  ... etc
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e1f5fe', 'primaryTextColor': '#01579b', 'primaryBorderColor': '#0288d1', 'lineColor': '#0288d1', 'secondaryColor': '#fff3e0', 'tertiaryColor': '#e8f5e9'}}}%%
+block-beta
+    columns 9
+    bit0["Bit 0: Standing<br/>(St)"]
+    bit1["Bit 1: Prone<br/>(Pro)"]
+    bit2["Bit 2: Stopped<br/>(Sto)"]
+    bit3["Bit 3: Moving<br/>(Mov)"]
+    bit4["Bit 4: Firing<br/>(Fir)"]
+    bit5["Bit 5: Walking<br/>(Wal)"]
+    bit6["Bit 6: Weapon Safe<br/>(WS)"]
+    bit7["Bit 7: Crawling<br/>(Cra)"]
+    bit8["Bit 8: Running<br/>(Run)"]
+    
+    bit9["Bit 9: Reload<br/>(Rld)"]
+    bit10["Bit 10: Dying (DyB)"]
+    bit11["Bit 11: Dying (DyB)"]
+    bit12["Bit 12: Dying Forward<br/>(DyF)"]
+    bit13["Bit 13: Dead<br/>(D)"]
+    bit14["Bit 14: Reloading<br/>(Rld)"]
+    bit15["Bit 15: Out of Ammo<br/>(OOA)"]
+    bit16["Bit 16: No Targets<br/>(NoT)"]
+    bit17["Bit 17: Finding Cover<br/>(FCov)"]
+    bit18["Bit 18: Following<br/>(Fol)"]
+    
+    bit19["Bit 19: Firing in Formation<br/>(FIF)"]
+    bit20["Bit 20: Defending<br/>(Def)"]
+    bit21["Bit 21: Ambushing<br/>(Amb)"]
+    bit22["Bit 22: Waiting<br/>(Wait)"]
+    unused["Bits 23-63: Unused"]
+    
+    classDef posture fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef movement fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef combat fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef status fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef unused fill:#f5f5f5,stroke:#9e9e9e,stroke-width:2px,stroke-dasharray: 5 5
+    
+    class bit0,bit1 posture
+    class bit2,bit3,bit5,bit7,bit8 movement
+    class bit4,bit19,bit20,bit21 combat
+    class bit9,bit10,bit11,bit12,bit13,bit14,bit15,bit16,bit17,bit18,bit22 status
+    class unused unused
 ```
 
 **Pseudocode - State Operations:**
@@ -116,16 +146,46 @@ class State:
 **State Combinations Example:**
 
 A soldier who is prone, crawling, and reloading:
-```
-State: 0000...0001 0000 0100 0010
-                        ↓    ↓  ↓
-                     Reload Crawl Prone
-Value: 0x1042 (hex)
+
+```mermaid
+%%{init: {'theme': 'base'}}%%
+flowchart LR
+    subgraph StateRepresentation["State Bitfield"]
+        direction LR
+        unused["0000...0001"]
+        reloadBits["0000"]
+        crawlBits["0100"]
+        proneBits["0010"]
+    end
+    
+    subgraph ActiveStates["Active States"]
+        direction TB
+        reload["🔃 Reload<br/>(Bit 14)"]
+        crawl["🏃 Crawling<br/>(Bit 7)"]
+        prone["🛡️ Prone<br/>(Bit 1)"]
+    end
+    
+    subgraph HexValue["Hexadecimal Value"]
+        hex["0x1042"]
+    end
+    
+    reloadBits --> reload
+    crawlBits --> crawl
+    proneBits --> prone
+    
+    StateRepresentation --> HexValue
+    
+    style reloadBits fill:#e8f5e9,stroke:#388e3c,stroke-width:3px
+    style crawlBits fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    style proneBits fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style hex fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style StateRepresentation fill:#fafafa,stroke:#424242
+    style ActiveStates fill:#fafafa,stroke:#424242
 ```
 
 ### A.2.2 Three-Layer State Hierarchy
 
-Although stored as a flat bitfield, OpenCombat-SDL conceptually organizes states into three layers:
+OpenCombat-SDL organizes states into three conceptual layers, though stored as a flat bitfield.
 
 ```mermaid
 flowchart TB
@@ -145,16 +205,16 @@ flowchart TB
 
 **Valid State Combinations:**
 
-| Posture | Movement | Combat | Behavior | Meaning |
-|---------|----------|--------|----------|---------|
-| Standing | Stopped | Reloaded | Defending | Soldier on guard, ready to fire |
-| Prone | Crawling | Reloaded | - | Soldier crawling forward cautiously |
-| Standing | Running | - | FindingCover | Soldier running to find protection |
-| Prone | Stopped | Firing | Ambushing | Prone soldier firing in ambush |
+| Posture  | Movement | Combat   | Behavior     | Meaning                             |
+| -------- | -------- | -------- | ------------ | ----------------------------------- |
+| Standing | Stopped  | Reloaded | Defending    | Soldier on guard, ready to fire     |
+| Prone    | Crawling | Reloaded | -            | Soldier crawling forward cautiously |
+| Standing | Running  | -        | FindingCover | Soldier running to find protection  |
+| Prone    | Stopped  | Firing   | Ambushing    | Prone soldier firing in ambush      |
 
 ### A.2.3 Prerequisite and Action System
 
-States don't transition arbitrarily—they're governed by an action system where each action has requirements and outcomes. When requirements aren't met, the system automatically chains prerequisite actions.
+States transition through an action system where each action has requirements and outcomes. When requirements aren't met, the system chains prerequisite actions automatically.
 
 **Action Definition Format:**
 
@@ -215,7 +275,7 @@ flowchart TB
 
 ### A.2.4 World and Terrain Grid
 
-OpenCombat-SDL uses a **tile-based world** with multiple layers of data organized for spatial queries and rendering efficiency.
+OpenCombat-SDL uses a **tile-based world** with multiple data layers for spatial queries and rendering efficiency.
 
 **Grid Structure:**
 
@@ -314,17 +374,17 @@ class Element:
 
 **Terrain Examples:**
 
-| Name | Passable | BlocksHeight | Cover(Prone) | Cover(Standing) | Movement(Prone) |
-|------|----------|--------------|--------------|-----------------|-----------------|
-| Grass Field | Yes | No | 50% | 0% | 1.0x |
-| High Grass | Yes | No | 53% | 53% | 0.667x |
-| Stone Wall | No | Yes | 93% | 93% | 0.5x |
-| Deep Water | No | No | 0% | 0% | 0.0x |
-| Trench | Yes | No | 78% | 10% | 0.4x |
+| Name        | Passable | BlocksHeight | Cover(Prone) | Cover(Standing) | Movement(Prone) |
+| ----------- | -------- | ------------ | ------------ | --------------- | --------------- |
+| Grass Field | Yes      | No           | 50%          | 0%              | 1.0x            |
+| High Grass  | Yes      | No           | 53%          | 53%             | 0.667x          |
+| Stone Wall  | No       | Yes          | 93%          | 93%             | 0.5x            |
+| Deep Water  | No       | No           | 0%           | 0%              | 0.0x            |
+| Trench      | Yes      | No           | 78%          | 10%             | 0.4x            |
 
 ### A.2.5 Line of Sight (LOS) Calculations
 
-OpenCombat-SDL uses a **3D Bresenham algorithm** for visibility calculations, tracing lines through the terrain grid.
+OpenCombat-SDL calculates visibility using a **3D Bresenham algorithm** that traces lines through the terrain grid.
 
 **Pseudocode - 3D Bresenham LOS:**
 
@@ -426,7 +486,7 @@ function PopulateBuildingTiles(world, building):
 
 ### A.3.1 Phase/Behavior/Gesture Hierarchy
 
-OpenCombat divides state into three distinct tiers based on timescale and authority, creating a clean separation of concerns and enabling deterministic simulation.
+OpenCombat organizes state into three tiers by timescale and authority. This structure separates concerns and ensures deterministic simulation.
 
 ```mermaid
 flowchart TB
@@ -550,7 +610,7 @@ function Gesture.Next(currentFrame: u64, soldier: Soldier):
 
 ### A.3.2 Modified ECS with Embedded Components
 
-OpenCombat uses a modified Entity Component System (ECS) where entities embed their components directly rather than using external storage.
+OpenCombat implements a modified Entity Component System where entities store their components directly.
 
 ```pseudocode
 struct Soldier:
@@ -572,7 +632,7 @@ struct Soldier:
 
 ### A.3.3 Event-Sourced Deterministic Simulation
 
-State changes flow through messages, not direct mutation, enabling deterministic replay and network synchronization.
+State changes occur through messages rather than direct mutation, allowing deterministic replay and network synchronization.
 
 **Message Hierarchy:**
 
@@ -701,7 +761,7 @@ class ServerRunner:
 
 ### A.3.4 Dual Coordinate System
 
-OpenCombat uses two coordinate representations for different purposes:
+OpenCombat employs two coordinate systems for different purposes:
 
 ```pseudocode
 struct WorldPoint:
@@ -735,17 +795,17 @@ struct GridPoint:
 
 **Coordinate Usage Patterns:**
 
-| System | Coordinate Type | Rationale |
-|--------|----------------|-----------|
-| Physics, Combat | WorldPoint | Sub-pixel precision needed |
-| Terrain lookups | GridPoint | Efficient array indexing |
-| Pathfinding | GridPoint | Discrete graph nodes |
-| Rendering | ScenePoint | Camera-relative positions |
-| Input | WindowPoint | Screen-space mouse/touch |
+| System          | Coordinate Type | Rationale                  |
+| --------------- | --------------- | -------------------------- |
+| Physics, Combat | WorldPoint      | Sub-pixel precision needed |
+| Terrain lookups | GridPoint       | Efficient array indexing   |
+| Pathfinding     | GridPoint       | Discrete graph nodes       |
+| Rendering       | ScenePoint      | Camera-relative positions  |
+| Input           | WindowPoint     | Screen-space mouse/touch   |
 
 ### A.3.5 State Propagation and Messaging
 
-Behavior propagation rules determine when state changes are sent to clients:
+Behavior propagation rules control when state changes transmit to clients:
 
 ```pseudocode
 function SendBehaviorUpdates(behaviorChanges):
@@ -817,7 +877,7 @@ function GenerateDynamicBehaviorMessages(state: BattleState):
 
 ### A.4.1 Dual-State Architecture
 
-CloseCombatFree splits state into two distinct categories with separate responsibilities:
+CloseCombatFree divides state into two categories, each with clear responsibilities:
 
 ```mermaid
 flowchart TB
@@ -835,21 +895,21 @@ flowchart TB
 
 **Runtime Status Values:**
 
-| Status | Description | Interruptible |
-|--------|-------------|---------------|
-| READY | Idle, awaiting orders | Yes |
-| MOVING | Normal movement | Yes |
-| MOVING FAST | Sprinting | Yes |
-| SNEAKING | Stealth movement | Yes |
-| AMBUSHING | In ambush mode | Yes |
-| DEFENDING | Defensive stance | Yes |
-| ROTATING | Turret/soldier rotation | No |
-| FIRING | Actively firing | No |
-| RELOADING | Reloading weapons | No |
-| KIA | Killed in action | No |
-| DAMAGED | Unit damaged | Context-dependent |
-| WOUNDED | Personnel wounded | Context-dependent |
-| INCAPACITATED | Unable to act | No |
+| Status        | Description             | Interruptible     |
+| ------------- | ----------------------- | ----------------- |
+| READY         | Idle, awaiting orders   | Yes               |
+| MOVING        | Normal movement         | Yes               |
+| MOVING FAST   | Sprinting               | Yes               |
+| SNEAKING      | Stealth movement        | Yes               |
+| AMBUSHING     | In ambush mode          | Yes               |
+| DEFENDING     | Defensive stance        | Yes               |
+| ROTATING      | Turret/soldier rotation | No                |
+| FIRING        | Actively firing         | No                |
+| RELOADING     | Reloading weapons       | No                |
+| KIA           | Killed in action        | No                |
+| DAMAGED       | Unit damaged            | Context-dependent |
+| WOUNDED       | Personnel wounded       | Context-dependent |
+| INCAPACITATED | Unable to act           | No                |
 
 **Health States (QML):**
 
@@ -875,7 +935,7 @@ states: [
 
 ### A.4.2 QML State System
 
-The QML State system handles visual transitions declaratively:
+The QML State system manages visual transitions:
 
 ```pseudocode
 class QMLUnit:
@@ -917,7 +977,7 @@ class QMLUnit:
 
 ### A.4.3 Three-Tier World Architecture
 
-CloseCombatFree organizes the world into three hierarchical tiers:
+CloseCombatFree structures the world in three hierarchical layers:
 
 ```mermaid
 flowchart TB
@@ -992,7 +1052,7 @@ class Prop:
 
 ### A.4.4 Cartesian Coordinate System with Hipsometric Elevation
 
-CloseCombatFree uses Cartesian coordinates with elevation derived from a height map image.
+CloseCombatFree uses Cartesian coordinates with elevation from a height map image.
 
 ```pseudocode
 class CcfQmlBaseMap:
@@ -1020,15 +1080,15 @@ class CcfQmlBaseMap:
 
 **Coordinate Systems:**
 
-| System | Units | Description |
-|--------|-------|-------------|
-| World | Pixels | Absolute map coordinates |
-| Screen | Pixels | Viewport-relative (with zoom) |
-| Hipsometric | Pixels | Scaled for height lookup |
+| System      | Units  | Description                   |
+| ----------- | ------ | ----------------------------- |
+| World       | Pixels | Absolute map coordinates      |
+| Screen      | Pixels | Viewport-relative (with zoom) |
+| Hipsometric | Pixels | Scaled for height lookup      |
 
 ### A.4.5 Dual LOS Implementation
 
-CloseCombatFree uses two complementary LOS systems that must both pass for visibility.
+CloseCombatFree requires both LOS systems to confirm visibility.
 
 **System 1: Elevation-Based LOS**
 
@@ -1112,7 +1172,7 @@ function CanSee(observer, target, world):
 
 ### A.4.6 Declarative Content Definition
 
-CloseCombatFree's modding-friendly design uses QML for content definition:
+CloseCombatFree's modding system uses QML for content definition.
 
 **Map Definition Example:**
 
@@ -1199,46 +1259,46 @@ flowchart LR
 
 **Choose Bitfields (OpenCombat-SDL style) when:**
 
-| Scenario | Rationale |
-|----------|-----------|
-| Memory-constrained environments | 8 bytes for 64 states |
-| Need orthogonal state combinations | Prone+Crawling+Reloading simultaneously |
-| Fast state queries required | Single CPU instruction for bit check |
-| State set is well-defined and stable | Adding states requires recompilation |
-| Multiplayer not required | Manual serialization |
+| Scenario                             | Rationale                                     |
+| ------------------------------------ | --------------------------------------------- |
+| Memory-constrained environments      | 8 bytes for 64 states                         |
+| Need orthogonal state combinations   | Prone, crawling, and reloading simultaneously |
+| Fast state queries required          | Single CPU instruction for bit check          |
+| State set is well-defined and stable | Adding states requires recompilation          |
+| Multiplayer not required             | Manual serialization                          |
 
 **Choose Three-Tier Hierarchy (OpenCombat style) when:**
 
-| Scenario | Rationale |
-|----------|-----------|
-| Deterministic replay needed | Event sourcing enables perfect replay |
+| Scenario                         | Rationale                                    |
+| -------------------------------- | -------------------------------------------- |
+| Deterministic replay needed      | Event sourcing enables perfect replay        |
 | Network synchronization required | Messages serialize and synchronize naturally |
-| Complex state relationships | Hierarchical containment clarifies ownership |
-| Frame-accurate timing | Gesture completion at specific frames |
-| Team can handle complexity | Three systems require careful coordination |
+| Complex state relationships      | Hierarchical containment clarifies ownership |
+| Frame-accurate timing            | Gesture completion at specific frames        |
+| Team can handle complexity       | Three systems require careful coordination   |
 
 **Choose Dual-State (CloseCombatFree style) when:**
 
-| Scenario | Rationale |
-|----------|-----------|
-| Maximum moddability required | String states need no recompilation |
-| Visual-logic separation valued | QML handles visual transitions |
-| Rapid iteration needed | Content creators can add states |
-| Simple mental model preferred | Only two state concepts |
-| Single-player only | No networking complexity |
+| Scenario                       | Rationale                           |
+| ------------------------------ | ----------------------------------- |
+| Maximum moddability required   | String states need no recompilation |
+| Visual-logic separation valued | QML handles visual transitions      |
+| Rapid iteration needed         | Content creators can add states     |
+| Simple mental model preferred  | Only two state concepts             |
+| Single-player only             | No networking complexity            |
 
 ### A.5.3 Trade-offs Analysis
 
-| Trade-off | Bitfield | Three-Tier | Dual-State |
-|-----------|----------|------------|------------|
-| Memory | Excellent | Good | Moderate |
-| CPU (queries) | Excellent | Good | Moderate |
-| Type safety | Good | Excellent | Poor |
-| Extensibility | Poor | Good | Excellent |
-| Debugging | Moderate | Good | Excellent |
-| Networking | Poor | Excellent | Poor |
-| Learning curve | Low | High | Low |
-| Moddability | Poor | Moderate | Excellent |
+| Trade-off      | Bitfield  | Three-Tier | Dual-State |
+| -------------- | --------- | ---------- | ---------- |
+| Memory         | Excellent | Good       | Moderate   |
+| CPU (queries)  | Excellent | Good       | Moderate   |
+| Type safety    | Good      | Excellent  | Poor       |
+| Extensibility  | Poor      | Good       | Excellent  |
+| Debugging      | Moderate  | Good       | Excellent  |
+| Networking     | Poor      | Excellent  | Poor       |
+| Learning curve | Low       | High       | Low        |
+| Moddability    | Poor      | Moderate   | Excellent  |
 
 ---
 
@@ -1423,34 +1483,33 @@ class VisibilitySystem:
 
 Based on the analysis of the three clones:
 
-| Component | Recommendation |
-|-----------|----------------|
-| Language | Rust or modern C++ |
-| State system | Hybrid (Hierarchical + Bitfield flags) |
-| Networking | Event-sourced message passing |
-| Map format | TMX (Tiled) with custom properties |
-| Terrain data | Height maps (PNG) + JSON metadata |
-| UI Framework | Immediate mode GUI or declarative |
-| Serialization | JSON for saves, binary for runtime |
+| Component     | Recommendation                         |
+| ------------- | -------------------------------------- |
+| Language      | Rust or modern C++                     |
+| State system  | Hybrid (Hierarchical + Bitfield flags) |
+| Networking    | Event-sourced message passing          |
+| Map format    | TMX (Tiled) with custom properties     |
+| Terrain data  | Height maps (PNG) + JSON metadata      |
+| UI Framework  | Immediate mode GUI or declarative      |
+| Serialization | JSON for saves, binary for runtime     |
 
 ---
 
 ## Appendix Summary
 
-The State and World Systems of the three Close Combat clones demonstrate fundamentally different approaches to solving the same problems:
+The state and world systems of the three Close Combat clones take different approaches to solve the same problems.
 
-1. **OpenCombat-SDL** proves that bitfields can efficiently represent complex orthogonal state combinations, though with hard limits and extensibility challenges.
+OpenCombat-SDL shows how bitfields efficiently represent complex state combinations, though they impose hard limits and extensibility challenges.
 
-2. **OpenCombat** demonstrates that hierarchical state separation enables deterministic simulation and network synchronization, at the cost of increased architectural complexity.
+OpenCombat proves hierarchical state separation enables deterministic simulation and network synchronization, though it increases architectural complexity.
 
-3. **CloseCombatFree** shows that simple string-based states combined with declarative visual states maximize moddability and ease of use, trading type safety for flexibility.
+CloseCombatFree demonstrates how simple string-based states combined with declarative visual states maximize moddability and ease of use, trading type safety for flexibility.
 
-**Key Takeaways:**
-
-- No single approach is perfect—each serves different project goals
-- A hybrid approach combining hierarchical gameplay states with bitfield capability flags offers the best of both worlds
-- Event sourcing should be used when determinism or networking is required
-- Data-driven design enables modding and rapid iteration
+Key takeaways:
+- Each approach serves different project goals
+- A hybrid system combining hierarchical gameplay states with bitfield capability flags offers the best balance
+- Event sourcing works best when determinism or networking is required
+- Data-driven design supports modding and rapid iteration
 - Terrain systems should balance realism (opacity-based LOS) with performance (tile-based grids)
 
-For new Close Combat clone projects, consider the hybrid architecture outlined in Section A.6.1, which synthesizes the strengths of all three approaches while mitigating their weaknesses.
+For new Close Combat clone projects, the hybrid architecture in Section A.6.1 synthesizes the strengths of all three approaches while avoiding their weaknesses.

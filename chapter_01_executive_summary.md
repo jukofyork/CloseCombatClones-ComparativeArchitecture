@@ -2,29 +2,29 @@
 
 ## Universal Design Patterns in Tactical Wargames
 
-*Three decades of Close Combat development reveal enduring truths about squad-level tactical simulation.*
+*Three decades of Close Combat development show how squad-level tactical simulations endure.*
 
 ---
 
 ## The Challenge
 
-Creating a compelling real-time tactical wargame requires balancing competing demands: authenticity versus playability, player agency versus emergent behavior, systemic depth versus approachable complexity. The three implementations examined in this book—developed across nearly two decades—demonstrate that these tensions cannot be resolved by technology alone. Rather, they demand thoughtful architectural decisions that shape the fundamental player experience.
+A compelling real-time tactical wargame must balance authenticity with playability, player agency with emergent behavior, and depth with approachable complexity. The three implementations in this book—spanning nearly twenty years—prove that technology alone can't resolve these tensions. They require deliberate architectural choices that define the player's experience.
 
-This chapter distills universal lessons from three distinct approaches to the same problem. Whether you are designing a new tactical wargame or analyzing existing systems, these patterns provide a framework for understanding the design space and making informed trade-offs.
+This chapter extracts key lessons from three different solutions to the same problem. These patterns help designers build new tactical wargames or evaluate existing systems by clarifying the trade-offs at play.
 
 ---
 
 ## The Three Architectural Philosophies
 
-The projects analyzed here represent three distinct eras of game development philosophy:
+The projects here reflect three eras of game development thinking:
 
-| Project | Era | Core Philosophy | Primary Innovation |
-|---------|-----|-----------------|-------------------|
-| **OpenCombat-SDL** | 2005–2008 | Classical Object-Oriented Design | 64-bit composable state bitfields with automatic prerequisite chaining |
-| **CloseCombatFree** | 2011–2012 | Declarative/Component Architecture | QML-based content definition enabling runtime modding |
-| **OpenCombat** | 2020–2024 | Systems-Oriented Architecture | Three-tier state hierarchy with message-driven simulation |
+| Project         | Era       | Core Philosophy                    | Primary Innovation                                                     |
+| --------------- | --------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| **OpenCombat-SDL**  | 2005–2008 | Classical Object-Oriented Design   | 64-bit composable state bitfields with automatic prerequisite chaining |
+| **CloseCombatFree** | 2011–2012 | Declarative/Component Architecture | QML-based content definition enabling runtime modding                  |
+| **OpenCombat**      | 2020–2024 | Systems-Oriented Architecture      | Three-tier state hierarchy with message-driven simulation              |
 
-Each approach embodies different assumptions about how players interact with tactical systems, how content should be authored, and where complexity should reside. None is objectively superior; each represents a valid response to specific design goals and technical constraints.
+Each approach makes different assumptions about player interaction, content creation, and where complexity belongs. None is inherently better; each solves specific design problems within its technical limits.
 
 ---
 
@@ -32,157 +32,157 @@ Each approach embodies different assumptions about how players interact with tac
 
 ### Decision 1: State Representation Strategy
 
-**The Question:** How do you represent what units are doing at any given moment?
+**The Question:** How should the game track what units are doing at any moment?
 
-Every tactical game must track unit states: posture, movement, combat engagement, and physical condition. The three projects reveal three fundamentally different approaches:
+Tactical games need to monitor unit states—posture, movement, combat engagement, and physical condition. The three projects take different approaches:
 
-| Approach | Implementation | Strengths | Weaknesses | Best For |
-|----------|---------------|-----------|------------|----------|
-| **Bitfield Compositing** | Single integer with bitwise flags | Memory efficient; states compose naturally | Limited to 64 states; no inherent state hierarchy | Systems with many orthogonal states |
-| **String Enumeration** | Human-readable text identifiers | Self-documenting; flexible for modding | Runtime errors possible; less efficient | Content-heavy games with frequent modding |
-| **Hierarchical Typing** | Structured data with nested categories | Type-safe; clear state relationships | More complex to serialize for network play | Multiplayer-focused simulations |
+| Approach             | Implementation                         | Strengths                                  | Weaknesses                                        | Best For                                  |
+| -------------------- | -------------------------------------- | ------------------------------------------ | ------------------------------------------------- | ----------------------------------------- |
+| **Bitfield Compositing** | Single integer with bitwise flags      | Memory efficient; states compose naturally | Limited to 64 states; no inherent state hierarchy | Systems with many orthogonal states       |
+| **String Enumeration**   | Human-readable text identifiers        | Self-documenting; flexible for modding     | Runtime errors possible; less efficient           | Content-heavy games with frequent modding |
+| **Hierarchical Typing**  | Structured data with nested categories | Type-safe; clear state relationships       | More complex to serialize for network play        | Multiplayer-focused simulations           |
 
-**Recommendation:** Choose based on your modding strategy. If you want players to create content without programming tools, string-based states offer the necessary flexibility. If you are building a competitive multiplayer game, hierarchical typing prevents entire classes of synchronization bugs. For single-player focused simulations, bitfields provide elegance and efficiency.
+**Recommendation:** Match the approach to your modding strategy. String-based states work best when players create content without programming tools. Hierarchical typing suits competitive multiplayer games, preventing synchronization bugs. For single-player simulations, bitfields offer efficiency and simplicity.
 
 ---
 
 ### Decision 2: Command Abstraction Layers
 
-**The Question:** How many layers should exist between player intent and unit action?
+**The Question:** How many layers should separate player intent from unit action?
 
-All three implementations recognize that players think in objectives while units execute behaviors. They differ in how they bridge this gap:
+Players think in objectives, but units execute behaviors. The projects handle this gap differently:
 
-**Single-Layer Systems** (CloseCombatFree): Player commands translate directly to unit actions. A "Move" command immediately begins movement animation. This approach offers immediacy and clarity but limits the system's ability to interpret player intent intelligently.
+**Single-Layer Systems** (CloseCombatFree): Player commands trigger unit actions immediately. A "Move" command starts the movement animation right away. This approach feels responsive but limits intelligent interpretation of player intent.
 
-**Two-Layer Systems** (OpenCombat-SDL): Player orders translate to actions, which execute against the state machine. Orders persist as intent, while actions represent execution. This allows automatic prerequisite handling—if a prone soldier is ordered to run, the system automatically inserts a "stand up" action without player micromanagement.
+**Two-Layer Systems** (OpenCombat-SDL): Player orders become actions executed against the state machine. Orders represent intent, while actions handle execution. The system can automatically insert prerequisites—if a prone soldier gets a "run" order, it adds a "stand up" action without player input.
 
-**Three-Layer Systems** (OpenCombat): Orders inform behaviors, which drive gestures. The behavior layer interprets orders contextually—an "Engage Squad" order becomes "Engage Specific Soldier" when a target is acquired. The gesture layer manages moment-to-moment physical actions like aiming and firing. This separation enables sophisticated AI responses while maintaining clear player intent.
+**Three-Layer Systems** (OpenCombat): Orders inform behaviors, which drive gestures. The behavior layer interprets orders contextually—an "Engage Squad" order refines to "Engage Specific Soldier" once a target appears. The gesture layer manages physical actions like aiming and firing. This separation allows sophisticated AI while keeping player intent clear.
 
 **Decision Matrix:**
 
-| Game Type | Recommended Layers | Rationale |
-|-----------|-------------------|-----------|
-| Fast-paced action | 1 | Minimizes latency between input and response |
-| Traditional tactical | 2 | Balances player control with intelligent automation |
-| Simulation-focused | 3 | Enables emergent behavior from complex interactions |
+| Game Type            | Recommended Layers | Rationale                                            |
+| -------------------- | ------------------ | ---------------------------------------------------- |
+| Fast-paced action    | 1                  | Reduces input-to-response latency                    |
+| Traditional tactical | 2                  | Balances control with automation                     |
+| Simulation-focused   | 3                  | Supports emergent behavior from complex interactions |
 
 ---
 
 ### Decision 3: Entity Composition Model
 
-**The Question:** How do you structure the relationship between soldiers, equipment, and squads?
+**The Question:** How should soldiers, equipment, and squads relate to each other?
 
-The object model defines how game entities relate to each other and how data flows through the system:
+The object model shapes how game entities interact and how data moves through the system.
 
-**Inheritance Hierarchies** (OpenCombat-SDL): Units inherit from base classes (Soldier, Vehicle) that define common behavior. This creates clean conceptual models—"all soldiers can move"—but can lead to rigid structures when you need soldiers who behave like vehicles or vice versa.
+**Inheritance Hierarchies** (OpenCombat-SDL): Units derive from base classes like Soldier or Vehicle, which define shared behavior. This approach keeps concepts clean—soldiers move, vehicles drive—but struggles when units need to cross categories, like a soldier that behaves like a vehicle.
 
-**Component Composition** (CloseCombatFree): Entities are composed of capabilities attached at runtime. A "tank" might have a "Mobile" component, a "Weapon" component, and a "Crew" component. This flexibility enables unexpected combinations but requires more complex systems to handle interactions between components.
+**Component Composition** (CloseCombatFree): Entities assemble from capabilities added at runtime. A tank might combine a Mobile component, a Weapon component, and a Crew component. This flexibility allows unusual combinations but demands more complex systems to manage interactions.
 
-**Embedded Component Systems** (OpenCombat): A middle ground where entities are structs containing all possible components, but systems process them selectively. This provides type safety and cache-friendly memory layouts while avoiding deep inheritance chains.
+**Embedded Component Systems** (OpenCombat): Entities are structs holding all possible components, while systems process only the relevant ones. This balances type safety and cache efficiency without deep inheritance.
 
-**Key Insight:** The choice affects not just code organization but gameplay possibilities. Component systems enable unit types that would be awkward in inheritance hierarchies—a drone that acts like both a soldier and a vehicle, or a defensive position that acts like terrain but can be destroyed like a unit.
+**Key Insight:** The choice shapes gameplay. Component systems make unit types possible that inheritance can't easily support—a drone acting as both soldier and vehicle, or a defensive position that functions as terrain but can be destroyed like a unit.
 
 ---
 
 ### Decision 4: Simulation Authority Architecture
 
-**The Question:** Where does the "truth" of the game state reside?
+**The Question:** Where does the game state live?
 
-**Client-Authoritative** (OpenCombat-SDL, CloseCombatFree): The local game client runs the simulation. This provides responsive controls and works well for single-player or cooperative multiplayer. However, it makes competitive multiplayer vulnerable to cheating and can cause synchronization issues when players have different system performance.
+**Client-Authoritative** (OpenCombat-SDL, CloseCombatFree): The local client runs the simulation. Controls feel responsive, and it works well for single-player or cooperative games. Competitive multiplayer becomes vulnerable to cheating, though, and performance differences between players can cause sync issues.
 
-**Server-Authoritative** (OpenCombat): A dedicated server (or embedded server for single-player) maintains the authoritative game state. Clients send commands and receive state updates. This architecture is essential for competitive multiplayer and enables features like deterministic replay recording.
+**Server-Authoritative** (OpenCombat): A dedicated server (or an embedded one for single-player) holds the true game state. Clients send commands and receive updates. This setup is necessary for competitive multiplayer and enables features like deterministic replays.
 
-**Trade-off Analysis:**
+**Trade-offs:**
 
-| Feature | Client-Authoritative | Server-Authoritative |
-|---------|---------------------|---------------------|
-| Input latency | Minimal | Higher (requires round-trip) |
-| Anti-cheat | Client-side only | Server validates all actions |
-| Determinism | Platform-dependent | Fully deterministic |
-| Replay support | Limited | Complete |
-| Single-player complexity | Lower | Higher (server management) |
+| Feature             | Client-Authoritative | Server-Authoritative        |
+| ------------------- | -------------------- | --------------------------- |
+| Input latency       | Minimal              | Higher (round-trip delay)   |
+| Anti-cheat          | Client-side only     | Server validates everything |
+| Determinism         | Depends on platform  | Fully deterministic         |
+| Replay support      | Limited              | Complete                    |
+| Single-player setup | Simpler              | More complex                |
 
-**Recommendation:** If multiplayer is a core feature, invest in server-authoritative architecture early. Retrofitting deterministic simulation onto a client-authoritative codebase requires fundamental restructuring.
+**Recommendation:** If multiplayer matters, build server-authoritative from the start. Retrofitting it later means rewriting core simulation logic.
 
 ---
 
 ### Decision 5: Content Definition Strategy
 
-**The Question:** How do you enable players and designers to create new content?
+**The Question:** How should players and designers create new content?
 
-The three projects demonstrate a spectrum of content authoring approaches:
+The three projects take different approaches to content creation:
 
-**Data-Driven** (OpenCombat-SDL): Units, weapons, and terrain are defined in configuration files (XML). This separates content from code but limits content creators to pre-defined parameters—new behaviors require code changes.
+**Data-Driven** (OpenCombat-SDL): Units, weapons, and terrain live in XML configuration files. This keeps content separate from code but restricts creators to existing parameters—new behaviors mean modifying the source.
 
-**Scenario-Driven** (OpenCombat): Deployment configurations (JSON) define unit placement and initial states, while core mechanics remain hardcoded. This enables scenario variety within fixed systems.
+**Scenario-Driven** (OpenCombat): JSON files define unit placement and starting conditions, while core mechanics stay hardcoded. The system allows varied scenarios within fixed rules.
 
-**Declarative Scripting** (CloseCombatFree): Content is defined in QML, a declarative language that can express both data and behavior. This enables true modding—new unit types with unique behaviors can be created without recompiling the game.
+**Declarative Scripting** (CloseCombatFree): QML handles both data and behavior. Modders can create new unit types with unique behaviors without recompiling.
 
 **Content Capability Matrix:**
 
-| Modding Goal | XML/JSON | Declarative Scripts |
-|-------------|----------|---------------------|
-| Add new maps | ✓ | ✓ |
-| Create scenarios | ✓ | ✓ |
-| Add new weapons | ✓ (if data-only) | ✓ (with new behaviors) |
-| Create new unit types | ✗ | ✓ |
-| Add new game mechanics | ✗ | ✓ (limited) |
+| Modding Goal           | XML/JSON         | Declarative Scripts    |
+| ---------------------- | ---------------- | ---------------------- |
+| Add new maps           | ✓                | ✓                      |
+| Create scenarios       | ✓                | ✓                      |
+| Add new weapons        | ✓ (if data-only) | ✓ (with new behaviors) |
+| Create new unit types  | ✗                | ✓                      |
+| Add new game mechanics | ✗                | ✓ (limited)            |
 
-**Recommendation:** If your goal is community-driven content with deep gameplay changes, invest in declarative scripting capabilities. If your focus is on curated scenarios within fixed mechanics, data-driven approaches provide better performance and simpler debugging.
+**Recommendation:** For deep gameplay changes and community-driven content, declarative scripting works best. For curated scenarios with fixed mechanics, data-driven approaches offer better performance and easier debugging.
 
 ---
 
 ### Decision 6: State Synchronization Method
 
-**The Question:** How do you keep all clients consistent in a networked game?
+**The Question:** How do you maintain consistency across networked clients?
 
-**Snapshot Synchronization**: Periodically send the complete game state. Simple to implement but bandwidth-intensive and can cause hitching.
+**Snapshot Synchronization**: The game sends the complete state at intervals. The method is simple but consumes more bandwidth and may cause stuttering.
 
-**Delta Compression**: Send only changed fields. More efficient but requires tracking what each client knows.
+**Delta Compression**: Only changed fields are transmitted. This saves bandwidth but requires tracking each client's knowledge.
 
-**Event Sourcing** (OpenCombat): Send the events (messages) that caused state changes. Clients apply the same events to reach the same state. This enables replay recording and requires less bandwidth than snapshots, but adds complexity to ensure all clients process events deterministically.
+**Event Sourcing** (OpenCombat): The system sends events that alter state. Clients apply the same events to reach identical states. This approach supports replays and uses less bandwidth than snapshots, though it demands deterministic event processing.
 
 **Bandwidth Comparison** (per soldier update):
 
-| Method | Typical Size | Best For |
-|--------|-------------|----------|
-| Full snapshot | ~200 bytes | Small player counts; simple debugging |
-| Delta compression | ~50 bytes | Large player counts; predictable connections |
-| Event sourcing | ~20-30 bytes | Deterministic simulation; replay requirements |
+| Method            | Typical Size | Best For                                |
+| ----------------- | ------------ | --------------------------------------- |
+| Full snapshot     | ~200 bytes   | Small player counts; simple debugging   |
+| Delta compression | ~50 bytes    | Large player counts; stable connections |
+| Event sourcing    | ~20-30 bytes | Deterministic simulations; replay needs |
 
 ---
 
 ### Decision 7: AI Behavior Architecture
 
-**The Question:** How do units decide what to do?
+**The Question:** How do units make decisions?
 
-**Scripted Behaviors** (OpenCombat-SDL): Actions are explicitly defined with prerequisites and effects. The system chains actions automatically—stand up, then run, then fire. This provides predictable, debuggable behavior but can feel mechanical.
+**Scripted Behaviors** (OpenCombat-SDL): Actions follow explicit rules with prerequisites and effects. The system chains them automatically—stand, run, fire. The result is predictable and easy to debug but can feel rigid.
 
-**State-Based AI** (CloseCombatFree): Units transition between states based on orders and events. Simpler to understand but harder to compose complex behaviors from simple rules.
+**State-Based AI** (CloseCombatFree): Units shift between states based on orders and events. The model is simple to grasp but makes complex behaviors harder to build.
 
-**Behavior Trees with Perception** (OpenCombat): Units maintain awareness of their environment (visible enemies, under-fire status) and choose behaviors accordingly. A unit moving to a location might spontaneously switch to "engage" if an enemy appears, then resume movement afterward. This creates emergent behavior that feels more organic but requires careful tuning to remain predictable.
+**Behavior Trees with Perception** (OpenCombat): Units track their surroundings—visible enemies, incoming fire—and adjust actions dynamically. A unit moving to a position might engage an enemy, then resume its path. This creates more natural behavior but requires careful tuning to stay predictable.
 
 **Design Implications:**
 
-| Approach | Player Expectation | Implementation Complexity |
-|----------|-------------------|--------------------------|
-| Scripted | High (predictable) | Low |
-| State-based | Medium | Low-Medium |
-| Perception-driven | Variable | High |
+| Approach          | Player Expectation | Implementation Complexity |
+| ----------------- | ------------------ | ------------------------- |
+| Scripted          | High (predictable) | Low                       |
+| State-based       | Medium             | Low-Medium                |
+| Perception-driven | Variable           | High                      |
 
 ---
 
 ## Synthesis: Choosing Your Architecture
 
-No single approach is correct for all tactical wargames. Your choices should flow from your core design goals:
+No single approach works for every tactical wargame. Your architecture should align with your core design goals:
 
-**For Competitive Multiplayer**: Prioritize server-authoritative architecture, deterministic simulation, and hierarchical typing. Invest in event sourcing for efficient networking. Accept the complexity cost—these systems provide fairness and anti-cheat that competitive play demands.
+**Competitive Multiplayer** needs server-authoritative architecture, deterministic simulation, and hierarchical typing. Event sourcing keeps networking efficient. The complexity is justified—these systems ensure fairness and prevent cheating.
 
-**For Single-Player Simulation**: Consider client-authoritative design with three-layer command abstraction. Focus on perception-driven AI to create emergent storytelling. Bitfield states offer efficiency and elegance for solo play.
+**Single-Player Simulation** benefits from client-authoritative design with three-layer command abstraction. Perception-driven AI creates emergent storytelling, while bitfield states offer efficiency and elegance for solo play.
 
-**For Modding Communities**: Invest in declarative content definition from day one. String-based states and component composition enable the flexibility that modders need. Document your content APIs as thoroughly as your code APIs.
+**Modding Communities** require declarative content definition from the start. String-based states and component composition provide the flexibility modders need. Document your content APIs as thoroughly as your code.
 
-**For Rapid Prototyping**: Start with two-layer command abstraction and data-driven content. These provide clear structure while remaining flexible enough to iterate on core mechanics.
+**Rapid Prototyping** works best with two-layer command abstraction and data-driven content. This approach balances structure and flexibility for iterating on core mechanics.
 
 ---
 
@@ -190,64 +190,56 @@ No single approach is correct for all tactical wargames. Your choices should flo
 
 ### 1. State Management Is the Foundation
 
-All three projects invest heavily in state management because it underpins every other system. A well-designed state architecture makes features easier to add; a poorly designed one makes them nearly impossible. Choose your state representation before writing your first unit behavior.
+All three projects prioritize state management because it supports every other system. A well-designed state architecture simplifies feature development; a poor one makes it nearly impossible. Decide on your state representation before writing unit behaviors.
 
-### 2. The Order/Behavior/Gesture Separation Is Universal
+### 2. The Order/Behavior/Gesture Separation Is Essential
 
-Despite different terminology and implementation details, all three projects separate player intent from execution. This separation is not optional—it is the fundamental abstraction that makes tactical games playable. The question is not whether to use this separation, but how many layers to include.
+Though terminology and implementation differ, all three projects separate player intent from execution. This separation isn't optional—it's the core abstraction that makes tactical games playable. The real question is how many layers to include.
 
-### 3. Moddability Requires Architectural Commitment
+### 3. Moddability Requires Early Commitment
 
-True moddability—enabling players to add new mechanics, not just new content—must be designed in from the beginning. CloseCombatFree's QML approach offers the most flexibility because it was designed for it. OpenCombat-SDL's XML system supports content but not mechanics because that was the design goal. Know which you want before you start.
+True moddability—letting players add new mechanics, not just content—must be part of the initial design. CloseCombatFree's QML approach offers the most flexibility because it was built for it. OpenCombat-SDL's XML system supports content but not mechanics because that wasn't the goal. Decide what you need before starting.
 
-### 4. Message-Driven Architecture Scales
+### 4. Message-Driven Architecture Scales Well
 
-OpenCombat's message-driven state updates, while initially appearing complex, provide the cleanest foundation for multiplayer, replay recording, and debugging. The ability to log and replay every state change is invaluable for both development and player experience.
+OpenCombat's message-driven state updates may seem complex at first, but they provide the cleanest foundation for multiplayer, replay recording, and debugging. Logging and replaying every state change proves invaluable for development and player experience.
 
-### 5. Technical Debt Accumulates Around State Transitions
+### 5. State Transitions Create Technical Debt
 
-The most fragile code in all three projects involves state transitions—what happens when a unit dies mid-movement, or when a new order arrives during a prerequisite action. Invest in robust transition handling early; it will save countless debugging hours later.
+The most fragile code in all three projects involves state transitions—like a unit dying mid-movement or a new order arriving during an action. Build robust transition handling early to avoid countless debugging hours later.
 
 ---
 
 ## Looking Forward
 
-The following chapters examine each of these architectural decisions in detail, comparing how the three implementations handle specific challenges:
+The next chapters break down each architectural decision, showing how the three implementations tackle specific challenges:
 
-- **Chapter 2: Entity Systems** – How units, equipment, and squads relate
-- **Chapter 3: State Machines** – Managing unit behavior across contexts
-- **Chapter 4: Command Systems** – From player intent to unit action
-- **Chapter 5: World Simulation** – Terrain, line-of-sight, and environment
-- **Chapter 6: Moddability** – Content creation and community extension
+- **Chapter 2: Entity Systems** – How units, equipment, and squads connect
+- **Chapter 3: State Machines** – Controlling unit behavior in different situations
+- **Chapter 4: Command Systems** – Turning player input into unit actions
+- **Chapter 5: World Simulation** – Terrain, visibility, and environmental effects
+- **Chapter 6: Moddability** – Building tools for content creation and community expansion
 
-Each chapter maintains the focus on universal patterns rather than implementation details, providing a reference that remains relevant regardless of programming language or engine choice.
-
----
-
-*The architecture of tactical wargames has evolved, but the core challenge remains: creating systems that are simultaneously deep enough to reward mastery and clear enough to be enjoyable. The patterns in this book provide a foundation for meeting that challenge.*
+Each chapter keeps the focus on patterns that work across languages and engines, offering a durable reference.
 
 ---
 
-**Document Information**  
-**Version:** 2.0  
-**Date:** February 2026  
-**Status:** Publishable Draft  
-**Target Audience:** Game designers, technical architects, and researchers studying tactical wargame systems
+Tactical wargames have changed, but the central problem hasn't: systems must be deep enough to reward skill yet simple enough to stay fun. The patterns here help solve that problem.
 
 ---
 
 ## Decision Matrix Summary
 
-| Decision | OpenCombat-SDL | CloseCombatFree | OpenCombat | Universal Recommendation |
-|----------|---------------|-----------------|------------|------------------------|
-| **State Representation** | 64-bit bitfield | String-based | Hierarchical enum | Choose based on modding needs |
-| **Command Layers** | 2 (Order → Action) | 1 (direct) | 3 (Order → Behavior → Gesture) | 2 for balance, 3 for simulation |
-| **Entity Model** | Deep inheritance | Component composition | Modified ECS | Embedded components for type safety |
-| **Authority** | Client | Client | Server | Server for competitive multiplayer |
-| **Content Definition** | XML | QML (declarative) | JSON | Declarative for modding, data for fixed mechanics |
-| **Synchronization** | N/A (single-player) | N/A (single-player) | Event sourcing | Event sourcing for determinism |
-| **AI Architecture** | Scripted actions | State-based | Perception-driven | Perception-driven for emergent behavior |
+| Decision             | OpenCombat-SDL      | CloseCombatFree       | OpenCombat                     | Universal Recommendation                              |
+| -------------------- | ------------------- | --------------------- | ------------------------------ | ----------------------------------------------------- |
+| **State Representation** | 64-bit bitfield     | String-based          | Hierarchical enum              | Pick based on modding needs                           |
+| **Command Layers**       | 2 (Order → Action)  | 1 (direct)            | 3 (Order → Behavior → Gesture) | Two layers for balance, three for depth               |
+| **Entity Model**         | Deep inheritance    | Component composition | Modified ECS                   | Embedded components keep type safety                  |
+| **Authority**            | Client              | Client                | Server                         | Use servers for competitive multiplayer               |
+| **Content Definition**   | XML                 | QML (declarative)     | JSON                           | Declarative works best for mods, data for fixed rules |
+| **Synchronization**      | N/A (single-player) | N/A (single-player)   | Event sourcing                 | Event sourcing ensures determinism                    |
+| **AI Architecture**      | Scripted actions    | State-based           | Perception-driven              | Perception-driven AI creates emergent behavior        |
 
 ---
 
-*End of Chapter 1*
+*Next: [Chapter 2: Architectural Philosophy](chapter_02_architectural_philosophy.md)*

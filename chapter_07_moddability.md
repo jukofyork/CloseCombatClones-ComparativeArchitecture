@@ -2,108 +2,139 @@
 
 ## 7.1 Introduction: The Architecture of Extensibility
 
-Moddability represents one of the most significant architectural decisions in tactical wargame development. It determines not only how players can extend the game but also how developers themselves can iterate on design. A well-architected modding system blurs the line between "developer" and "player," enabling communities to create content that surpasses the original vision.
+Moddability shapes tactical wargame development more than most architectural choices. It defines how players extend the game and how developers refine their designs. The best modding systems erase the line between creator and player, letting communities build content that outgrows the original vision.
 
-This chapter examines three distinct approaches to moddability through the lens of the Close Combat clones:
+This chapter explores three modding approaches through Close Combat clones:
 
-| Approach | Implementation | Philosophy |
-|----------|---------------|------------|
-| **Configuration Modding** | OpenCombat-SDL | Data separation with hardcoded behavior |
-| **Data-Driven Design** | OpenCombat (Rust) | Message-based configuration with type safety |
-| **Declarative Modding** | CloseCombatFree | Full QML-based content definition |
+| Approach              | Implementation    | Philosophy                                   |
+| --------------------- | ----------------- | -------------------------------------------- |
+| **Configuration Modding** | OpenCombat-SDL    | Data separation with hardcoded behavior      |
+| **Data-Driven Design**    | OpenCombat (Rust) | Message-based configuration with type safety |
+| **Declarative Modding**   | CloseCombatFree   | Full QML-based content definition            |
 
-Each approach represents a different point on the modding spectrum, with distinct trade-offs between accessibility, performance, and expressive power. Understanding these patterns provides essential guidance for architects designing the next generation of moddable tactical simulations.
+These approaches occupy different points on the modding spectrum, each balancing accessibility, performance, and expressive power. Their trade-offs offer valuable lessons for architects designing the next generation of tactical simulations.
 
 ---
 
 ## 7.2 The Modding Spectrum: A Taxonomy of Extensibility
 
-Before examining specific implementations, we must establish a framework for evaluating modding capabilities. Modding exists on a spectrum from simple parameter tweaks to complete engine replacements:
+A framework for evaluating modding capabilities helps compare implementations. Modding ranges from simple tweaks to complete engine replacements:
 
 ### 7.2.1 The Four Levels of Modding
 
+```mermaid
+flowchart LR
+    subgraph L1["Parameter Tweaking"]
+        direction TB
+        L1A["Change values"]
+        L1B["Balance"]
+        L1C["Timing"]
+        L1D["Difficulty: LOW<br/>Requires: XML/JSON"]
+    end
+    
+    subgraph L2["Content Addition"]
+        direction TB
+        L2A["New units"]
+        L2B["New maps"]
+        L2C["New weapons"]
+        L2D["Difficulty: MED<br/>Requires: Assets"]
+    end
+    
+    subgraph L3["Mechanics Changes"]
+        direction TB
+        L3A["New behaviors"]
+        L3B["New systems"]
+        L3C["New AI"]
+        L3D["Difficulty: HIGH<br/>Requires: Scripts"]
+    end
+    
+    subgraph L4["Total Conversion"]
+        direction TB
+        L4A["New genres"]
+        L4B["New engines"]
+        L4C["New rules"]
+        L4D["Difficulty: MAX<br/>Requires: Code"]
+    end
+    
+    L1 --> L2 --> L3 --> L4
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        MODDING SPECTRUM                                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  PARAMETER      →     CONTENT       →     MECHANICS      →    TOTAL      │
-│  TWEAKING           ADDITION            CHANGES            CONVERSION    │
-├─────────────────────────────────────────────────────────────────────────┤
-│  • Change values    • New units       • New behaviors    • New genres   │
-│  • Balance          • New maps        • New systems      • New engines  │
-│  • Timing           • New weapons     • New AI           • New rules    │
-├─────────────────────────────────────────────────────────────────────────┤
-│  Difficulty: LOW    Difficulty: MED   Difficulty: HIGH   Difficulty: MAX│
-│  Requires: XML/JSON Requires: Assets  Requires: Scripts  Requires: Code  │
-└─────────────────────────────────────────────────────────────────────────┘
-```
 
-**Parameter Tweaking (Level 1)**: Modifying existing values—weapon damage, unit speed, visibility ranges. Accessible to non-programmers using simple text editors.
+**Parameter Tweaking (Level 1)**: Players adjust values like weapon damage, unit speed, or visibility ranges. Non-programmers can make these changes with text editors.
 
-**Content Addition (Level 2)**: Adding new entities using existing templates—new soldier types with standard behaviors, new maps using established terrain types. Requires asset creation but no programming.
+**Content Addition (Level 2)**: Creators add new entities using existing templates—new soldier types with standard behaviors or maps with established terrain. This requires asset creation but no programming.
 
-**Mechanics Changes (Level 3)**: Altering how the game functions—new AI behaviors, new suppression systems, new visibility calculations. Requires scripting or programming knowledge.
+**Mechanics Changes (Level 3)**: Modders alter core game functions—new AI behaviors, suppression systems, or visibility calculations. These changes demand scripting or programming knowledge.
 
-**Total Conversion (Level 4)**: Transforming the game into something fundamentally different—fantasy tactical combat, sci-fi settings, entirely new rule systems. Requires deep engine modification.
+**Total Conversion (Level 4)**: The game transforms into something entirely different—fantasy combat, sci-fi settings, or new rule systems. This level requires deep engine modification.
 
 ### 7.2.2 Modding Capability Matrix
 
-Different architectural approaches enable different modding levels:
+Architectural approaches enable different modding levels:
 
-| Capability | Level 1 | Level 2 | Level 3 | Level 4 |
-|------------|---------|---------|---------|---------|
-| **Data Format** | INI/XML/JSON | XML/JSON + Assets | Scripting | Full SDK |
-| **Skill Required** | Non-programmer | Designer/Artist | Scripter | Programmer |
-| **Tooling** | Text editor | Editor tools | IDE/Debugger | Engine source |
-| **Iteration Speed** | Instant | Minutes | Hours | Days |
-| **Distribution** | Config files | Asset packs | Mod packages | Fork/Engine |
+| Capability      | Level 1        | Level 2           | Level 3      | Level 4       |
+| --------------- | -------------- | ----------------- | ------------ | ------------- |
+| **Data Format**     | INI/XML/JSON   | XML/JSON + Assets | Scripting    | Full SDK      |
+| **Skill Required**  | Non-programmer | Designer/Artist   | Scripter     | Programmer    |
+| **Tooling**         | Text editor    | Editor tools      | IDE/Debugger | Engine source |
+| **Iteration Speed** | Instant        | Minutes           | Hours        | Days          |
+| **Distribution**    | Config files   | Asset packs       | Mod packages | Fork/Engine   |
 
 ---
 
 ## 7.3 OpenCombat-SDL: The Configuration Approach
 
-OpenCombat-SDL demonstrates the traditional approach to modding: separating data from code while keeping behavior implementation in compiled C++.
+OpenCombat-SDL follows the traditional modding model. It separates data from code but keeps behavior logic in compiled C++.
 
 ### 7.3.1 Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    OpenCombat-SDL Architecture                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐  │
-│  │   XML Data   │─────▶│   Manager    │─────▶│   Runtime    │  │
-│  │   Files      │      │   Classes    │      │   Instances  │  │
-│  └──────────────┘      └──────────────┘      └──────────────┘  │
-│         │                     │                     │          │
-│         ▼                     ▼                     ▼          │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐  │
-│  │  Soldiers    │      │SoldierManager│      │   Soldier    │  │
-│  │  Weapons     │      │WeaponManager │      │   Objects    │  │
-│  │  Terrain     │      │TerrainManager│      │   (C++)      │  │
-│  │  Effects     │      │EffectManager │      │              │  │
-│  └──────────────┘      └──────────────┘      └──────────────┘  │
-│                                                                  │
-│  Behavior: Hardcoded in C++ classes                              │
-│  Modding: Data only (parameters, assets)                         │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Data["XML Data Files"]
+        D1[Soldiers]
+        D2[Weapons]
+        D3[Terrain]
+        D4[Effects]
+    end
+    
+    subgraph Managers["Manager Classes"]
+        M1[SoldierManager]
+        M2[WeaponManager]
+        M3[TerrainManager]
+        M4[EffectManager]
+    end
+    
+    subgraph Runtime["Runtime Instances"]
+        R1[Soldier Objects]
+        R2[Weapon Objects]
+        R3[Terrain Objects]
+        R4[Effect Objects]
+    end
+    
+    D1 --> M1 --> R1
+    D2 --> M2 --> R2
+    D3 --> M3 --> R3
+    D4 --> M4 --> R4
+    
+    style Data fill:#e1f5fe
+    style Managers fill:#fff3e0
+    style Runtime fill:#e8f5e9
 ```
 
 ### 7.3.2 Data Files and Structure
 
-OpenCombat-SDL organizes moddable content in XML files:
+OpenCombat-SDL stores moddable content in XML files:
 
-```
-config/
-├── Soldiers.xml           # Unit type definitions
-├── Weapons.xml            # Weapon statistics
-├── Vehicles.xml           # Vehicle definitions
-├── Squads.xml            # Squad compositions
-├── Elements.xml          # Terrain types
-├── Effects.xml           # Visual effects
-├── Nationalities.xml     # Faction definitions
-└── SoldierActions.txt    # State transitions
+```mermaid
+mindmap
+  root((config/))
+    Soldiers.xml["Soldiers.xml - Unit type definitions"]
+    Weapons.xml["Weapons.xml - Weapon statistics"]
+    Vehicles.xml["Vehicles.xml - Vehicle definitions"]
+    Squads.xml["Squads.xml - Squad compositions"]
+    Elements.xml["Elements.xml - Terrain types"]
+    Effects.xml["Effects.xml - Visual effects"]
+    Nationalities.xml["Nationalities.xml - Faction definitions"]
+    SoldierActions.txt["SoldierActions.txt - State transitions"]
 ```
 
 **Example: Soldier Definition (XML)**
@@ -115,7 +146,7 @@ config/
     <PrimaryWeapon>M1 Garand</PrimaryWeapon>
     <PrimaryWeaponNumClips>4</PrimaryWeaponNumClips>
     <SecondaryWeapon>None</SecondaryWeapon>
-    
+
     <States>
         <State>
             <Name>Standing</Name>
@@ -126,7 +157,7 @@ config/
             <Animation>Prone Crawl</Animation>
         </State>
     </States>
-    
+
     <Attributes>
         <WalkingSpeed>2.5</WalkingSpeed>
         <RunningSpeed>5.36</RunningSpeed>
@@ -156,13 +187,13 @@ config/
 
 ### 7.3.3 The Manager Pattern
 
-The Manager pattern centralizes data loading and object creation:
+The Manager pattern handles data loading and object creation:
 
 ```cpp
 // src/objects/SoldierManager.h
 class SoldierManager {
     std::vector<SoldierTemplate*> _templates;
-    
+
 public:
     void LoadFromXML(const std::string& filename);
     Soldier* CreateInstance(const std::string& typeName);
@@ -173,17 +204,17 @@ public:
 void SoldierManager::LoadFromXML(const std::string& filename) {
     XMLDocument doc;
     doc.LoadFile(filename.c_str());
-    
+
     for (auto* soldierNode = doc.FirstChildElement("Soldier");
          soldierNode != nullptr;
          soldierNode = soldierNode->NextSiblingElement("Soldier")) {
-        
+
         SoldierTemplate* temp = new SoldierTemplate();
         temp->name = soldierNode->FirstChildElement("Name")->GetText();
         temp->walkingSpeed = soldierNode->FirstChildElement("WalkingSpeed")
                                          ->GetFloatText();
         // ... parse other attributes
-        
+
         _templates.push_back(temp);
     }
 }
@@ -191,7 +222,7 @@ void SoldierManager::LoadFromXML(const std::string& filename) {
 Soldier* SoldierManager::CreateInstance(const std::string& typeName) {
     SoldierTemplate* temp = GetTemplate(typeName);
     if (!temp) return nullptr;
-    
+
     Soldier* soldier = new Soldier();
     soldier->ApplyTemplate(temp);  // Copy template values
     return soldier;
@@ -200,87 +231,94 @@ Soldier* SoldierManager::CreateInstance(const std::string& typeName) {
 
 ### 7.3.4 Modding Capabilities and Limitations
 
-**What Can Be Modded (Without Recompilation):**
+**What Can Be Modded Without Recompilation:**
 
-| Aspect | Modifiable | Method |
-|--------|-----------|--------|
-| Unit Stats | ✓ | Edit XML values |
-| Weapon Parameters | ✓ | Edit XML values |
-| Squad Composition | ✓ | Edit XML structure |
-| Terrain Properties | ✓ | Edit XML values |
-| Visual Effects | ✓ | Edit XML + sprites |
-| Animation Mappings | ✓ | Edit XML references |
-| State Transitions | ✓ | Edit SoldierActions.txt |
+| Aspect             | Modifiable | Method                  |
+| ------------------ | ---------- | ----------------------- |
+| Unit Stats         | ✓          | Edit XML values         |
+| Weapon Parameters  | ✓          | Edit XML values         |
+| Squad Composition  | ✓          | Edit XML structure      |
+| Terrain Properties | ✓          | Edit XML values         |
+| Visual Effects     | ✓          | Edit XML and sprites    |
+| Animation Mappings | ✓          | Edit XML references     |
+| State Transitions  | ✓          | Edit SoldierActions.txt |
 
 **What Requires Code Changes:**
 
-| Aspect | Hardcoded Location | Change Required |
-|--------|-------------------|-----------------|
-| New Soldier Types | SoldierType enum | Add enum + recompile |
-| New States | SoldierState enum | Add enum + handler + recompile |
-| New AI Behaviors | C++ classes | Implement logic + recompile |
-| New Weapon Mechanics | Weapon::CalculateShot | Modify C++ + recompile |
-| Pathfinding | AStar class | Algorithm changes + recompile |
-| Physics | Collision system | Engine changes + recompile |
+| Aspect               | Hardcoded Location    | Change Required                  |
+| -------------------- | --------------------- | -------------------------------- |
+| New Soldier Types    | SoldierType enum      | Add enum and recompile           |
+| New States           | SoldierState enum     | Add enum, handler, and recompile |
+| New AI Behaviors     | C++ classes           | Implement logic and recompile    |
+| New Weapon Mechanics | Weapon::CalculateShot | Modify C++ and recompile         |
+| Pathfinding          | AStar class           | Change algorithm and recompile   |
+| Physics              | Collision system      | Modify engine and recompile      |
 
 ### 7.3.5 Pain Points Analysis
 
-The OpenCombat-SDL architecture document identifies key modding limitations:
+The OpenCombat-SDL architecture document highlights key modding limitations:
 
 ```cpp
-// Problem: Hardcoded enums prevent runtime extension
+// Hardcoded enums prevent runtime extension
 enum class SoldierState {
     IDLE = 0,
     MOVING = 1,
     FIRING = 2,
     RELOADING = 3,
     PRONE = 4,
-    // ... adding new states requires recompilation
+    // Adding new states requires recompilation
 };
 
-// Problem: Behavior logic in C++
+// Behavior logic locked in C++
 void Soldier::UpdateAI(float dt) {
-    // All AI logic hardcoded here
+    // AI logic is hardcoded
     if (_state == SoldierState::FIRING) {
         // Fixed firing behavior
     }
 }
 ```
 
-**Summary: OpenCombat-SDL enables Level 1-2 modding (parameter tweaking and content addition) but requires recompilation for Level 3+ (mechanics changes).**
+OpenCombat-SDL supports Level 1-2 modding—parameter tweaking and content addition—but requires recompilation for Level 3+ changes to game mechanics.
 
 ---
 
 ## 7.4 OpenCombat (Rust): The Data-Driven Approach
 
-OpenCombat demonstrates a more sophisticated approach using Rust's type system and message-passing architecture to enable runtime configuration changes while maintaining type safety.
+OpenCombat takes a different path, using Rust's type system and message-passing to allow runtime configuration changes without sacrificing type safety.
 
 ### 7.4.1 Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                  OpenCombat (Rust) Architecture                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐  │
-│  │   JSON/TMX   │─────▶│   Deserial   │─────▶│   Message    │  │
-│  │   Files      │      │   (serde)    │      │   System     │  │
-│  └──────────────┘      └──────────────┘      └──────────────┘  │
-│         │                     │                     │          │
-│         ▼                     ▼                     ▼          │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐  │
-│  │ Deployments  │      │   Battle     │      │  Config      │  │
-│  │ Maps         │      │   State      │      │  Changes     │  │
-│  └──────────────┘      └──────────────┘      └──────────────┘  │
-│                                                                  │
-│  Key Innovation: Runtime configuration via message passing       │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Input["Input Files"]
+        I1[JSON Deployments]
+        I2[TMX Maps]
+    end
+    
+    subgraph Processing["Processing"]
+        P1[serde Deserialization]
+    end
+    
+    subgraph Output["Runtime System"]
+        O1[Message System]
+        O2[Battle State]
+        O3[Config Changes]
+    end
+    
+    I1 --> P1
+    I2 --> P1
+    P1 --> O1
+    O1 --> O2
+    O1 --> O3
+    
+    style Input fill:#e3f2fd
+    style Processing fill:#fff8e1
+    style Output fill:#f3e5f5
 ```
 
 ### 7.4.2 JSON Deployment System
 
-OpenCombat uses JSON for scenario definitions, enabling detailed mission configurations:
+OpenCombat defines scenarios in JSON, allowing precise mission setups:
 
 ```json
 {
@@ -329,7 +367,7 @@ OpenCombat uses JSON for scenario definitions, enabling detailed mission configu
 
 ### 7.4.3 Runtime Configuration System
 
-OpenCombat's most innovative feature is its message-based configuration system that allows runtime parameter changes:
+OpenCombat stands out with its message-based configuration system, allowing parameters to change during runtime:
 
 ```rust
 // battle_core/src/config.rs
@@ -338,7 +376,7 @@ pub struct ServerConfig {
     pub target_cycle_duration_us: u64,
     pub flags_update_freq: u64,
     pub soldier_update_freq: u64,
-    
+
     // Visibility modifiers (runtime tweakable)
     pub visibility_idle_standup_modifier: f32,
     pub visibility_idle_crouch_modifier: f32,
@@ -347,7 +385,7 @@ pub struct ServerConfig {
     pub visibility_sneak_to_modifier: f32,
     pub visibility_defend_modifier: f32,
     pub visibility_hide_modifier: f32,
-    
+
     // Terrain opacity (runtime tweakable)
     pub tile_type_opacity_short_grass: f32,
     pub tile_type_opacity_high_grass: f32,
@@ -364,17 +402,17 @@ pub enum ChangeConfigMessage {
     VisibilitySneakToModifier(f32),
     VisibilityDefendModifier(f32),
     VisibilityHideModifier(f32),
-    
+
     // Terrain opacity adjustments
     TileTypeOpacityShortGrass(f32),
     TileTypeOpacityHighGrass(f32),
     TileTypeOpacityUnderbrush(f32),
     // ... additional terrain types
-    
+
     // Explosive radius adjustments
     ExplosiveDirectDeathRayon(ExplosiveType, Distance),
     ExplosiveRegressiveDeathRayon(ExplosiveType, Distance),
-    
+
     // Combat parameters
     HideMaximumRayon(Distance),
     InaccurateFireFactorByMeter(f32),
@@ -399,28 +437,28 @@ impl BattleState {
 
 ### 7.4.4 Tiled Map Integration
 
-OpenCombat uses the industry-standard Tiled editor for map creation:
+OpenCombat integrates the industry-standard Tiled editor for map creation:
 
 ```xml
 <!-- resources/maps/map1/map.tmx -->
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" orientation="orthogonal" 
+<map version="1.10" orientation="orthogonal"
      width="112" height="64" tilewidth="5" tileheight="5">
-     
+
   <tileset firstgid="1" source="terrain.tsx"/>
-  
+
   <!-- Background imagery -->
   <imagelayer id="2" name="background_image">
     <image source="map1.png" width="560" height="320"/>
   </imagelayer>
-  
+
   <!-- Terrain grid -->
   <layer id="1" name="terrain" width="112" height="64">
     <data encoding="csv">
       1,1,1,2,2,3,3,3,...
     </data>
   </layer>
-  
+
   <!-- Spawn zones with properties -->
   <objectgroup id="7" name="spawn_zones">
     <object id="10" name="spawn_A" x="50" y="100" width="30" height="30">
@@ -430,7 +468,7 @@ OpenCombat uses the industry-standard Tiled editor for map creation:
       </properties>
     </object>
   </objectgroup>
-  
+
   <!-- Interior zones with cover values -->
   <objectgroup id="4" name="interiors_zones">
     <object id="1" name="house1" x="100" y="200" width="50" height="40">
@@ -445,7 +483,7 @@ OpenCombat uses the industry-standard Tiled editor for map creation:
 
 ### 7.4.5 Type System Constraints
 
-While OpenCombat's data-driven approach is powerful, Rust's strong type system creates modding limitations:
+OpenCombat's data-driven approach offers flexibility, though Rust's strong type system imposes modding limitations:
 
 ```rust
 // These enums define valid types at compile time
@@ -469,52 +507,47 @@ pub enum VehicleType {
 }
 ```
 
-**To add a new soldier type:**
+To add a new soldier type:
 1. Add variant to `SoldierType` enum
 2. Add sprite loading code
 3. Add behavior implementations
-4. Recompile entire project
+4. Recompile the entire project
 
-**Summary: OpenCombat enables Level 2 modding (content addition with standard types) with exceptional runtime configurability, but Level 3+ requires recompilation due to Rust's type system.**
+OpenCombat supports Level 2 modding—adding content with standard types—while offering exceptional runtime configurability. Level 3+ modding, however, requires recompilation due to Rust's type system.
 
 ---
 
 ## 7.5 CloseCombatFree: The Declarative Modding Revolution
 
-CloseCombatFree represents the most ambitious approach to moddability, using QML (Qt Meta Language) to enable complete game content definition without recompilation.
+CloseCombatFree takes moddability further than any other clone by using QML (Qt Meta Language). It lets players define entire game elements without recompiling the engine.
 
 ### 7.5.1 Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│               CloseCombatFree (QML) Architecture                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                     QML Engine                            │  │
-│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐          │  │
-│  │  │   Units    │  │ Scenarios  │  │   Maps     │          │  │
-│  │  │   (.qml)   │  │   (.qml)   │  │  (.qml)    │          │  │
-│  │  └────────────┘  └────────────┘  └────────────┘          │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                            │                                     │
-│                            ▼                                     │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                   C++ Core Engine                         │  │
-│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐          │  │
-│  │  │  Physics   │  │   Pathfind │  │   Combat   │          │  │
-│  │  │  System    │  │   System   │  │   System   │          │  │
-│  │  └────────────┘  └────────────┘  └────────────┘          │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│  Key Innovation: Game content is QML, engine is C++             │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph QMLLayer["QML Engine Layer"]
+        direction LR
+        Q1[Units<br/>.qml]
+        Q2[Scenarios<br/>.qml]
+        Q3[Maps<br/>.qml]
+    end
+    
+    subgraph CPPLayer["C++ Core Engine"]
+        direction LR
+        C1[Physics<br/>System]
+        C2[Pathfind<br/>System]
+        C3[Combat<br/>System]
+    end
+    
+    QMLLayer --> CPPLayer
+    
+    style QMLLayer fill:#e8f5e9
+    style CPPLayer fill:#fff3e0
 ```
 
 ### 7.5.2 QML-Based Unit Definitions
 
-CloseCombatFree's most radical innovation is defining units entirely in QML:
+CloseCombatFree defines units entirely in QML, a radical departure from traditional approaches:
 
 ```qml
 // units/tanks/HeavyTank.qml
@@ -524,49 +557,49 @@ import "../../qml/units/tanks"
 
 Tank {
     id: root
-    
+
     // Identity
     unitFileName: "HeavyTank"
     unitType: "Heavy Tank"
     unitLogo: "../../img/units/tanks/heavy_logo.png"
-    
+
     // Performance characteristics
     maxSpeed: 18                    // km/h
     rotationSpeed: 30               // degrees/sec
     turretRotationSpeed: 25         // degrees/sec
     acceleration: 2.5               // m/s²
-    
+
     // Dimensions
     unitWidth: 70
     unitHeight: 110
-    
+
     // Armor values (mm)
     frontArmour: 120
     sideArmour: 90
     backArmour: 60
     turretArmour: 100
-    
+
     // Combat parameters
     mainGunReloadingTime: 5000      // milliseconds
-    
+
     // Visual components
-    HeavyTankHull { 
+    HeavyTankHull {
         id: hull
         color: "#4a6741"           // Olive drab
     }
-    
-    HeavyTankTurret { 
+
+    HeavyTankTurret {
         id: turret
         weapon: "HeavyCannon"
     }
-    
+
     // Crew configuration
     Soldier { role: "Commander" }
     Soldier { role: "Gunner" }
     Soldier { role: "Loader" }
     Soldier { role: "Driver" }
     Soldier { role: "MachineGunner" }
-    
+
     // Custom behavior function
     function onEnemySpotted(enemy) {
         if (distanceTo(enemy) < 200) {
@@ -576,7 +609,7 @@ Tank {
             }
         }
     }
-    
+
     // State change handlers
     onUnitStatusChanged: {
         if (unitStatus === "RELOADING") {
@@ -588,7 +621,7 @@ Tank {
 
 ### 7.5.3 QML-Based Scenario Definitions
 
-Scenarios are complete QML documents defining missions:
+Scenarios are complete QML documents that define missions:
 
 ```qml
 // scenarios/BridgeDefense.qml
@@ -600,9 +633,9 @@ Item {
     property string mapFile: "../maps/RiverCrossing.qml"
     property string briefing: "Defend the bridge at all costs. Hold for 10 minutes."
     property int timeLimit: 600    // seconds
-    
+
     id: scenario
-    
+
     // Allied forces (player)
     HeavyTank {
         objectName: "player_commander"
@@ -610,12 +643,12 @@ Item {
         y: 500
         unitSide: "allies"
         rotation: 45
-        
+
         Component.onCompleted: {
             queueOrder("Defend", 200, 450);
         }
     }
-    
+
     MediumTank {
         objectName: "player_support_1"
         x: 200
@@ -623,7 +656,7 @@ Item {
         unitSide: "allies"
         rotation: 30
     }
-    
+
     LightTank {
         objectName: "player_scout"
         x: 100
@@ -631,7 +664,7 @@ Item {
         unitSide: "allies"
         rotation: 60
     }
-    
+
     // Enemy forces (AI)
     EnemyHeavyTank {
         objectName: "enemy_assault_1"
@@ -639,11 +672,11 @@ Item {
         y: 200
         unitSide: "axis"
         rotation: 180
-        
+
         initialBehavior: "attack"
         attackTarget: Qt.point(200, 450)
     }
-    
+
     EnemyMediumTank {
         objectName: "enemy_assault_2"
         x: 850
@@ -651,25 +684,25 @@ Item {
         unitSide: "axis"
         rotation: 190
     }
-    
+
     EnemyMediumTank {
         objectName: "enemy_flanker"
         x: 750
         y: 600
         unitSide: "axis"
         rotation: 135
-        
+
         initialBehavior: "flank"
     }
-    
+
     // Victory condition logic
     function checkVictory() {
         var playerAlive = !isDestroyed("player_commander");
         var bridgeHeld = timer.elapsed < timeLimit;
-        var enemiesDefeated = isDestroyed("enemy_assault_1") && 
+        var enemiesDefeated = isDestroyed("enemy_assault_1") &&
                               isDestroyed("enemy_assault_2") &&
                               isDestroyed("enemy_flanker");
-        
+
         if (enemiesDefeated && bridgeHeld) {
             return "victory_major";
         } else if (!playerAlive) {
@@ -679,7 +712,7 @@ Item {
         }
         return "ongoing";
     }
-    
+
     // Scripted events
     Timer {
         id: reinforcementTimer
@@ -694,19 +727,19 @@ Item {
 
 ### 7.5.4 Hot-Reload Implementation
 
-CloseCombatFree supports runtime content reloading, enabling rapid iteration:
+CloseCombatFree supports runtime content reloading for rapid iteration:
 
 ```cpp
 // src/game/ccfgamemanager.cpp
 class CcfGameManager : public QObject {
     Q_OBJECT
-    
+
     QFileSystemWatcher* _fileWatcher;
-    
+
 public slots:
     Q_INVOKABLE void reloadScenario(const QString& scenarioFile);
     Q_INVOKABLE void reloadUnit(const QString& unitFile);
-    
+
 private slots:
     void onFileChanged(const QString& path) {
         if (path.endsWith(".qml")) {
@@ -721,7 +754,7 @@ void CcfGameManager::enableHotReload() {
     _fileWatcher->addPath("units/");
     _fileWatcher->addPath("scenarios/");
     _fileWatcher->addPath("maps/");
-    
+
     connect(_fileWatcher, &QFileSystemWatcher::fileChanged,
             this, &CcfGameManager::onFileChanged);
 }
@@ -729,21 +762,21 @@ void CcfGameManager::enableHotReload() {
 void CcfGameManager::reloadContent(const QString& path) {
     // Clear QML engine cache
     _qmlEngine->clearComponentCache();
-    
+
     // Reload the specific component
     if (path.contains("units")) {
         reloadUnit(path);
     } else if (path.contains("scenarios")) {
         reloadScenario(path);
     }
-    
+
     emit contentReloaded(path);
 }
 ```
 
 ### 7.5.5 Adding New Content: Complete Example
 
-Creating a new tank type in CloseCombatFree requires only QML files—no C++ recompilation:
+Creating a new tank type in CloseCombatFree needs only QML files. No C++ recompilation is necessary.
 
 **Step 1: Create Hull Component**
 
@@ -755,7 +788,7 @@ import "../../../qml/units/tanks"
 Hull {
     hullWidth: 76
     hullHeight: 118
-    
+
     // Visual appearance
     Rectangle {
         id: body
@@ -763,7 +796,7 @@ Hull {
         height: parent.hullHeight
         color: "#3d4a2c"  // Dunkelgelb
         radius: 3
-        
+
         // Track details
         Rectangle {
             id: leftTrack
@@ -773,7 +806,7 @@ Hull {
             height: parent.height - 20
             color: "#1a1a1a"
         }
-        
+
         Rectangle {
             id: rightTrack
             x: parent.width - 3
@@ -795,14 +828,14 @@ import "../../../qml/units/tanks"
 
 Turret {
     turretSize: 76
-    
+
     Rectangle {
         id: turretBody
         width: parent.turretSize
         height: parent.turretSize * 0.9
         color: "#3d4a2c"
         radius: width / 2
-        
+
         // Gun barrel
         Rectangle {
             id: barrel
@@ -827,35 +860,35 @@ import "../../../qml/units/tanks"
 
 Tank {
     id: root
-    
+
     unitFileName: "Panther"
     unitType: "Panther Ausf. G"
     unitLogo: "../../../img/units/tanks/panther/logo.png"
-    
+
     // Performance
     maxSpeed: 25
     rotationSpeed: 35
     turretRotationSpeed: 30
     acceleration: 3.5
-    
+
     // Armor (mm)
     frontArmour: 140
     sideArmour: 50
     backArmour: 40
     turretArmour: 110
-    
+
     // Combat
     mainGunReloadingTime: 4500
-    
+
     // Visual
     unitWidth: 76
     unitHeight: 118
     hullColor: "#3d4a2c"
-    
+
     // Components
     Panther_hull { id: hull }
     Panther_turret { id: turret }
-    
+
     // Crew
     Soldier { role: "Commander" }
     Soldier { role: "Gunner" }
@@ -879,21 +912,21 @@ Panther {
 }
 ```
 
-**No recompilation required!** Changes are reflected immediately upon file save.
+Changes appear immediately after saving the files.
 
 ### 7.5.6 QML Modding Limitations
 
-While powerful, QML-based modding has constraints:
+QML-based modding offers flexibility but comes with constraints:
 
-| Limitation | Description | Workaround |
-|------------|-------------|------------|
-| **Performance** | QML JavaScript slower than C++ | Keep logic simple; delegate heavy calculations to C++ |
-| **C++ Boundary** | Can't easily expose new C++ classes | Use existing C++ primitives creatively |
-| **Type Safety** | Runtime errors possible | Test thoroughly; use Qt Creator IDE |
-| **Versioning** | No built-in mod versioning | Implement mod.json metadata manually |
-| **Dependencies** | No automatic dependency resolution | Document requirements clearly |
+| Limitation   | Description                           | Workaround                                        |
+| ------------ | ------------------------------------- | ------------------------------------------------- |
+| **Performance**  | QML JavaScript runs slower than C++   | Keep logic simple. Move heavy calculations to C++ |
+| **C++ Boundary** | Exposing new C++ classes is difficult | Use existing C++ primitives creatively            |
+| **Type Safety**  | Runtime errors may occur              | Test thoroughly. Use Qt Creator IDE               |
+| **Versioning**   | No built-in mod versioning            | Implement mod.json metadata manually              |
+| **Dependencies** | No automatic dependency resolution    | Document requirements clearly                     |
 
-**Summary: CloseCombatFree enables Level 3 modding (mechanics changes) through QML, approaching Level 4 for content creators, with the unique advantage of hot-reload for rapid iteration.**
+CloseCombatFree supports Level 3 modding (mechanics changes) through QML. Content creators can nearly reach Level 4, with the added benefit of hot-reload for fast iteration.
 
 ---
 
@@ -901,80 +934,59 @@ While powerful, QML-based modding has constraints:
 
 ### 7.6.1 Modding Capability Comparison
 
-| Capability | OpenCombat-SDL | OpenCombat | CloseCombatFree |
-|------------|---------------|------------|-----------------|
-| **New Units** | XML templates | JSON deployment | QML definitions |
-| **New Weapons** | XML parameters | Enum variants | QML components |
-| **New Maps** | Not supported | TMX files | QML or image-based |
-| **New Scenarios** | Not supported | JSON deployment | QML (full scripting) |
-| **New Behaviors** | Requires C++ | Requires Rust | QML functions |
-| **New States** | Enum + C++ | Enum + Rust | QML states |
-| **AI Logic** | Hardcoded C++ | Hardcoded Rust | Scriptable QML |
-| **Visual Changes** | Sprite swap | Sprite swap | Full QML styling |
-| **Hot Reload** | No | No | Yes |
-| **Mod Packaging** | File replacement | File replacement | Directory-based |
-| **Type Safety** | Runtime errors | Compile-time | Runtime errors |
-| **Performance** | Native | Native | Good (JS overhead) |
+| Capability     | OpenCombat-SDL   | OpenCombat       | CloseCombatFree        |
+| -------------- | ---------------- | ---------------- | ---------------------- |
+| **New Units**      | XML templates    | JSON deployment  | QML definitions        |
+| **New Weapons**    | XML parameters   | Enum variants    | QML components         |
+| **New Maps**       | Not supported    | TMX files        | QML or image-based     |
+| **New Scenarios**  | Not supported    | JSON deployment  | QML (full scripting)   |
+| **New Behaviors**  | Requires C++     | Requires Rust    | QML functions          |
+| **New States**     | Enum + C++       | Enum + Rust      | QML states             |
+| **AI Logic**       | Hardcoded C++    | Hardcoded Rust   | Scriptable QML         |
+| **Visual Changes** | Sprite swap      | Sprite swap      | Full QML styling       |
+| **Hot Reload**     | No               | No               | Yes                    |
+| **Mod Packaging**  | File replacement | File replacement | Directory-based        |
+| **Type Safety**    | Runtime errors   | Compile-time     | Runtime errors         |
+| **Performance**    | Native           | Native           | Good, with JS overhead |
 
 ### 7.6.2 Modder Skill Requirements
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   SKILL REQUIREMENT PYRAMID                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│                        ADVANCED                                  │
-│                    ┌───────────┐                                │
-│                    │   C++/Rust│  Engine modification            │
-│                    │   Coding  │  (All engines)                  │
-│                    └───────────┘                                │
-│                         ▲                                       │
-│                    ┌───────────┐                                │
-│                    │  QML/JS   │  Behavior scripting             │
-│                    │ Scripting │  (CloseCombatFree)              │
-│                    └───────────┘                                │
-│                         ▲                                       │
-│                    ┌───────────┐                                │
-│                    │  JSON/XML │  Data editing                   │
-│                    │  Editing  │  (OpenCombat-SDL, OpenCombat)   │
-│                    └───────────┘                                │
-│                         ▲                                       │
-│                    ┌───────────┐                                │
-│                    │ Parameter │  Value tweaking                 │
-│                    │ Tweaking  │  (All engines)                  │
-│                    └───────────┘                                │
-│                                                                  │
-│                       BEGINNER                                   │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart BT
+    Beginner["BEGINNER<br/>Parameter Tweaking<br/>Value tweaking<br/>(All engines)"]
+    Intermediate["INTERMEDIATE<br/>JSON/XML Editing<br/>Data editing<br/>(OpenCombat-SDL, OpenCombat)"]
+    Advanced["ADVANCED<br/>QML/JS Scripting<br/>Behavior scripting<br/>(CloseCombatFree)"]
+    Expert["EXPERT<br/>C++/Rust Coding<br/>Engine modification<br/>(All engines)"]
+    
+    Beginner --> Intermediate --> Advanced --> Expert
+    
+    style Beginner fill:#c8e6c9
+    style Intermediate fill:#fff9c4
+    style Advanced fill:#ffcc80
+    style Expert fill:#ef9a9a
 ```
 
 ### 7.6.3 Modding Complexity vs. Expressiveness
 
-```
-Expressiveness
-    │
-    │                    ╱ CloseCombatFree
-    │                  ╱  (QML - Full scripting)
-    │                ╱
-    │              ╱
-    │            ╱
-    │          ╱
-    │        ╱  OpenCombat
-    │      ╱   (JSON/TMX + Runtime config)
-    │    ╱
-    │  ╱
-    │╱ OpenCombat-SDL
-    └───────────────────────► Complexity
-    (XML only)
+```mermaid
+xychart-beta
+    title "Modding Complexity vs Expressiveness"
+    x-axis "Complexity" [Low, Medium, High]
+    y-axis "Expressiveness" 0 --> 100
+    bar [20, 55, 95]
+    
+    annotation 1 "OpenCombat-SDL<br/>(XML only)"
+    annotation 2 "OpenCombat<br/>(JSON/TMX + Runtime)"
+    annotation 3 "CloseCombatFree<br/>(QML - Full scripting)"
 ```
 
 ### 7.6.4 Recommended Use Cases
 
-| Approach | Best For | Not Recommended For |
-|----------|----------|-------------------|
-| **OpenCombat-SDL** | Traditional modding, parameter tweaking, content packs | Behavior modifications, total conversions |
-| **OpenCombat** | Scenario design, balance tuning, competitive multiplayer | New unit types, custom mechanics |
-| **CloseCombatFree** | Total conversions, rapid prototyping, educational modding | Performance-critical modifications |
+| Approach        | Best For                                                  | Not Recommended For                         |
+| --------------- | --------------------------------------------------------- | ------------------------------------------- |
+| **OpenCombat-SDL**  | Traditional modding, parameter tweaking, content packs    | Behavior modifications or total conversions |
+| **OpenCombat**      | Scenario design, balance tuning, competitive multiplayer  | New unit types or custom mechanics          |
+| **CloseCombatFree** | Total conversions, rapid prototyping, educational modding | Performance-critical modifications          |
 
 ---
 
@@ -982,10 +994,9 @@ Expressiveness
 
 ### 7.7.1 Pattern 1: Data-Driven Entity Component System
 
-The most effective pattern for moddable games is separating entity definition from implementation:
+Moddable games work best when entity definitions stay separate from their implementation. Here's how a sniper team might be defined in YAML:
 
 ```cpp
-// Data-driven entity definition (YAML/JSON)
 // units/sniper.yaml
 entity_type: infantry
 name: Sniper Team
@@ -993,19 +1004,19 @@ name: Sniper Team
 components:
   transform:
     size: { width: 1.5, height: 1.5 }
-  
+
   visual:
     sprite: sprites/sniper_team.png
     animations:
       idle: anims/sniper_idle.png
       move: anims/sniper_move.png
       fire: anims/sniper_fire.png
-  
+
   combat:
     weapon: sniper_rifle
     accuracy: 0.95
     range: 300
-  
+
   ai:
     behavior_script: ai/sniper_team.lua
     default_behavior: ambush
@@ -1016,26 +1027,21 @@ attributes:
   morale: 0.8
 ```
 
+The runtime factory builds entities from these definitions:
+
 ```cpp
-// Runtime entity factory
 class EntityFactory {
 public:
     Entity* CreateEntity(const std::string& definitionFile) {
-        // Load definition
         auto data = YAML::LoadFile(definitionFile);
-        
-        // Create entity
         Entity* entity = new Entity();
-        
-        // Add components based on definition
+
         for (const auto& comp : data["components"]) {
             std::string type = comp.first.as<std::string>();
             entity->AddComponent(CreateComponent(type, comp.second));
         }
-        
-        // Set attributes
+
         entity->SetAttributes(data["attributes"]);
-        
         return entity;
     }
 };
@@ -1043,13 +1049,11 @@ public:
 
 ### 7.7.2 Pattern 2: Scripting Layer Architecture
 
-Expose game systems to scripting languages for behavior customization:
+Scripting languages let modders customize behavior without touching the core engine. The C++ API exposes key systems to Lua:
 
 ```cpp
-// C++ API exposed to Lua
 class ScriptAPI {
 public:
-    // Bind C++ classes to Lua
     void InitializeLua() {
         lua.new_usertype<Soldier>("Soldier",
             "get_position", &Soldier::GetPosition,
@@ -1058,15 +1062,14 @@ public:
             "add_order", &Soldier::AddOrder,
             "is_alive", &Soldier::IsAlive
         );
-        
+
         lua.new_usertype<World>("World",
             "query_radius", &World::QueryRadius,
             "find_path", &World::FindPath,
             "get_terrain", &World::GetTerrain
         );
     }
-    
-    // Call script hook
+
     void CallBehaviorScript(const std::string& script, Soldier* soldier, World* world) {
         try {
             lua.script_file("scripts/behaviors/" + script);
@@ -1081,14 +1084,13 @@ public:
 };
 ```
 
+Sniper teams use this Lua script for their specialized behavior:
+
 ```lua
 -- ai/sniper_team.lua
--- Behavior script for sniper teams
 
 function OnUpdate(soldier, world, dt)
-    -- Sniper-specific AI logic
     if not soldier:get_target() then
-        -- Find high-value target
         local targets = world:query_radius(soldier:get_position(), 300)
         for _, target in ipairs(targets) do
             if target:is_commander() or target:is_mg_gunner() then
@@ -1097,13 +1099,11 @@ function OnUpdate(soldier, world, dt)
             end
         end
     end
-    
-    -- Ambush behavior: wait for clear shot
+
     if soldier:get_target() then
         if HasClearLineOfSight(soldier, soldier:get_target()) then
             soldier:add_order("AIM", soldier:get_target())
         else
-            -- Relocate to better position
             local newPos = FindConcealedPosition(soldier, world)
             soldier:add_order("SNEAK_TO", newPos)
         end
@@ -1113,60 +1113,61 @@ end
 
 ### 7.7.3 Pattern 3: Hot-Reload Infrastructure
 
-Implement file watching for rapid iteration:
+Build file-watching systems for rapid iteration:
 
 ```cpp
 class HotReloadManager {
     std::unordered_map<std::string, std::time_t> _fileTimestamps;
     std::vector<std::string> _watchedPaths;
-    
+
 public:
     void WatchDirectory(const std::string& path, const std::string& extension) {
         _watchedPaths.push_back(path);
-        // Initial scan
         ScanDirectory(path, extension);
     }
-    
+
     void Update() {
         for (const auto& path : _watchedPaths) {
             CheckForChanges(path);
         }
     }
-    
+
 private:
     void CheckForChanges(const std::string& path) {
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
             if (entry.is_regular_file()) {
                 auto lastWrite = std::filesystem::last_write_time(entry);
                 auto lastWriteTime = decltype(lastWrite)::clock::to_time_t(lastWrite);
-                
+
                 auto it = _fileTimestamps.find(entry.path().string());
                 if (it != _fileTimestamps.end() && it->second < lastWriteTime) {
-                    // File changed
                     OnFileChanged(entry.path().string());
                     it->second = lastWriteTime;
                 }
             }
         }
     }
-    
+
     void OnFileChanged(const std::string& filePath) {
         if (filePath.ends_with(".yaml") || filePath.ends_with(".json")) {
             ReloadDataFile(filePath);
-        } else if (filePath.ends_with(".lua")) {
+        }
+        else if (filePath.ends_with(".lua")) {
             ReloadScript(filePath);
-        } else if (filePath.ends_with(".png") || filePath.ends_with(".jpg")) {
+        }
+        else if (filePath.ends_with(".png") || filePath.ends_with(".jpg")) {
             ReloadTexture(filePath);
         }
     }
-    
+
     void ReloadDataFile(const std::string& path) {
         try {
             auto data = YAML::LoadFile(path);
             ValidateSchema(data);
             ApplyToGame(data);
             Log("Hot reloaded: " + path);
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e) {
             LogError("Failed to reload " + path + ": " + e.what());
         }
     }
@@ -1175,38 +1176,43 @@ private:
 
 ### 7.7.4 Pattern 4: Mod Packaging Standard
 
-Standardize mod structure for interoperability:
+Define a consistent mod structure for interoperability:
 
-```
-mod_name/
-├── mod.yaml                 # Mod metadata and dependencies
-├── manifest.json            # File manifest with checksums
-├── assets/
-│   ├── images/             # Textures and sprites
-│   ├── audio/              # Sound effects and music
-│   ├── models/             # 3D models (if applicable)
-│   └── fonts/              # Custom fonts
-├── data/
-│   ├── units/              # Unit definitions
-│   ├── weapons/            # Weapon definitions
-│   ├── vehicles/           # Vehicle definitions
-│   └── factions/           # Faction configurations
-├── maps/
-│   ├── map1.tmx            # Tiled map files
-│   └── map2.tmx
-├── scenarios/
-│   ├── scenario1.yaml      # Scenario definitions
-│   └── scenario2.yaml
-├── scripts/
-│   ├── ai/                 # AI behavior scripts
-│   ├── behaviors/          # Unit behavior scripts
-│   └── events/             # Event/trigger scripts
-├── ui/
-│   ├── themes/             # UI themes and styles
-│   └── custom_widgets/     # Custom UI components
-└── docs/
-    ├── README.md           # Mod documentation
-    └── CHANGELOG.md        # Version history
+```mermaid
+flowchart TD
+    root["mod_name/"] --> mod_yaml["mod.yaml<br/>Mod metadata"]
+    root --> manifest["manifest.json<br/>File manifest"]
+    root --> assets["assets/"]
+    root --> data["data/"]
+    root --> maps["maps/"]
+    root --> scenarios["scenarios/"]
+    root --> scripts["scripts/"]
+    root --> ui["ui/"]
+    root --> docs["docs/"]
+    
+    assets --> assets_images["images/<br/>Textures & sprites"]
+    assets --> assets_audio["audio/<br/>Sound effects"]
+    assets --> assets_models["models/<br/>3D models"]
+    assets --> assets_fonts["fonts/<br/>Custom fonts"]
+    
+    data --> data_units["units/<br/>Unit definitions"]
+    data --> data_weapons["weapons/<br/>Weapon definitions"]
+    data --> data_vehicles["vehicles/<br/>Vehicle definitions"]
+    data --> data_factions["factions/<br/>Faction config"]
+    
+    maps --> maps_tmx["*.tmx<br/>Tiled map files"]
+    
+    scenarios --> scenarios_yaml["*.yaml<br/>Scenario definitions"]
+    
+    scripts --> scripts_ai["ai/<br/>AI behavior"]
+    scripts --> scripts_behaviors["behaviors/<br/>Unit behavior"]
+    scripts --> scripts_events["events/<br/>Event scripts"]
+    
+    ui --> ui_themes["themes/<br/>UI themes"]
+    ui --> ui_widgets["custom_widgets/<br/>UI components"]
+    
+    docs --> docs_readme["README.md<br/>Documentation"]
+    docs --> docs_changelog["CHANGELOG.md<br/>Version history"]
 ```
 
 **mod.yaml specification:**
@@ -1217,27 +1223,22 @@ version: "1.2.0"
 author: "ModderName"
 description: "Adds special forces units with unique abilities"
 
-# Dependencies
 dependencies:
   game: ">= 1.0.0"
   mods:
     - "BaseUnitsPack >= 1.0.0"
     - "AdvancedAI >= 0.5.0"
 
-# Conflicts
 conflicts:
   - "OtherModThatChangesSameUnits"
 
-# Load order (higher loads later, can override earlier mods)
 load_order: 100
 
-# Compatibility flags
 compatibility:
   multiplayer: true
   saves: true
   achievements: false
 
-# Credits
 credits:
   - name: "ArtistName"
     role: "Unit sprites"
@@ -1251,67 +1252,65 @@ credits:
 
 ### 7.8.1 The Modding Triangle
 
-```
-                    Moddability
-                         ▲
-                        ╱ ╲
-                       ╱   ╲
-                      ╱     ╲
-                     ╱       ╲
-                    ╱    ◆    ╲
-                   ╱  (Balance) ╲
-                  ╱               ╲
-    Performance ◀──────────────────▶ Security
+```mermaid
+flowchart TD
+    A[Moddability] --> B[Performance]
+    B --> C[Security]
+    C --> A
+    
+    style A fill:#bbdefb
+    style B fill:#c8e6c9
+    style C fill:#ffccbc
 ```
 
-**Moddability** (ease of modification) conflicts with both **performance** (execution speed) and **security** (sandboxing). Achieving all three requires careful architectural choices.
+Moddability, performance, and security pull in different directions. Balancing all three demands thoughtful architecture.
 
 ### 7.8.2 Performance Considerations
 
-| Approach | Runtime Overhead | Memory Usage | Startup Time |
-|----------|-----------------|--------------|--------------|
-| **XML/JSON (SDL)** | Low (parsed once) | Moderate | Fast |
-| **JSON + Runtime Config** | Very Low | Moderate | Fast |
-| **QML (CCF)** | Moderate (JS engine) | Higher | Moderate |
-| **Lua Scripting** | Low-Moderate | Moderate | Moderate |
-| **Full C++ Mods** | None | High (plugins) | Fast |
+| Approach              | Runtime Overhead     | Memory Usage   | Startup Time |
+| --------------------- | -------------------- | -------------- | ------------ |
+| **XML/JSON (SDL)**        | Low (parsed once)    | Moderate       | Fast         |
+| **JSON + Runtime Config** | Very low             | Moderate       | Fast         |
+| **QML (CCF)**             | Moderate (JS engine) | Higher         | Moderate     |
+| **Lua Scripting**         | Low to moderate      | Moderate       | Moderate     |
+| **Full C++ Mods**         | None                 | High (plugins) | Fast         |
 
 **Optimization Strategies:**
 
-1. **Caching**: Parse data files once, cache results
-2. **Lazy Loading**: Load assets only when needed
-3. **Binary Formats**: Cache parsed data in binary format
-4. **Incremental Updates**: Only reload changed portions
-5. **Script Compilation**: Precompile Lua to bytecode
+1. Cache parsed data files to avoid repeated processing.
+2. Load assets only when needed.
+3. Store parsed data in binary format for faster access.
+4. Reload only the portions of data that change.
+5. Precompile Lua scripts to bytecode.
 
 ### 7.8.3 Security and Sandboxing
 
-Mods from the internet require sandboxing:
+Mods downloaded from the internet need strict sandboxing:
 
 ```cpp
 // Sandboxed Lua environment
 sol::state CreateSandboxedLua() {
     sol::state lua;
-    
+
     // Whitelist safe libraries
-    lua.open_libraries(sol::lib::base, sol::lib::math, 
+    lua.open_libraries(sol::lib::base, sol::lib::math,
                        sol::lib::string, sol::lib::table);
-    
+
     // Remove dangerous functions
     lua["dofile"] = sol::nil;
     lua["loadfile"] = sol::nil;
     lua["os"] = sol::nil;
     lua["io"] = sol::nil;
-    
+
     // Provide safe game API
     lua["Game"] = lua.create_table();
     lua["Game"]["GetUnit"] = SafeGetUnit;  // Read-only wrapper
     lua["Game"]["GetDistance"] = GetDistance;
     lua["Game"]["Log"] = SafeLog;  // Sanitized logging
-    
+
     // Limit execution
     lua.set("MAX_INSTRUCTIONS", 1000000);
-    
+
     return lua;
 }
 
@@ -1322,7 +1321,7 @@ bool ValidateMod(const ModPackage& mod) {
         LogError("Mod validation failed: checksum mismatch");
         return false;
     }
-    
+
     // Validate scripts
     for (const auto& script : mod.scripts) {
         if (!ValidateScriptSyntax(script)) {
@@ -1330,27 +1329,27 @@ bool ValidateMod(const ModPackage& mod) {
             return false;
         }
     }
-    
+
     // Check for forbidden file access
     if (mod.HasFileAccessOutsideModDirectory()) {
         LogError("Mod validation failed: illegal file access");
         return false;
     }
-    
+
     return true;
 }
 ```
 
 ### 7.8.4 Recommendations by Use Case
 
-| Scenario | Recommended Approach | Rationale |
-|----------|---------------------|-----------|
-| **Single-player focus** | QML or Lua | Maximum expressiveness |
-| **Multiplayer competitive** | JSON + Runtime config | Balance consistency |
-| **Commercial release** | Sandboxed Lua | Security paramount |
-| **Open source** | Full QML | Community contribution |
-| **Mobile ports** | Binary data + Limited scripting | Performance constrained |
-| **Educational** | QML | Visual feedback, rapid iteration |
+| Scenario                | Recommended Approach            | Rationale                                   |
+| ----------------------- | ------------------------------- | ------------------------------------------- |
+| **Single-player focus**     | QML or Lua                      | Offers the most flexibility                 |
+| **Multiplayer competitive** | JSON + Runtime config           | Ensures consistency                         |
+| **Commercial release**      | Sandboxed Lua                   | Prioritizes security                        |
+| **Open source**             | Full QML                        | Encourages community contributions          |
+| **Mobile ports**            | Binary data + Limited scripting | Optimizes performance                       |
+| **Educational**             | QML                             | Provides visual feedback and fast iteration |
 
 ---
 
@@ -1358,7 +1357,7 @@ bool ValidateMod(const ModPackage& mod) {
 
 ### 7.9.1 Save Game Architecture
 
-Different approaches to game state serialization:
+Three distinct approaches to game state serialization exist:
 
 **Approach 1: Full State Serialization (OpenCombat-SDL)**
 
@@ -1366,26 +1365,26 @@ Different approaches to game state serialization:
 // Save all entity state
 void GameState::Save(const std::string& filename) {
     XMLDocument doc;
-    
+
     // Save each entity
     auto* entities = doc.NewElement("Entities");
     for (auto* entity : _entities) {
         auto* elem = doc.NewElement("Entity");
         elem->SetAttribute("id", entity->GetId());
         elem->SetAttribute("type", entity->GetType());
-        
+
         // Serialize position
         auto* pos = doc.NewElement("Position");
         pos->SetAttribute("x", entity->GetX());
         pos->SetAttribute("y", entity->GetY());
         elem->InsertEndChild(pos);
-        
+
         // Serialize health
         elem->SetAttribute("health", entity->GetHealth());
-        
+
         entities->InsertEndChild(elem);
     }
-    
+
     doc.InsertEndChild(entities);
     doc.SaveFile(filename.c_str());
 }
@@ -1397,18 +1396,18 @@ void GameState::Save(const std::string& filename) {
 // Save event log for replay
 class EventSourcingSystem {
     std::vector<GameEvent> _eventLog;
-    
+
 public:
     void RecordEvent(const GameEvent& event) {
         _eventLog.push_back(event);
     }
-    
+
     void Save(const std::string& filename) {
         // Save initial state + event log
         SaveGameState(filename + ".initial");
         SaveEventLog(filename + ".events");
     }
-    
+
     void Load(const std::string& filename) {
         // Replay events to reconstruct state
         LoadGameState(filename + ".initial");
@@ -1431,7 +1430,7 @@ SaveGame {
     timestamp: "2024-01-15T14:30:00Z"
     scenario: "BridgeDefense"
     elapsedTime: 450  // seconds
-    
+
     // Entity snapshots
     EntitySnapshot {
         objectName: "player_commander"
@@ -1441,7 +1440,7 @@ SaveGame {
         ammo: 24
         state: "DEFENDING"
     }
-    
+
     EntitySnapshot {
         objectName: "enemy_assault_1"
         x: 800
@@ -1449,7 +1448,7 @@ SaveGame {
         health: 0
         state: "DESTROYED"
     }
-    
+
     // World state
     WorldState {
         weather: "CLEAR"
@@ -1468,29 +1467,29 @@ public:
         int minor;
         int patch;
     };
-    
+
     bool CheckCompatibility(const ModPackage& mod, const GameVersion& game) {
         // Parse version strings
         Version modVer = ParseVersion(mod.version);
         Version gameVer = ParseVersion(game.version);
-        
+
         // Check dependencies
         for (const auto& dep : mod.dependencies) {
             if (!IsDependencySatisfied(dep)) {
                 return false;
             }
         }
-        
+
         // Check for conflicts
         for (const auto& conflict : mod.conflicts) {
             if (IsModLoaded(conflict)) {
                 return false;
             }
         }
-        
+
         return true;
     }
-    
+
     // Semantic version comparison
     bool SatisfiesConstraint(const Version& version, const std::string& constraint) {
         // Parse constraint (e.g., ">= 1.0.0", "~1.2.x")
@@ -1505,34 +1504,40 @@ public:
 
 ### 7.10.1 For New Projects
 
-Based on the analysis of three distinct approaches, we recommend the following hybrid architecture:
+A hybrid architecture works best for moddable games:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│               RECOMMENDED MODDABLE ARCHITECTURE                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Layer 4: Engine (C++/Rust)                                     │
-│  ├── Physics, Rendering, Audio                                  │
-│  ├── Core simulation logic                                      │
-│  └── Scripting engine (Lua/Wren)                                │
-│                                                                  │
-│  Layer 3: Game Systems (C++/Scripts)                            │
-│  ├── Combat mechanics                                           │
-│  ├── AI framework                                               │
-│  └── Pathfinding                                                │
-│                                                                  │
-│  Layer 2: Content Definitions (YAML/JSON)                       │
-│  ├── Unit definitions                                           │
-│  ├── Weapon statistics                                          │
-│  └── Map metadata                                               │
-│                                                                  │
-│  Layer 1: Assets (Standard formats)                             │
-│  ├── Sprites (PNG)                                              │
-│  ├── Audio (OGG/WAV)                                            │
-│  └── Maps (TMX)                                                 │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph L4["Layer 4: Engine (C++/Rust)"]
+        L4A[Physics, Rendering, Audio]
+        L4B[Core simulation logic]
+        L4C[Scripting engine Lua/Wren]
+    end
+    
+    subgraph L3["Layer 3: Game Systems (C++/Scripts)"]
+        L3A[Combat mechanics]
+        L3B[AI framework]
+        L3C[Pathfinding]
+    end
+    
+    subgraph L2["Layer 2: Content Definitions (YAML/JSON)"]
+        L2A[Unit definitions]
+        L2B[Weapon statistics]
+        L2C[Map metadata]
+    end
+    
+    subgraph L1["Layer 1: Assets (Standard formats)"]
+        L1A[Sprites PNG]
+        L1B[Audio OGG/WAV]
+        L1C[Maps TMX]
+    end
+    
+    L4 --> L3 --> L2 --> L1
+    
+    style L4 fill:#ffccbc
+    style L3 fill:#fff9c4
+    style L2 fill:#c8e6c9
+    style L1 fill:#bbdefb
 ```
 
 ### 7.10.2 Implementation Checklist
@@ -1569,7 +1574,7 @@ Based on the analysis of three distinct approaches, we recommend the following h
 
 ### 7.10.3 Anti-Patterns to Avoid
 
-❌ **Hardcoded Magic Numbers**
+**Hardcoded Magic Numbers**
 ```cpp
 // BAD: Values buried in code
 void Soldier::Update(float dt) {
@@ -1586,7 +1591,7 @@ void Soldier::Update(float dt) {
 }
 ```
 
-❌ **Direct File System Access**
+**Direct File System Access**
 ```cpp
 // BAD: Hardcoded paths
 void LoadSoldier() {
@@ -1599,7 +1604,7 @@ void LoadSoldier(const std::string& path) {
 }
 ```
 
-❌ **Monolithic Classes**
+**Monolithic Classes**
 ```cpp
 // BAD: Everything in one class
 class Soldier {
@@ -1619,43 +1624,43 @@ class Soldier : public Entity {
 
 ## 7.11 Conclusion
 
-The three Close Combat clones demonstrate different philosophies toward moddability:
+The Close Combat clones show different approaches to moddability:
 
-**OpenCombat-SDL** represents the traditional approach: XML-based data separation with compiled behavior. It enables Level 1-2 modding accessible to non-programmers but constrains innovation at Level 3+.
+OpenCombat-SDL uses traditional XML-based data separation with compiled behavior. This enables basic modding but limits advanced modifications.
 
-**OpenCombat** advances the state of the art with message-based configuration and runtime parameter tuning. Its JSON/TMX integration with Tiled editor empowers scenario designers while Rust's type system enforces correctness at compile time.
+OpenCombat improves on this with message-based configuration and runtime parameter tuning. Its JSON/TMX integration with Tiled editor helps scenario designers, while Rust's type system ensures correctness.
 
-**CloseCombatFree** pioneers declarative modding through QML, achieving unprecedented accessibility for Level 3 modding. Its hot-reload capability enables rapid iteration unmatched by the other approaches.
+CloseCombatFree introduces declarative modding through QML, making advanced modifications more accessible. Its hot-reload capability enables rapid iteration that other approaches can't match.
 
 ### Key Insights
 
-1. **Data-driven design is foundational**—Separate behavior logic from data from the outset. Hardcoded assumptions become modding barriers.
+1. Data-driven design separates behavior from data from the start. Hardcoded values create barriers to modding.
 
-2. **Scripting enables mechanics modding**—Data alone limits modders to existing mechanics. Scripting unlocks behavioral innovation.
+2. Scripting allows modders to create new mechanics, not just modify existing ones.
 
-3. **Hot-reload transforms iteration**—The difference between restarting and reloading is the difference between experimentation and frustration.
+3. Hot-reload changes the development experience from frustrating to experimental.
 
-4. **Standard formats reduce friction**—XML, JSON, TMX, and QML have mature tooling and existing expertise in the community.
+4. Standard formats like XML, JSON, TMX, and QML have mature tooling and community expertise.
 
-5. **Security requires sandboxing**—Any mod system supporting downloaded content must isolate scripts from the host system.
+5. Security requires sandboxing when supporting downloaded content.
 
-6. **Documentation is part of the API**—The best modding system fails without clear documentation and working examples.
+6. Good documentation and examples are essential for any modding system to succeed.
 
 ### The Future of Moddable Tactical Games
 
-As game development tools become more sophisticated, the gap between developer and modder narrows. The ultimate moddable tactical wargame would combine:
+The ideal moddable tactical wargame would combine:
 
-- **Visual scripting** for non-programmers (like QML)
-- **Text-based formats** for version control (like JSON/YAML)
-- **Hot-reload** for rapid iteration (like CloseCombatFree)
-- **Type safety** for reliability (like Rust)
-- **Sandboxing** for security (like modern browsers)
-- **Standard tooling** for accessibility (like Tiled)
+- Visual scripting for non-programmers
+- Text-based formats for version control
+- Hot-reload for rapid iteration
+- Type safety for reliability
+- Sandboxing for security
+- Standard tooling for accessibility
 
-The architectural patterns demonstrated by the Close Combat clones provide the blueprint. The next generation of tactical wargames will stand on these foundations, enabling communities to create experiences beyond what any single development team could achieve alone.
+The Close Combat clones provide the architectural foundation. Future games will build on these patterns, enabling communities to create experiences beyond what any single development team could achieve.
 
-**The true measure of a game's architecture is not what the developers built, but what the community can build upon it.**
+The true measure of a game's architecture isn't what the developers built—it's what the community can build upon it.
 
 ---
 
-*Next: Chapter 8 - Synthesis and Universal Patterns*
+*Next: [Chapter 8: Architectural Patterns for Tactical Wargames](chapter_08_architectural_patterns.md)*

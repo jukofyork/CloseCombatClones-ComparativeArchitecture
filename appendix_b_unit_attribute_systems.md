@@ -4,17 +4,17 @@
 
 ### B.1.1 Architectural Paradigms
 
-The three Close Combat clones represent three distinct approaches to entity modeling in tactical wargames:
+The three Close Combat clones take different approaches to entity modeling in tactical wargames:
 
-| Feature | OpenCombat-SDL | OpenCombat (Rust) | CloseCombatFree |
-|---------|---------------|-------------------|-----------------|
-| **Architecture** | Deep Inheritance | Modified ECS | Component Composition |
-| **Language** | C++ | Rust | C++/QML |
-| **Period** | 2005-2008 | 2020-2024 | 2011-2012 |
-| **Data Model** | OOP Hierarchy | Component Graph | Property Trees |
-| **Flexibility** | Low | High | Medium |
-| **Type Safety** | Runtime | Compile-time | Runtime |
-| **Modding Support** | Limited | Configuration files | QML-based |
+| Feature         | OpenCombat-SDL   | OpenCombat (Rust)   | CloseCombatFree       |
+| --------------- | ---------------- | ------------------- | --------------------- |
+| **Architecture**    | Deep Inheritance | Modified ECS        | Component Composition |
+| **Language**        | C++              | Rust                | C++/QML               |
+| **Period**          | 2005-2008        | 2020-2024           | 2011-2012             |
+| **Data Model**      | OOP Hierarchy    | Component Graph     | Property Trees        |
+| **Flexibility**     | Low              | High                | Medium                |
+| **Type Safety**     | Runtime          | Compile-time        | Runtime               |
+| **Modding Support** | Limited          | Configuration files | QML-based             |
 
 ### B.1.2 Design Philosophy Comparison
 
@@ -23,74 +23,67 @@ graph LR
     A[Game Entities] --> B[Inheritance Approach]
     A --> C[Composition Approach]
     A --> D[ECS Approach]
-    
+
     B --> E[OpenCombat-SDL]
     C --> F[CloseCombatFree]
     D --> G[OpenCombat]
-    
+
     E --> H[IS-A Relationships]
     F --> I[HAS-A Relationships]
     G --> J[Data-Oriented]
 ```
 
 **Inheritance Model (OpenCombat-SDL):**
-- Entities are specialized through class derivation
-- Behavior is encoded in virtual function overrides
-- Polymorphism enables runtime type flexibility
-- Risk: Fragile base class problem, deep hierarchies
+Entities specialize through class derivation. Behavior lives in virtual function overrides, and polymorphism provides runtime type flexibility. The approach carries risks: fragile base classes and deep hierarchies.
 
 **Composition Model (CloseCombatFree):**
-- Entities are assembled from reusable components
-- Behavior emerges from component interactions
-- Greater flexibility than inheritance
-- Risk: Component coordination complexity
+Entities assemble from reusable components. Behavior emerges through component interactions, offering more flexibility than inheritance. The tradeoff comes in component coordination complexity.
 
 **ECS Model (OpenCombat):**
-- Entities are lightweight identifiers
-- Data stored in contiguous component arrays
-- Systems process homogeneous data sets
-- Risk: Cache coherency management, archetype complexity
+Entities serve as lightweight identifiers. Data stores in contiguous component arrays, and systems process homogeneous data sets. Developers must manage cache coherency and archetype complexity.
 
 ## B.2 OpenCombat-SDL Entity System
 
 ### B.2.1 Class Hierarchy Architecture
 
-OpenCombat-SDL employs a traditional object-oriented design with deep inheritance hierarchies for both personnel and vehicles.
+OpenCombat-SDL uses traditional object-oriented design with deep inheritance hierarchies for personnel and vehicles.
 
 #### Soldier Class Hierarchy
 
-```
-Personnel (Base)
-├── Soldier
-│   ├── Rifleman
-│   ├── MachineGunner
-│   ├── Sniper
-│   ├── Officer
-│   └── Medic
-├── VehicleCrew
-│   ├── TankCommander
-│   ├── Gunner
-│   ├── Driver
-│   └── Loader
-└── SupportPersonnel
+```mermaid
+classDiagram
+    class Personnel
+    Personnel <|-- Soldier
+    Personnel <|-- VehicleCrew
+    Personnel <|-- SupportPersonnel
+    Soldier <|-- Rifleman
+    Soldier <|-- MachineGunner
+    Soldier <|-- Sniper
+    Soldier <|-- Officer
+    Soldier <|-- Medic
+    VehicleCrew <|-- TankCommander
+    VehicleCrew <|-- Gunner
+    VehicleCrew <|-- Driver
+    VehicleCrew <|-- Loader
 ```
 
 #### Vehicle Class Hierarchy
 
-```
-Vehicle (Base)
-├── WheeledVehicle
-│   ├── Truck
-│   ├── Jeep
-│   └── ArmoredCar
-├── TrackedVehicle
-│   ├── LightTank
-│   ├── MediumTank
-│   ├── HeavyTank
-│   └── TankDestroyer
-└── Artillery
-    ├── TowedGun
-    └── SelfPropelledGun
+```mermaid
+classDiagram
+    class Vehicle
+    Vehicle <|-- WheeledVehicle
+    Vehicle <|-- TrackedVehicle
+    Vehicle <|-- Artillery
+    WheeledVehicle <|-- Truck
+    WheeledVehicle <|-- Jeep
+    WheeledVehicle <|-- ArmoredCar
+    TrackedVehicle <|-- LightTank
+    TrackedVehicle <|-- MediumTank
+    TrackedVehicle <|-- HeavyTank
+    TrackedVehicle <|-- TankDestroyer
+    Artillery <|-- TowedGun
+    Artillery <|-- SelfPropelledGun
 ```
 
 ### B.2.2 Core Attributes System
@@ -104,32 +97,32 @@ class Personnel:
     string name
     enum rank
     enum nationality
-    
+
     // Physical State
     float health  // 0.0 - 1.0
     enum condition  // HEALTHY, WOUNDED, CRITICAL, DEAD
     float fatigue  // 0.0 - 1.0
-    
+
     // Position & Movement
     Vector2D position
     float facing  // degrees
     float speed
     enum stance  // PRONE, CROUCH, STANDING
     enum movementState  // STATIONARY, WALKING, RUNNING, CRAWLING
-    
+
     // Combat Capabilities
     Weapon primaryWeapon
     Weapon secondaryWeapon
     int ammunition[weaponSlots]
     float accuracy
     float reactionTime
-    
+
     // Mental State
     float morale  // 0.0 - 1.0
     float suppression  // 0.0 - 1.0
     float experience  // 0.0 - 1.0
     float leadership
-    
+
     // Command
     Personnel leader
     List<Personnel> subordinates
@@ -144,20 +137,20 @@ class Rifleman extends Soldier:
     float grenadeSkill
     int grenadeCount
     boolean hasEntrenchingTool
-    
+
 class MachineGunner extends Soldier:
     float machineGunSkill
     float sustainedFireBonus
     int beltSize
     float setupTime
     boolean isDeployed
-    
+
 class Sniper extends Soldier:
     float marksmanship
     float concealment
     float observationRange
     int shotsTaken
-    
+
 class Officer extends Soldier:
     float commandRadius
     float commandBonus
@@ -176,12 +169,12 @@ class Vehicle:
     string vehicleName
     enum vehicleType
     enum faction
-    
+
     // Physical State
     float hullIntegrity  // 0.0 - 1.0
     Map<Component, float> componentHealth
     enum mobilityState  // OPERATIONAL, DAMAGED, IMMOBILIZED, DESTROYED
-    
+
     // Position & Movement
     Vector2D position
     float hullFacing
@@ -190,24 +183,24 @@ class Vehicle:
     float maxSpeed
     float turnRate
     enum gear  // REVERSE, NEUTRAL, GEAR_1, GEAR_2, etc.
-    
+
     // Armor System
     Armor hullArmor
     Armor turretArmor
     Map<HitLocation, Armor> armorValues
-    
+
     // Armament
     Weapon mainGun
     Weapon secondaryGun
     List<Weapon> machineGuns
     int mainGunAmmo
     int secondaryAmmo
-    
+
     // Crew
     Map<CrewPosition, Personnel> crew
     boolean isCommanderExposed
     boolean isLoaderExposed
-    
+
     // Tactical
     float spottingRange
     float radioRange
@@ -226,13 +219,13 @@ class Tank extends TrackedVehicle:
     float gunDepression
     float gunElevation
     enum gunStatus
-    
+
     // Armor Details
     int frontalArmorThickness
     int sideArmorThickness
     int rearArmorThickness
     enum armorType  // RHA, CAST, WELDED, etc.
-    
+
     // Protection Systems
     boolean hasSmokeLauncher
     int smokeCharges
@@ -251,29 +244,29 @@ class Squad:
     string squadName
     enum squadType  // RIFLE, WEAPONS, HQ, TANK, etc.
     enum faction
-    
+
     // Composition
     Personnel squadLeader
     List<Personnel> members
     int maxSize
     int currentSize
-    
+
     // State
     enum squadState  // IDLE, MOVING, ENGAGING, RETREATING, PINNED
     Vector2D formationCenter
     enum formationType
     float cohesion
-    
+
     // Command
     Platoon parentPlatoon
     List<Order> squadOrders
     Order currentOrder
-    
+
     // Tactical
     float effectiveMorale
     float suppressionLevel
     float combatEffectiveness
-    
+
     // Methods
     function calculateEffectiveMorale()
     function updateCohesion()
@@ -311,24 +304,24 @@ class Order:
         RECONNOITER
         TAKE_COVER
         REGROUP
-    
+
     Vector2D targetPosition
     Entity targetEntity
     int priority
     float timeout
     OrderParameters parameters
-    
+
 class OrderParameters:
     // Movement Parameters
     enum movementSpeed  // SLOW, NORMAL, FAST
     enum routeType  // DIRECT, COVERED, SAFE
     boolean avoidEnemyContact
-    
+
     // Combat Parameters
     enum engagementRules
     float holdFireRange
     boolean allowFallback
-    
+
     // Formation Parameters
     enum formation
     float spacing
@@ -349,12 +342,12 @@ class Action:
         USE_EQUIPMENT
         FIRST_AID
         ENTRENCH
-    
+
     float startTime
     float duration
     float completionProgress
     enum actionState  // PENDING, ACTIVE, COMPLETED, INTERRUPTED
-    
+
     function canPerform(Personnel actor)
     function performTick(deltaTime)
     function interrupt()
@@ -370,23 +363,23 @@ class CommandProcessor:
             if squad.hasActiveOrder():
                 actions = translateOrderToActions(squad.currentOrder, squad)
                 distributeActionsToMembers(actions, squad)
-    
+
     function translateOrderToActions(order, squad):
         actionQueue = new Queue()
-        
+
         switch order.type:
             case MOVE_TO_POSITION:
                 path = calculatePath(squad.formationCenter, order.targetPosition)
                 for each waypoint in path:
                     for each member in squad.members:
                         actionQueue.add(createMoveAction(member, waypoint))
-            
+
             case ATTACK_POSITION:
                 approachActions = calculateApproach(squad, order.targetPosition)
                 actionQueue.addAll(approachActions)
                 fireActions = assignFirePositions(squad, order.targetEntity)
                 actionQueue.addAll(fireActions)
-        
+
         return actionQueue
 ```
 
@@ -394,31 +387,31 @@ class CommandProcessor:
 
 ```pseudocode
 function calculateCombatEffectiveness(soldier):
-    baseEffectiveness = soldier.experience * 0.4 + 
-                       soldier.health * 0.3 + 
-                       soldier.morale * 0.2 + 
+    baseEffectiveness = soldier.experience * 0.4 +
+                       soldier.health * 0.3 +
+                       soldier.morale * 0.2 +
                        (1.0 - soldier.fatigue) * 0.1
-    
+
     // Modifiers
     if soldier.suppression > 0.5:
         baseEffectiveness *= (1.0 - soldier.suppression * 0.8)
-    
+
     if soldier.condition == WOUNDED:
         baseEffectiveness *= 0.7
     else if soldier.condition == CRITICAL:
         baseEffectiveness *= 0.3
-    
+
     if soldier.stance == PRONE:
         baseEffectiveness *= 1.1
     else if soldier.stance == CROUCH:
         baseEffectiveness *= 1.0
     else:
         baseEffectiveness *= 0.9
-    
+
     // Leadership bonus
     if soldier.leader and distance(soldier, soldier.leader) < 50:
         baseEffectiveness *= (1.0 + soldier.leader.leadership * 0.2)
-    
+
     return clamp(baseEffectiveness, 0.0, 1.0)
 ```
 
@@ -426,7 +419,7 @@ function calculateCombatEffectiveness(soldier):
 
 ### B.3.1 Modified ECS Architecture
 
-OpenCombat implements a hybrid ECS (Entity Component System) with embedded components that combine data and behavior, differing from pure data-oriented ECS designs.
+OpenCombat uses a hybrid ECS architecture that embeds components with both data and behavior. This approach departs from pure data-oriented designs.
 
 #### Core Architecture
 
@@ -435,18 +428,18 @@ graph TD
     A[World] --> B[Entity Manager]
     A --> C[Component Storage]
     A --> D[System Registry]
-    
+
     B --> E[SoldierIndex]
     B --> F[VehicleIndex]
     B --> G[SquadIndex]
-    
+
     C --> H[Identity Components]
     C --> I[Position Components]
     C --> J[State Machine Components]
     C --> K[Combat Components]
     C --> L[Mental Components]
     C --> M[Equipment Components]
-    
+
     D --> N[Movement System]
     D --> O[Combat System]
     D --> P[AI System]
@@ -460,7 +453,7 @@ graph TD
 struct SoldierIndex:
     uint32 value
     uint32 generation
-    
+
     function isValid(): boolean
     function toRaw(): uint32
 
@@ -469,7 +462,7 @@ struct VehicleIndex:
     uint32 generation
 
 struct SquadIndex:
-    uint32 value  
+    uint32 value
     uint32 generation
 
 // Index management
@@ -477,7 +470,7 @@ class EntityManager:
     Map<SoldierIndex, Soldier> soldiers
     Map<VehicleIndex, Vehicle> vehicles
     Map<SquadIndex, Squad> squads
-    
+
     function createSoldier(): SoldierIndex
     function destroySoldier(index: SoldierIndex)
     function getSoldier(index: SoldierIndex): Soldier
@@ -511,20 +504,20 @@ struct Position:
     float facing  // radians
     float speed
     float maxSpeed
-    
+
     enum Stance:
         PRONE
         KNEELING
         STANDING
         CRAWLING
-    
+
     enum MovementState:
         STATIONARY
         WALKING
         RUNNING
         CRAWLING
         SPRINTING
-    
+
     Vector2D destination
     List<Vector2D> path
     int currentPathIndex
@@ -543,12 +536,12 @@ struct StateMachine:
         PINNED
         RETREATING
         DEAD
-    
+
     State currentState
     State previousState
     float stateEnterTime
     Map<State, List<State>> validTransitions
-    
+
     function canTransitionTo(newState: State): boolean
     function transitionTo(newState: State): boolean
     function getStateDuration(): float
@@ -563,7 +556,7 @@ struct Combat:
     float currentAccuracy
     float weaponSkill
     float reactionTime
-    
+
     // Defensive
     float coverEffectiveness
     enum CoverType:
@@ -571,14 +564,14 @@ struct Combat:
         LIGHT
         MEDIUM
         HEAVY
-    
+
     // Targeting
     SoldierIndex currentTarget
     List<SoldierIndex> knownEnemies
     List<SoldierIndex> suspectedEnemies
     float lastShotTime
     float timeBetweenShots
-    
+
     // Suppression
     float suppressionLevel
     float suppressionDecayRate
@@ -595,18 +588,18 @@ struct Mental:
     float suppression
     float fear
     float confidence
-    
+
     // Dynamic modifiers
     float leadershipBonus
     float proximityToEnemies
     float friendlyCasualtyImpact
     float recentSuccessBonus
-    
+
     // Personality (for AI)
     float aggressiveness
     float caution
     float initiative
-    
+
     function updateMorale(deltaTime: float)
     function applySuppression(amount: float)
     function recoverMorale(amount: float)
@@ -620,20 +613,20 @@ struct Equipment:
     Weapon secondaryWeapon
     List<Grenade> grenades
     List<Item> inventory
-    
+
     int primaryAmmo
     int secondaryAmmo
     int maxPrimaryAmmo
     int maxSecondaryAmmo
-    
+
     boolean hasBinoculars
     boolean hasRadio
     boolean hasEntrenchingTool
     boolean hasFirstAidKit
-    
+
     Armor helmet
     Armor bodyArmor
-    
+
     function canFire(): boolean
     function reload(): float  // returns time to reload
     function getTotalWeight(): float
@@ -654,14 +647,14 @@ struct Weapon:
         PISTOL
         GRENADE
         MELEE
-    
+
     // Ballistics
     float damage
     float armorPenetration
     float range
     float effectiveRange
     float maxRange
-    
+
     // Fire characteristics
     float rateOfFire  // rounds per minute
     enum FireMode:
@@ -670,13 +663,13 @@ struct Weapon:
         FULL_AUTO
         BURST
     List<FireMode> availableModes
-    
+
     // Handling
     float accuracy
     float recoil
     float setupTime
     boolean requiresSetup
-    
+
     // Ammunition
     int magazineSize
     int currentAmmo
@@ -781,7 +774,7 @@ struct VehicleWeapons:
 
 struct VehicleCrew:
     Map<CrewPosition, SoldierIndex> crewPositions
-    
+
     enum CrewPosition:
         COMMANDER
         GUNNER
@@ -789,7 +782,7 @@ struct VehicleCrew:
         LOADER
         HULL_GUNNER
         RADIO_OPERATOR
-    
+
     boolean commanderExposed
     float crewQuality  // average of crew experience
     float crewMorale
@@ -803,12 +796,12 @@ VehicleType T26:
         name = "T-26"
         type = LIGHT_TANK
         faction = SOVIET
-    
+
     physics:
         maxSpeed = 30  // km/h
         turnRate = 25  // degrees per second
         turretTraverseSpeed = 15
-    
+
     armor:
         hullFront = 15
         hullSide = 15
@@ -817,7 +810,7 @@ VehicleType T26:
         turretSide = 15
         turretRear = 15
         armorType = HOMOGENEOUS
-    
+
     weapons:
         mainGun = "45mm_20K"
         coaxialMG = "DT_MACHINE_GUN"
@@ -826,7 +819,7 @@ VehicleType T26:
         gunDepression = -6
         gunElevation = 18
         reloadTime = 4.5
-    
+
     crew:
         positions = [COMMANDER, GUNNER, DRIVER, LOADER]
         commanderExposed = false
@@ -842,16 +835,16 @@ struct Squad:
     SquadIdentity identity
     List<SoldierIndex> members
     SquadIndex squadId
-    
+
     SoldierIndex leader
     SoldierIndex assistantLeader
-    
+
     enum SquadType:
         RIFLE_SQUAD
         WEAPONS_TEAM
         HEADQUARTERS
         TANK_SECTION
-    
+
     // Formation
     Vector2D centerPosition
     enum Formation:
@@ -861,17 +854,17 @@ struct Squad:
         DIAMOND
         FREE
     float spacing
-    
+
     // State
     float cohesion
     float averageMorale
     float suppressionLevel
     enum SquadState
-    
+
     // Command
     Order currentOrder
     Queue<Order> orderQueue
-    
+
     function addMember(soldier: SoldierIndex)
     function removeMember(soldier: SoldierIndex)
     function assignLeader(soldier: SoldierIndex)
@@ -892,7 +885,7 @@ function updateSquadLeadership(squad: Squad):
             squad.leader = newLeader
             broadcastLeadershipChange(squad, newLeader)
             applyLeadershipBonus(squad, newLeader)
-    
+
     // Check if assistant leader is needed/capable
     if squad.assistantLeader is null or not isCapable(squad.assistantLeader):
         newAssistant = findNextHighestRanking(squad.members, exclude=[squad.leader])
@@ -901,9 +894,9 @@ function updateSquadLeadership(squad: Squad):
 function isCapable(soldier: SoldierIndex): boolean:
     mental = getComponent<Mental>(soldier)
     state = getComponent<StateMachine>(soldier)
-    
-    return mental.morale > 0.3 and 
-           mental.suppression < 0.7 and 
+
+    return mental.morale > 0.3 and
+           mental.suppression < 0.7 and
            state.currentState != DEAD and
            state.currentState != RETREATING
 ```
@@ -918,12 +911,12 @@ struct AI:
     List<EnemyContact> knownEnemies
     List<Vector2D> lastKnownPositions
     float awarenessLevel
-    
+
     // Decision weights
     float selfPreservationWeight
     float missionFocusWeight
     float teamCohesionWeight
-    
+
     // Behavior state
     enum BehaviorMode:
         DEFENSIVE
@@ -931,16 +924,16 @@ struct AI:
         AGGRESSIVE
         RETREATING
         HOLDING
-    
+
     BehaviorMode currentMode
     float modeConfidence
-    
+
     // Tactical considerations
     float distanceToNearestCover
     float distanceToEnemies
     float friendlyStrengthRatio
     float ammunitionStatus
-    
+
     function evaluateSituation(deltaTime: float)
     function selectAction(): ActionType
     function calculateUtility(action: ActionType): float
@@ -953,11 +946,11 @@ function processAI(soldier: SoldierIndex, deltaTime: float):
     ai = getComponent<AI>(soldier)
     mental = getComponent<Mental>(soldier)
     combat = getComponent<Combat>(soldier)
-    
+
     // Update perception
     updateKnownEnemies(soldier, ai)
     updateTacticalSituation(soldier, ai)
-    
+
     // Check for state changes
     if mental.suppression > 0.8 and mental.morale < 0.3:
         ai.currentMode = RETREATING
@@ -967,7 +960,7 @@ function processAI(soldier: SoldierIndex, deltaTime: float):
         ai.currentMode = DEFENSIVE
     else:
         ai.currentMode = BALANCED
-    
+
     // Select action based on mode
     bestAction = selectBestAction(soldier, ai)
     executeAction(soldier, bestAction)
@@ -976,42 +969,42 @@ function selectBestAction(soldier: SoldierIndex, ai: AI): ActionType:
     actions = getAvailableActions(soldier)
     bestUtility = -infinity
     bestAction = null
-    
+
     for action in actions:
         utility = calculateUtility(soldier, ai, action)
         if utility > bestUtility:
             bestUtility = utility
             bestAction = action
-    
+
     return bestAction
 
 function calculateUtility(soldier: SoldierIndex, ai: AI, action: ActionType): float:
     baseUtility = 0.0
-    
+
     switch action:
         case TAKE_COVER:
             baseUtility = ai.selfPreservationWeight * (1.0 - ai.distanceToNearestCover)
             if ai.distanceToEnemies < 100:
                 baseUtility *= 2.0
-        
+
         case ENGAGE_ENEMY:
             baseUtility = ai.missionFocusWeight * combatEffectiveness(soldier)
             if combat.ammunition < 10:
                 baseUtility *= 0.3
-        
+
         case MOVE_TO_POSITION:
             baseUtility = ai.missionFocusWeight * 0.5
             if ai.friendlyStrengthRatio < 0.5:
                 baseUtility *= 0.2
-        
+
         case RETREAT:
             baseUtility = ai.selfPreservationWeight * (1.0 - mental.morale)
             if mental.suppression > 0.7:
                 baseUtility *= 3.0
-    
+
     // Add randomness for organic feel
     baseUtility += random(-0.1, 0.1)
-    
+
     return baseUtility
 ```
 
@@ -1023,26 +1016,26 @@ class GameWorld:
         // Phase 1: Perception & Input
         PerceptionSystem.update(deltaTime)
         InputSystem.update(deltaTime)
-        
+
         // Phase 2: AI Decision Making
         AISystem.update(deltaTime)
-        
+
         // Phase 3: State Transitions
         StateMachineSystem.update(deltaTime)
-        
+
         // Phase 4: Combat Resolution
         CombatSystem.update(deltaTime)
-        
+
         // Phase 5: Movement & Physics
         MovementSystem.update(deltaTime)
         VehicleSystem.update(deltaTime)
-        
+
         // Phase 6: Mental State
         MoraleSystem.update(deltaTime)
-        
+
         // Phase 7: Squad Coherence
         SquadSystem.update(deltaTime)
-        
+
         // Phase 8: Cleanup
         DeathSystem.update(deltaTime)
 ```
@@ -1051,7 +1044,7 @@ class GameWorld:
 
 ### B.4.1 Component Composition Model
 
-CloseCombatFree employs a component composition approach where entities are constructed by assembling independent component objects rather than inheriting from base classes.
+CloseCombatFree builds entities by assembling independent components instead of using class inheritance.
 
 #### Architecture Overview
 
@@ -1064,12 +1057,12 @@ graph TD
     A --> F[State Component]
     A --> G[Equipment Component]
     A --> H[AI Component]
-    
+
     I[Vehicle Entity] --> A
     I --> J[Vehicle Component]
     I --> K[Armor Component]
     I --> L[Crew Component]
-    
+
     M[Infantry Entity] --> A
     M --> N[Personnel Component]
     M --> O[Squad Component]
@@ -1077,7 +1070,7 @@ graph TD
 
 ### B.4.2 QML Property System
 
-CloseCombatFree leverages QML's property system for reactive attribute management, where changes to properties automatically trigger updates in dependent systems.
+CloseCombatFree uses QML's property system for reactive attribute management. Property changes automatically update dependent systems.
 
 #### Property Declaration Pattern
 
@@ -1089,27 +1082,27 @@ Entity:
     property string displayName
     property enum entityType
     property enum faction
-    
+
     // Transform properties (auto-notify)
     property Vector2D position
     property float rotation
     property float scale: 1.0
-    
+
     // State properties
     property enum state: IDLE
     property float stateTime
-    
+
     // Component references
     property MovementComponent movement
     property CombatComponent combat
     property HealthComponent health
     property EquipmentComponent equipment
-    
+
     // Computed property (reactive)
     property bool isAlive: health.current > 0
     property bool isMoving: movement.speed > 0
     property bool canFight: isAlive and not isSuppressed()
-    
+
     // Signal for state changes
     signal stateChanged(enum newState, enum oldState)
     signal propertyChanged(string propertyName)
@@ -1122,26 +1115,26 @@ Entity:
 Soldier:
     property CombatComponent combat
     property MentalComponent mental
-    
+
     // Reactive binding - updates automatically
-    property float effectiveAccuracy: 
+    property float effectiveAccuracy:
         combat.baseAccuracy * (1.0 - mental.suppression * 0.5)
-    
+
     // Conditional binding
-    property bool canSeeEnemy: 
+    property bool canSeeEnemy:
         mental.fear < 0.8 and combat.spottedEnemies.length > 0
-    
+
     // Complex computed property
     property float combatEffectiveness: {
-        var base = combat.skill * 0.4 + 
-                   mental.morale * 0.3 + 
+        var base = combat.skill * 0.4 +
+                   mental.morale * 0.3 +
                    health.percentage * 0.3
-        
+
         if (mental.suppressed)
             base *= 0.5
         if (equipment.isHeavyWeapon)
             base *= 0.8
-            
+
         return base
     }
 ```
@@ -1154,17 +1147,17 @@ Soldier:
 TransformComponent:
     property Vector2D position
     property float rotation  // degrees
-    property Vector2D forward: 
+    property Vector2D forward:
         Vector2D.fromAngle(rotation)
     property Vector2D right:
         Vector2D.fromAngle(rotation + 90)
-    
+
     // World space calculations
     function worldToLocal(point: Vector2D): Vector2D
     function localToWorld(point: Vector2D): Vector2D
     function distanceTo(other: Entity): float
     function directionTo(other: Entity): float
-    
+
     // Smooth rotation
     function rotateTowards(target: float, speed: float, deltaTime: float)
 ```
@@ -1181,16 +1174,16 @@ MovementComponent:
     property Vector2D destination
     property List<Vector2D> path
     property int pathIndex
-    
+
     enum MovementMode:
         WALK
         RUN
         SPRINT
         CRAWL
         SNEAK
-    
+
     property MovementMode mode: WALK
-    
+
     // Mode multipliers
     property Map<MovementMode, float> speedMultipliers: {
         WALK: 1.0,
@@ -1199,16 +1192,16 @@ MovementComponent:
         CRAWL: 0.3,
         SNEAK: 0.5
     }
-    
+
     // Noise generation
-    property float noiseLevel: 
+    property float noiseLevel:
         currentSpeed * mode.noiseMultiplier
-    
+
     function moveTo(destination: Vector2D)
     function followPath(path: List<Vector2D>)
     function stop()
     function setMode(mode: MovementMode)
-    
+
     // Physics update
     function update(deltaTime: float):
         if hasDestination:
@@ -1226,57 +1219,57 @@ CombatComponent:
     // Weapon reference
     property Weapon currentWeapon
     property List<Weapon> weapons
-    
+
     // Combat stats
     property float baseAccuracy
     property float baseReactionTime
     property float baseCourage
-    
+
     // Dynamic stats (affected by conditions)
     property float currentAccuracy: baseAccuracy
     property float currentReactionTime: baseReactionTime
-    
+
     // Targeting
     property Entity currentTarget
     property List<Entity> validTargets
     property float targetPriority
-    
+
     // Engagement
     property bool isEngaging
     property float lastShotTime
     property float timeSinceLastShot: currentTime - lastShotTime
-    property bool canFire: 
-        currentWeapon.ammo > 0 and 
+    property bool canFire:
+        currentWeapon.ammo > 0 and
         timeSinceLastShot >= currentWeapon.fireInterval
-    
+
     // Suppression
     property float suppressionLevel: 0
     property bool isSuppressed: suppressionLevel > 0.5
     property float suppressionRecovery: 0.1  // per second
-    
+
     // Cover
     property CoverType currentCover: NONE
     property float coverEffectiveness: 0
-    
+
     function update(deltaTime: float):
         // Recover from suppression
         suppressionLevel = max(0, suppressionLevel - suppressionRecovery * deltaTime)
-        
+
         // Update accuracy based on conditions
         updateAccuracy()
-        
+
         // Auto-target if needed
         if not currentTarget and validTargets.length > 0:
             selectBestTarget()
-    
+
     function updateAccuracy():
         var accuracy = baseAccuracy
-        
+
         if isSuppressed:
             accuracy *= (1 - suppressionLevel * 0.7)
         if currentCover != NONE:
             accuracy *= (1 + coverEffectiveness * 0.2)
-        
+
         currentAccuracy = accuracy
 ```
 
@@ -1287,7 +1280,7 @@ HealthComponent:
     property float maxHealth: 100
     property float currentHealth: maxHealth
     property float percentage: currentHealth / maxHealth
-    
+
     enum HealthState:
         HEALTHY
         LIGHT_WOUND
@@ -1295,44 +1288,44 @@ HealthComponent:
         SEVERE_WOUND
         CRITICAL
         DEAD
-    
+
     property HealthState state: HEALTHY
-    
+
     // Injury tracking
     property List<Injury> injuries
     property float bloodLossRate: 0
     property float painLevel: 0
-    
+
     // Effects on performance
     property float mobilityModifier: 1.0
     property float accuracyModifier: 1.0
-    
+
     // State transitions
     onCurrentHealthChanged:
         updateState()
         updateModifiers()
-    
+
     function takeDamage(amount: float, type: DamageType, location: HitLocation):
         // Apply damage reduction based on armor/location
         var actualDamage = calculateDamage(amount, type, location)
         currentHealth -= actualDamage
-        
+
         // Create injury record
         injuries.append(createInjury(type, location, actualDamage))
-        
+
         // Check for critical effects
         if actualDamage > maxHealth * 0.3:
             painLevel += 0.3
-        
+
         emit(damageTaken, actualDamage, location)
-    
+
     function heal(amount: float):
         currentHealth = min(maxHealth, currentHealth + amount)
         painLevel = max(0, painLevel - 0.1)
-    
+
     function updateState():
         var oldState = state
-        
+
         if currentHealth <= 0:
             state = DEAD
         else if currentHealth < maxHealth * 0.1:
@@ -1345,10 +1338,10 @@ HealthComponent:
             state = LIGHT_WOUND
         else:
             state = HEALTHY
-        
+
         if state != oldState:
             emit(stateChanged, state, oldState)
-    
+
     function updateModifiers():
         switch state:
             case HEALTHY:
@@ -1380,7 +1373,7 @@ VehicleComponent:
     property VehicleType vehicleType
     property VehicleClass vehicleClass  // LIGHT, MEDIUM, HEAVY, etc.
     property Faction faction
-    
+
     // Movement
     property float maxRoadSpeed
     property float maxOffroadSpeed
@@ -1388,25 +1381,25 @@ VehicleComponent:
     property float turnRate
     property float acceleration
     property float deceleration
-    
+
     // Dimensions
     property float length
     property float width
     property float height
     property float groundClearance
-    
+
     // State
     property bool engineRunning
     property float engineHealth
     property float trackHealth
     property bool immobilized: trackHealth <= 0
-    
+
     enum MobilityState:
         FULLY_OPERATIONAL
         DAMAGED
         IMMOBILIZED
         DESTROYED
-    
+
     property MobilityState mobilityState:
         if not engineRunning or engineHealth <= 0:
             return DAMAGED
@@ -1428,13 +1421,13 @@ ArmorComponent:
     property int turretFrontArmor
     property int turretSideArmor
     property int turretRearArmor
-    
+
     // Effective armor (accounts for angling)
     property Map<HitLocation, float> effectiveArmor
-    
+
     // Component armor (internal modules)
     property Map<Component, int> componentArmor
-    
+
     enum Component:
         ENGINE
         TRANSMISSION
@@ -1444,7 +1437,7 @@ ArmorComponent:
         TURRET_RING
         GUN_BREECH
         OPTICS
-    
+
     // Armor type
     property enum ArmorType:
         ROLLED_HOMOGENEOUS
@@ -1452,14 +1445,14 @@ ArmorComponent:
         WELDED
         SPACED
         COMPOSITE
-    
+
     property float armorQuality: 1.0  // multiplier
-    
+
     function calculateEffectiveArmor(location: HitLocation, hitAngle: float): float:
         var baseArmor = getBaseArmor(location)
         var angleBonus = calculateAngleBonus(hitAngle)
         return baseArmor * angleBonus * armorQuality
-    
+
     function checkPenetration(projectile: Projectile, location: HitLocation, angle: float): bool:
         var effective = calculateEffectiveArmor(location, angle)
         var penetration = projectile.penetrationAtDistance(distance)
@@ -1476,36 +1469,36 @@ TurretComponent:
     property float elevationLimit
     property float currentRotation  // relative to hull
     property float currentElevation
-    
+
     property Entity target
     property Vector2D targetPosition
     property bool isTracking: target != null
-    
+
     property float stabilization  // 0-1, affects firing on move
     property bool hasStabilizer: stabilization > 0
-    
+
     // Rotation limits
     property bool hasFullRotation: true
     property float leftLimit: -180
     property float rightLimit: 180
-    
+
     function update(deltaTime: float):
         if isTracking and target:
             var targetAngle = calculateRelativeAngle(target)
             var targetElevation = calculateElevation(target)
-            
+
             // Clamp to limits
             targetAngle = clamp(targetAngle, leftLimit, rightLimit)
             targetElevation = clamp(targetElevation, depressionLimit, elevationLimit)
-            
+
             // Smooth rotation
             currentRotation = moveTowards(currentRotation, targetAngle, traverseSpeed * deltaTime)
             currentElevation = moveTowards(currentElevation, targetElevation, elevationSpeed * deltaTime)
-    
+
     function canFireAt(target: Entity): bool:
         var angle = calculateRelativeAngle(target)
         var elevation = calculateElevation(target)
-        
+
         return angle >= leftLimit and angle <= rightLimit and
                elevation >= depressionLimit and elevation <= elevationLimit
 ```
@@ -1520,7 +1513,7 @@ CrewComponent:
     property int maxCrew
     property int currentCrew: crew.size
     property float crewQuality  // average of individual skills
-    
+
     enum CrewPosition:
         COMMANDER
         GUNNER
@@ -1529,33 +1522,33 @@ CrewComponent:
         ASSISTANT_DRIVER
         HULL_MACHINE_GUNNER
         RADIO_OPERATOR
-    
+
     // Position-specific status
     property bool commanderExposed
     property bool gunnerExposed
     property bool loaderExposed
     property bool driverExposed
-    
+
     // Vital positions
     property List<CrewPosition> vitalPositions: [DRIVER, GUNNER]
     property bool hasMinimumCrew: checkMinimumCrew()
-    
+
     // Performance modifiers based on crew
     property float reloadModifier: 1.0
     property float accuracyModifier: 1.0
     property float spottingModifier: 1.0
-    
+
     function addCrewMember(position: CrewPosition, soldier: Entity)
     function removeCrewMember(position: CrewPosition)
     function isPositionFilled(position: CrewPosition): bool
     function getCrewMember(position: CrewPosition): Entity
-    
+
     function checkMinimumCrew(): bool:
         for position in vitalPositions:
             if not isPositionFilled(position):
                 return false
         return true
-    
+
     function calculateCrewModifiers():
         // Reload speed
         if isPositionFilled(LOADER):
@@ -1563,14 +1556,14 @@ CrewComponent:
             reloadModifier = 0.7 + (0.3 * loader.skill)
         else:
             reloadModifier = 2.0  // Much slower without loader
-        
+
         // Gunner accuracy
         if isPositionFilled(GUNNER):
             var gunner = getCrewMember(GUNNER)
             accuracyModifier = 0.5 + (0.5 * gunner.skill)
         else:
             accuracyModifier = 0.3
-        
+
         // Commander spotting
         if isPositionFilled(COMMANDER):
             var commander = getCrewMember(COMMANDER)
@@ -1579,11 +1572,11 @@ CrewComponent:
                 spottingModifier *= 1.3
         else:
             spottingModifier = 0.4
-    
+
     // Called when crew takes damage
     function onCrewCasualty(position: CrewPosition):
         emit(crewCasualty, position)
-        
+
         // Check for position reassignment
         if position == COMMANDER and isPositionFilled(GUNNER):
             // Gunner takes over command
@@ -1591,22 +1584,22 @@ CrewComponent:
         else if position == GUNNER and isPositionFilled(LOADER):
             // Loader becomes gunner
             promoteCrewMember(LOADER, GUNNER)
-        
+
         updateCrewStatus()
 ```
 
 ### B.4.6 Infantry vs Vehicle Architecture Differences
 
-| Aspect | Infantry Entity | Vehicle Entity |
-|--------|----------------|----------------|
-| **Base Class** | Entity | Entity |
-| **Movement** | MovementComponent (2D grid) | VehicleComponent (physics-based) |
-| **Health** | HealthComponent (single pool) | HealthComponent + ArmorComponent + ComponentHealth |
-| **Combat** | CombatComponent (personal weapon) | TurretComponent + WeaponsComponent |
-| **Mental** | MentalComponent (individual) | CrewComponent aggregates crew mental states |
-| **Cover** | CoverType enum | Armor angles, hull down positions |
-| **Suppression** | Direct suppression value | Crew suppression via CrewComponent |
-| **Leadership** | SquadComponent reference | Commander position in CrewComponent |
+| Aspect      | Infantry Entity                   | Vehicle Entity                                     |
+| ----------- | --------------------------------- | -------------------------------------------------- |
+| **Base Class**  | Entity                            | Entity                                             |
+| **Movement**    | MovementComponent (2D grid)       | VehicleComponent (physics-based)                   |
+| **Health**      | HealthComponent (single pool)     | HealthComponent + ArmorComponent + ComponentHealth |
+| **Combat**      | CombatComponent (personal weapon) | TurretComponent + WeaponsComponent                 |
+| **Mental**      | MentalComponent (individual)      | CrewComponent aggregates crew mental states        |
+| **Cover**       | CoverType enum                    | Armor angles, hull down positions                  |
+| **Suppression** | Direct suppression value          | Crew suppression via CrewComponent                 |
+| **Leadership**  | SquadComponent reference          | Commander position in CrewComponent                |
 
 #### State Machine Differences
 
@@ -1614,25 +1607,25 @@ CrewComponent:
 // Infantry State Machine
 InfantryStateMachine:
     states: [IDLE, WALKING, RUNNING, ENGAGING, TAKING_COVER, PINNED, RETREATING, DEAD]
-    
+
     // Transitions triggered by mental state
     onMentalComponent.suppressionLevel > 0.7:
         transitionTo(PINNED)
-    
+
     onMentalComponent.morale < 0.2:
         transitionTo(RETREATING)
 
-// Vehicle State Machine  
+// Vehicle State Machine
 VehicleStateMachine:
     states: [IDLE, MOVING, ENGAGING, HULL_DOWN, BUTTONED_UP, IMMOBILIZED, DESTROYED]
-    
+
     // Transitions based on crew and damage
     onCrewComponent.commanderExposed and underFire:
         setCommanderExposed(false)  // Button up
-    
+
     onArmorComponent.componentDestroyed(ENGINE):
         transitionTo(IMMOBILIZED)
-    
+
     onHealthComponent.state == DEAD:
         transitionTo(DESTROYED)
 ```
@@ -1645,57 +1638,57 @@ StateTransitionDiagram HealthStates:
     HEALTHY:
         -> LIGHT_WOUND: damage > 0
         -> DEAD: fatalDamage
-    
+
     LIGHT_WOUND:
         -> HEALTHY: healed
         -> MODERATE_WOUND: damage > threshold
         -> DEAD: fatalDamage
-    
+
     MODERATE_WOUND:
         -> LIGHT_WOUND: healed
         -> SEVERE_WOUND: damage > threshold
         -> DEAD: fatalDamage
-    
+
     SEVERE_WOUND:
         -> MODERATE_WOUND: healed
         -> CRITICAL: damage > threshold or bloodLoss > limit
         -> DEAD: fatalDamage
-    
+
     CRITICAL:
         -> SEVERE_WOUND: emergencyCare and stable
         -> DEAD: noCare or fatalDamage
-    
+
     DEAD:
         -> [terminal state]
 
 // Transition handling
 function onStateTransition(from: HealthState, to: HealthState):
     emit(stateChanged, from, to)
-    
+
     switch to:
         case LIGHT_WOUND:
             applyModifier("speed", 0.95)
             applyModifier("accuracy", 0.95)
             emit(bleeding, light)
-        
+
         case MODERATE_WOUND:
             applyModifier("speed", 0.8)
             applyModifier("accuracy", 0.85)
             emit(bleeding, moderate)
             emit(requiresAid)
-        
+
         case SEVERE_WOUND:
             applyModifier("speed", 0.5)
             applyModifier("accuracy", 0.7)
             emit(bleeding, severe)
             emit(requiresImmediateAid)
-        
+
         case CRITICAL:
             applyModifier("speed", 0.1)
             applyModifier("accuracy", 0.5)
             emit(bleeding, critical)
             emit(unconsciousnessRisk)
-        
+
         case DEAD:
             applyModifier("speed", 0)
             applyModifier("accuracy", 0)
@@ -1707,50 +1700,65 @@ function onStateTransition(from: HealthState, to: HealthState):
 
 ### B.5.1 Data Storage Patterns
 
-| Feature | OpenCombat-SDL | OpenCombat | CloseCombatFree |
-|---------|---------------|------------|-----------------|
-| **Storage Model** | Object instances | Component arrays | Property objects |
-| **Memory Layout** | Scattered (heap) | Contiguous (SoA) | Mixed |
-| **Access Pattern** | Pointer chasing | Index-based | Property lookup |
-| **Cache Efficiency** | Low | High | Medium |
-| **Memory Overhead** | High (vtables) | Low | Medium |
-| **Flexibility** | Compile-time | Runtime composition | Runtime binding |
+| Feature          | OpenCombat-SDL   | OpenCombat          | CloseCombatFree  |
+| ---------------- | ---------------- | ------------------- | ---------------- |
+| **Storage Model**    | Object instances | Component arrays    | Property objects |
+| **Memory Layout**    | Scattered (heap) | Contiguous (SoA)    | Mixed            |
+| **Access Pattern**   | Pointer chasing  | Index-based         | Property lookup  |
+| **Cache Efficiency** | Low              | High                | Medium           |
+| **Memory Overhead**  | High (vtables)   | Low                 | Medium           |
+| **Flexibility**      | Compile-time     | Runtime composition | Runtime binding  |
 
 #### Memory Layout Visualization
 
 **OpenCombat-SDL (OOP)**:
-```
-Soldier Instance A:
-[ vptr | morale | suppression | ... | child attributes ... ]
-     ↓
-[ vtable entries ... ]
-
-Soldier Instance B:
-[ vptr | morale | suppression | ... | child attributes ... ]
-     ↓
-[ vtable entries ... ]
-
-// Scattered in memory, pointer indirection
+```mermaid
+flowchart TB
+    subgraph InstanceA["Soldier Instance A"]
+        A1["vptr | morale | suppression | ..."]
+    end
+    subgraph InstanceB["Soldier Instance B"]
+        B1["vptr | morale | suppression | ..."]
+    end
+    subgraph VTableA["VTable A"]
+        VT1["vtable entries ..."]
+    end
+    subgraph VTableB["VTable B"]
+        VT2["vtable entries ..."]
+    end
+    A1 --> VT1
+    B1 --> VT2
+    note["Memory scatters across the heap with pointer indirection"]
 ```
 
 **OpenCombat (ECS)**:
-```
-MentalComponent Array:
-[ morale_A | morale_B | morale_C | morale_D | ... ]
-[ suppress_A | suppress_B | suppress_C | suppress_D | ... ]
-[ fear_A | fear_B | fear_C | fear_D | ... ]
-
-// Contiguous memory, cache friendly
+```mermaid
+flowchart TB
+    subgraph MentalComponent["MentalComponent Array (SoA)"]
+        M1["morale_A | morale_B | morale_C | morale_D | ..."]
+        M2["suppress_A | suppress_B | suppress_C | suppress_D | ..."]
+        M3["fear_A | fear_B | fear_C | fear_D | ..."]
+    end
+    note["Contiguous memory blocks optimize cache performance"]
 ```
 
 **CloseCombatFree (Component Composition)**:
-```
-Entity A:
-  HealthComponent -> [ pool allocation block ]
-  CombatComponent -> [ pool allocation block ]
-  MentalComponent -> [ pool allocation block ]
-
-// Components allocated from pools, stable pointers
+```mermaid
+flowchart TB
+    subgraph EntityA["Entity A"]
+        H["HealthComponent"]
+        C["CombatComponent"]
+        M["MentalComponent"]
+    end
+    subgraph Pool["Pool Allocations"]
+        P1["Health pool block"]
+        P2["Combat pool block"]
+        P3["Mental pool block"]
+    end
+    H --> P1
+    C --> P2
+    M --> P3
+    note["Components draw from memory pools with stable pointers"]
 ```
 
 ### B.5.2 Access Patterns and Performance
@@ -1758,9 +1766,9 @@ Entity A:
 ```pseudocode
 // OpenCombat-SDL: Virtual function dispatch
 function updateSoldier(soldier: Soldier):
-    soldier.update()  // Virtual call
-    soldier.calculateMorale()  // Virtual call
-    soldier.updateActions()  // Virtual call
+    soldier.update()
+    soldier.calculateMorale()
+    soldier.updateActions()
 
 // OpenCombat: Direct array access
 function updateMentalStates(mentalComponents: Array<MentalComponent>):
@@ -1772,43 +1780,43 @@ function updateMentalStates(mentalComponents: Array<MentalComponent>):
 function updateHealth(healthComponents: List<HealthComponent>):
     for health in healthComponents:
         health.percentage = health.current / health.max
-        // Triggers reactive updates automatically
+        // Triggers automatic updates to dependent systems
 ```
 
 #### Performance Comparison Table
 
-| Operation | OOP (SDL) | ECS (Rust) | Composition (QML) |
-|-----------|-----------|------------|-------------------|
-| **Attribute Read** | O(1) + indirection | O(1) direct | O(1) property lookup |
-| **Attribute Write** | O(1) + indirection | O(1) direct | O(1) + notify |
-| **Batch Update** | O(n) + cache misses | O(n) cache friendly | O(n) + signals |
-| **Type Check** | Runtime (dynamic_cast) | Compile-time (indices) | Runtime (type property) |
-| **Add Attribute** | Requires inheritance | Add component | Add property |
-| **Memory/Entity** | ~500-1000 bytes | ~200-400 bytes | ~300-600 bytes |
+| Operation       | OOP (SDL)              | ECS (Rust)             | Composition (QML)         |
+| --------------- | ---------------------- | ---------------------- | ------------------------- |
+| **Attribute Read**  | O(1) with indirection  | O(1) direct            | O(1) property lookup      |
+| **Attribute Write** | O(1) with indirection  | O(1) direct            | O(1) with notification    |
+| **Batch Update**    | O(n) with cache misses | O(n) cache friendly    | O(n) with signal overhead |
+| **Type Check**      | Runtime (dynamic_cast) | Compile-time (indices) | Runtime (type property)   |
+| **Add Attribute**   | Requires inheritance   | Add component          | Add property              |
+| **Memory/Entity**   | ~500-1000 bytes        | ~200-400 bytes         | ~300-600 bytes            |
 
 ### B.5.3 Modifiability Comparison
 
-| Aspect | OpenCombat-SDL | OpenCombat | CloseCombatFree |
-|--------|---------------|------------|-----------------|
-| **Add New Soldier Type** | Create subclass | Add configuration | Create QML type |
-| **Add New Attribute** | Add to base class | Add component field | Add property |
-| **Change Behavior** | Override virtual | Add system/modify system | Bind new logic |
-| **Data-Driven** | Limited (ini files) | Extensive (JSON/TOML) | Extensive (QML) |
-| **Modding Support** | Requires recompile | Config files | QML scripts |
-| **Runtime Flexibility** | None | High | Very High |
+| Aspect               | OpenCombat-SDL           | OpenCombat            | CloseCombatFree |
+| -------------------- | ------------------------ | --------------------- | --------------- |
+| **Add New Soldier Type** | Create subclass          | Add configuration     | Create QML type |
+| **Add New Attribute**    | Add to base class        | Add component field   | Add property    |
+| **Change Behavior**      | Override virtual methods | Add or modify systems | Bind new logic  |
+| **Data-Driven**          | Limited (ini files)      | Extensive (JSON/TOML) | Extensive (QML) |
+| **Modding Support**      | Requires recompilation   | Config files          | QML scripts     |
+| **Runtime Flexibility**  | None                     | High                  | Very high       |
 
 #### Modification Examples
 
 **Adding a New Soldier Type**:
 
 ```pseudocode
-// OpenCombat-SDL: Inheritance
+// OpenCombat-SDL: Inheritance approach
 class Flamethrower : public Soldier:
     float flameRange
     int fuelCapacity
     function attack(): override
 
-// OpenCombat: Configuration
+// OpenCombat: Configuration approach
 {
     "soldier_type": "FLAMETHROWER",
     "equipment": {
@@ -1821,11 +1829,11 @@ class Flamethrower : public Soldier:
     }
 }
 
-// CloseCombatFree: QML Component
+// CloseCombatFree: QML Component approach
 FlamethrowerSoldier : Soldier {
     property int fuelCapacity: 100
     property float flameRange: 40
-    
+
     CombatComponent {
         specialAttack: flameAttack
     }
@@ -1837,20 +1845,18 @@ FlamethrowerSoldier : Soldier {
 ```pseudocode
 // OpenCombat-SDL: Modify base class
 class Personnel:
-    // Add to base
-    float camouflageSkill
-    // All subclasses inherit
+    float camouflageSkill  // Added to base class
+    // All subclasses inherit automatically
 
 // OpenCombat: Add component field
 struct Mental:
-    // Add field
-    float camouflageSkill
-    // All soldiers with Mental get it
+    float camouflageSkill  // Added field
+    // All soldiers with Mental component receive it
 
 // CloseCombatFree: Add property
 Soldier:
     property float camouflageSkill: 0.5
-    // Available immediately, bindable
+    // Available immediately with binding support
 ```
 
 ## B.6 Design Recommendations
@@ -1859,37 +1865,37 @@ Soldier:
 
 #### Use Deep Inheritance (OpenCombat-SDL Style) When:
 
-- **Fixed entity types**: Your game has a stable, well-defined set of entity types that won't change
+- **Fixed entity types**: The game maintains a stable set of entity types that won't change
 - **Strong IS-A relationships**: Entities fit cleanly into a taxonomy (e.g., all Tanks ARE Vehicles)
-- **Behavior specialization**: Subtypes need significantly different implementations
-- **Team expertise**: Team is experienced with OOP patterns
+- **Behavior specialization**: Subtypes require significantly different implementations
+- **Team expertise**: The team has strong OOP experience
 - **Simple modding**: Mods don't need to add new entity types
 
 **Best for**: Traditional wargames, board game adaptations, games with fixed unit rosters
 
 #### Use ECS (OpenCombat Style) When:
 
-- **Many entity types**: You have dozens or hundreds of entity variations
-- **Complex interactions**: Systems need to process many entities with specific component combinations
+- **Many entity types**: The game features dozens or hundreds of entity variations
+- **Complex interactions**: Systems process many entities with specific component combinations
 - **Performance critical**: Batch processing and cache efficiency matter
-- **Data-driven design**: Want to define entities in configuration files
-- **Extensibility**: Need to add new entity types without code changes
+- **Data-driven design**: Entities should be defined in configuration files
+- **Extensibility**: New entity types must be added without code changes
 
 **Best for**: Large-scale strategy games, sandbox games, games with heavy modding support
 
 #### Use Component Composition (CloseCombatFree Style) When:
 
-- **Reactive systems**: Need properties that automatically update dependents
-- **Visual scripting**: Want designers to create entity types without programmers
-- **Flexible binding**: Attributes need complex interdependencies
+- **Reactive systems**: Properties need to automatically update dependents
+- **Visual scripting**: Designers should create entity types without programmers
+- **Flexible binding**: Attributes require complex interdependencies
 - **UI integration**: Entity properties map directly to UI controls
-- **Rapid iteration**: Need to tweak entity behavior frequently
+- **Rapid iteration**: Entity behavior needs frequent tweaking
 
 **Best for**: Editor-heavy games, games with complex state machines, designer-driven projects
 
 ### B.6.2 Hybrid Patterns
 
-Most modern games benefit from combining approaches:
+Modern games often combine approaches for optimal results:
 
 #### Pattern 1: ECS Core with OOP Behaviors
 
@@ -1905,10 +1911,9 @@ class AIStrategy:
 
 class AggressiveStrategy extends AIStrategy:
     function evaluate(entity: Entity):
-        // Access ECS data
         pos = getComponent<Position>(entity)
         health = getComponent<Health>(entity)
-        // Implement aggressive behavior
+        // Implement aggressive behavior logic
 
 // Strategy assigned as component reference
 AIComponent:
@@ -1952,12 +1957,12 @@ class RiflemanType extends UnitType:
 class UnitInstance:
     UnitType type
     List<StateComponent> currentState
-    
+
     // Current state as components
     Position position
     Health health
     MentalState mental
-    
+
     function getSpeed():
         return type.baseSpeed * health.mobilityModifier
 ```
@@ -1983,7 +1988,7 @@ class UnitInstance:
        float baseAccuracy
        float _effectiveAccuracy  // cached
        boolean _accuracyDirty = true
-       
+
        function getEffectiveAccuracy():
            if _accuracyDirty:
                _effectiveAccuracy = calculateEffective()
@@ -2005,7 +2010,7 @@ class UnitInstance:
    // Save only runtime state
    SavedState:
        unitId -> position, health, ammo, state
-       // Don't save type definitions (loaded from config)
+       // Type definitions load from config
    ```
 
 #### For Squad Systems:
@@ -2029,8 +2034,8 @@ class UnitInstance:
        Order order
        float transmissionTime
        float reliability  // affected by distance, equipment
-       
-   // Higher command levels = longer delays
+
+   // Higher command levels increase delays
    ```
 
 #### For Vehicle Systems:
@@ -2039,7 +2044,7 @@ class UnitInstance:
    ```pseudocode
    // Option A: Crew as separate soldier entities
    Vehicle.crewPositions: Map<Position, SoldierIndex>
-   
+
    // Option B: Crew as embedded components
    Vehicle.crew: List<CrewMember>
    CrewMember: skill, health, position, state
@@ -2051,7 +2056,7 @@ class UnitInstance:
        ENGINE: affects mobility
        TRACKS: affects steering/mobility
        GUN: affects firing capability
-       OPTICS: affects accuracy/spoting
+       OPTICS: affects accuracy/spotting
        RADIO: affects communication
    ```
 
@@ -2080,19 +2085,19 @@ class UnitInstance:
 
 ## B.7 Summary
 
-This appendix has detailed three distinct approaches to modeling unit, vehicle, and squad attributes in tactical wargames:
+This appendix examines three approaches to modeling unit, vehicle, and squad attributes in tactical wargames:
 
-1. **OpenCombat-SDL** demonstrates traditional OOP with deep inheritance, suitable for games with stable, well-defined entity types. The two-tier command system (Orders → Actions) provides clear separation between strategic intent and tactical execution.
+1. **OpenCombat-SDL** uses traditional OOP with deep inheritance, ideal for games with stable, well-defined entity types. Its two-tier command system (Orders → Actions) clearly separates strategic intent from tactical execution.
 
-2. **OpenCombat** showcases a modified ECS architecture optimized for cache efficiency and data-driven design. Type-safe indices prevent common entity management errors, while the reactive AI system enables emergent tactical behavior.
+2. **OpenCombat** implements a modified ECS architecture that optimizes cache efficiency and supports data-driven design. Type-safe indices prevent common entity management errors while the reactive AI system enables emergent tactical behavior.
 
-3. **CloseCombatFree** illustrates component composition with reactive property binding, offering maximum flexibility for designer-driven iteration and visual scripting.
+3. **CloseCombatFree** demonstrates component composition with reactive property binding, providing maximum flexibility for designer-driven iteration and visual scripting.
 
-The choice of architecture should be driven by:
+The architecture choice depends on:
 - Team expertise and preferences
 - Game scale and complexity
 - Modding requirements
 - Performance constraints
 - Iteration speed needs
 
-Modern games increasingly use hybrid approaches, combining the cache efficiency of ECS for core simulation with the flexibility of composition for gameplay logic and the clarity of inheritance for type definitions.
+Modern games typically combine approaches, using ECS for core simulation performance, composition for gameplay logic flexibility, and inheritance for clear type definitions.

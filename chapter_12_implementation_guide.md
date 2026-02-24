@@ -4,21 +4,21 @@
 
 ---
 
-*"The gap between theory and working code is where most projects falter. This chapter bridges that gap with concrete, actionable guidance."*
+*"Most projects fail in the space between theory and working code. This chapter provides concrete, actionable steps to cross that gap."*
 
 ---
 
 ## 12.1 Architecture Decision Record (ADR)
 
-### 12.1.1 The Purpose of Architectural Decisions
+### 12.1.1 Why Architectural Decisions Matter
 
-Every significant architectural choice in a tactical wargame shapes the project's trajectory for years. The three implementations examined in this book each made decisions—about state management, entity composition, and command abstraction—that determined what features were easy to add and which became insurmountable challenges.
+Every major choice in a tactical wargame's architecture influences the project for years. The three implementations studied in this book each made distinct decisions about state management, entity composition, and command abstraction. These choices determined which features came easily and which became impossible obstacles.
 
-An Architecture Decision Record (ADR) captures not just *what* was decided, but *why*. It provides context for future developers and prevents the cyclical revisiting of settled questions. In a project with a multi-year lifespan, ADRs become the institutional memory that survives team turnover.
+An Architecture Decision Record documents both the decision and its rationale. It gives future developers context and prevents endless debates about settled questions. For projects lasting multiple years, ADRs preserve institutional knowledge through team changes.
 
 ### 12.1.2 ADR Template
 
-Each architectural decision should be documented using this template:
+Document each architectural decision with this template:
 
 ```
 # ADR-XXX: [Title]
@@ -26,7 +26,7 @@ Each architectural decision should be documented using this template:
 **Status**: Proposed / Accepted / Deprecated / Superseded by ADR-YYY
 **Date**: YYYY-MM-DD
 **Deciders**: [Names of people involved in decision]
-**Context**: [What is the issue that we're seeing that is motivating this decision?]
+**Context**: [What problem prompted this decision?]
 
 ## Decision
 
@@ -65,19 +65,19 @@ Each architectural decision should be documented using this template:
 
 ## Context
 
-The game requires modeling unit behavior across multiple timescales:
+The game must model unit behavior across different timescales:
 - Strategic decisions (minutes): Squad objectives, orders
-- Tactical actions (seconds): Moving, engaging, defending
+- Tactical actions (seconds): Movement, engagement, defense
 - Physical gestures (milliseconds): Aiming, firing, reloading
 
-Previous projects demonstrated three approaches:
-1. Bitfield system (OpenCombat-SDL): Fast, but no inherent hierarchy
-2. Dual-state strings (CloseCombatFree): Flexible, but no type safety
+Previous projects tried three approaches:
+1. Bitfield system (OpenCombat-SDL): Fast but lacked hierarchy
+2. Dual-state strings (CloseCombatFree): Flexible but unsafe
 3. Three-tier hierarchy (OpenCombat): Clean separation, deterministic
 
 ## Decision
 
-We will implement a hybrid approach:
+We chose a hybrid approach:
 
 1. **Three-Tier Hierarchy** for behavioral states:
    - Phase: Game-level state (Deployment, Battle, End)
@@ -87,32 +87,32 @@ We will implement a hybrid approach:
 2. **64-bit Capability Bitfield** for orthogonal capabilities:
    - CanMove, CanFire, IsProne, IsSuppressed, etc.
 
-3. **All state changes via message system** for determinism
+3. **Message-driven state changes** for determinism
 
 ## Consequences
 
 ### Positive
 - Clear separation of concerns by timescale
-- Deterministic simulation supports multiplayer and replay
-- Capability queries are O(1) via bit operations
+- Deterministic simulation enables multiplayer and replays
+- Capability queries execute in constant time via bit operations
 - Type-safe enums prevent invalid states
 
 ### Negative
-- More complex than single state system
-- All three tiers must stay synchronized
+- More complex than single state systems
+- All three tiers require synchronization
 - Steeper learning curve for new developers
 
 ## Alternatives Considered
 
 ### Pure Bitfield System
-- Pros: Fast, simple, 64 states maximum
-- Cons: No hierarchy, hard to query "what is unit doing?"
-- Why rejected: Insufficient for complex AI behaviors
+- Pros: Fast, simple, supports 64 states
+- Cons: No hierarchy, difficult to query current activity
+- Why rejected: Couldn't handle complex AI behaviors
 
 ### Pure String-Based States
 - Pros: Maximum moddability, human-readable
 - Cons: No compile-time validation, error-prone
-- Why rejected: Type safety critical for multiplayer
+- Why rejected: Type safety essential for multiplayer
 
 ## Related Decisions
 - ADR-001: Server-authoritative architecture
@@ -130,19 +130,19 @@ We will implement a hybrid approach:
 
 ## Context
 
-Entity systems range from deep inheritance (traditional OOP) to pure ECS (data-oriented). We need:
+Entity systems vary from deep inheritance (traditional OOP) to pure ECS (data-oriented). Our requirements:
 - Cache efficiency for 500+ units
 - Type safety to prevent entity reference bugs
 - Flexibility for complex unit types (soldiers, vehicles, squads)
 
 ## Decision
 
-Implement a modified ECS:
+We implemented a modified ECS:
 
 1. **Contiguous storage**: `Vec<Soldier>`, `Vec<Vehicle>` in BattleState
 2. **Type-safe indices**: `SoldierIndex(usize)`, `VehicleIndex(usize)`
 3. **Components as struct fields**: Not separate sparse arrays
-4. **Systems as functions**: Not classes, pure functions over state
+4. **Systems as functions**: Pure functions over state, not classes
 
 ```pseudocode
 struct SoldierIndex(usize);
@@ -170,7 +170,7 @@ struct Soldier {
 - Easy to profile and optimize
 
 ### Negative
-- Not as cache-efficient as pure SoA ECS
+- Less cache-efficient than pure structure-of-arrays ECS
 - Adding components requires struct modification
 - Less flexible than archetype-based ECS
 
@@ -184,7 +184,7 @@ struct Soldier {
 ### Pure ECS (SoA)
 - Pros: Maximum cache efficiency, parallel processing
 - Cons: Complex, overkill for our entity count
-- Why rejected: Performance gain doesn't justify complexity
+- Why rejected: Performance gains didn't justify complexity
 ```
 
 ### 12.1.5 Example ADR: AI Architecture
@@ -198,15 +198,15 @@ struct Soldier {
 
 ## Context
 
-AI must balance autonomous decision-making with player control. Requirements:
-- React to threats (return fire, seek cover)
-- Follow orders but interpret intelligently
-- Support modding (custom behaviors)
-- Deterministic for multiplayer
+AI must balance autonomous decision-making with player control. Requirements include:
+- Reacting to threats (returning fire, seeking cover)
+- Following orders with intelligent interpretation
+- Supporting modding (custom behaviors)
+- Deterministic execution for multiplayer
 
 ## Decision
 
-Implement a hybrid AI system:
+We built a hybrid AI system:
 
 1. **Behavior Trees** for high-level decision flow:
    - Selector nodes for priority decisions
@@ -221,37 +221,39 @@ Implement a hybrid AI system:
    - Memory of enemy positions
    - Threat level assessment
 
-```pseudocode
-Selector: CombatBehavior
-├── Sequence: Survival
-│   ├── Condition: IsUnderFire
-│   ├── Action: FindCover
-│   └── Action: MoveToCover
-├── Sequence: Engagement
-│   ├── Condition: HasValidTarget
-│   └── Action: EngageTarget
-└── Action: ExecuteCurrentOrder
+```mermaid
+flowchart TD
+    Root[Selector: CombatBehavior] --> Survival[Sequence: Survival]
+    Root --> Engagement[Sequence: Engagement]
+    Root --> ExecuteOrder[Action: ExecuteCurrentOrder]
+    
+    Survival --> UnderFire[Condition: IsUnderFire]
+    Survival --> FindCover[Action: FindCover]
+    Survival --> MoveToCover[Action: MoveToCover]
+    
+    Engagement --> HasTarget[Condition: HasValidTarget]
+    Engagement --> Engage[Action: EngageTarget]
 ```
 
 ## Consequences
 
 ### Positive
 - Clear, debuggable decision structure
-- Designers can create new behaviors without code
+- Designers can create new behaviors without coding
 - Deterministic when scripted actions are pure functions
 - Players can override AI with orders
 
 ### Negative
-- Behavior trees can become complex
+- Behavior trees can grow complex
 - Lua integration adds dependencies
-- Debugging across language boundary
+- Debugging across language boundaries is challenging
 
 ## Alternatives Considered
 
 ### Pure Finite State Machine
 - Pros: Simple, predictable
 - Cons: Explodes with state combinations
-- Why rejected: Insufficient for emergent behaviors
+- Why rejected: Couldn't handle emergent behaviors
 
 ### Utility AI
 - Pros: Sophisticated decision-making
@@ -263,21 +265,21 @@ Selector: CombatBehavior
 
 ## 12.2 Recommended Technology Stack
 
-### 12.2.1 Language-Agnostic Architecture Layers
+### 12.2.1 Architecture Layers
 
-This section presents technology options organized by functional category. The recommendations are language-agnostic—you may implement them in C++, Rust, C#, or any systems language of your choice.
+This section presents technology options by functional category. The recommendations work with C++, Rust, C#, or any systems language.
 
-| Layer | Responsibility | Key Requirements |
-|-------|---------------|------------------|
-| **State System** | Track and transition unit states | Deterministic, type-safe, serializable |
-| **Entity Model** | Structure units, equipment, squads | Flexible, cache-efficient, moddable |
-| **Spatial Indexing** | Fast spatial queries | O(log n) or better lookup, dynamic |
-| **Serialization** | Save/load, network sync | Versionable, compact, fast |
-| **Scripting** | Moddable behaviors, AI | Sandboxed, hot-reloadable, performant |
+| Layer            | Responsibility                     | Key Requirements                       |
+| ---------------- | ---------------------------------- | -------------------------------------- |
+| **State System**     | Track and transition unit states   | Deterministic, type-safe, serializable |
+| **Entity Model**     | Structure units, equipment, squads | Flexible, cache-efficient, moddable    |
+| **Spatial Indexing** | Fast spatial queries               | O(log n) or better lookup, dynamic     |
+| **Serialization**    | Save/load, network sync            | Versionable, compact, fast             |
+| **Scripting**        | Moddable behaviors, AI             | Sandboxed, hot-reloadable, performant  |
 
 ### 12.2.2 State System Options
 
-The state system is the foundation upon which all gameplay rests. Three architectural approaches present themselves:
+The state system forms the foundation of all gameplay. Three architectural approaches stand out:
 
 #### Option A: Bitfield with Prerequisite Chaining
 
@@ -286,11 +288,11 @@ The state system is the foundation upon which all gameplay rests. Three architec
 ```pseudocode
 define State {
     bits: uint64
-    
+
     function set(StateFlag flag) {
         bits = bits | (1 << flag)
     }
-    
+
     function has(StateFlag flag): bool {
         return (bits & (1 << flag)) != 0
     }
@@ -306,29 +308,29 @@ define Action {
 // Automatic prerequisite resolution
 function queueAction(action: Action, unit: Unit) {
     missing = action.requires & ~unit.state.bits
-    
+
     while missing != 0 {
         prereq = findActionThatAdds(missing.firstBit())
         actionQueue.prepend(prereq)
         missing = missing & ~prereq.adds
     }
-    
+
     actionQueue.append(action)
 }
 ```
 
 **Strengths**:
-- O(1) capability queries via bit operations
+- Capability queries execute in constant time via bit operations
 - Natural composition (states are orthogonal)
 - Automatic prerequisite chaining reduces micromanagement
 - Memory efficient (8 bytes per unit)
 
 **Weaknesses**:
-- 64-state maximum (or use bitset for more)
+- Limited to 64 states (or requires bitset for more)
 - No inherent hierarchy
-- Mutual exclusion must be enforced externally
+- Mutual exclusion requires external enforcement
 
-**Best For**: Games with many orthogonal capabilities, automatic action chaining
+**Best For**: Games with many orthogonal capabilities and automatic action chaining
 
 ---
 
@@ -370,15 +372,15 @@ struct UnitState {
 ```
 
 **Strengths**:
-- Clear mental model (what tier answers what question)
+- Clear mental model (each tier answers specific questions)
 - Natural timescale separation
 - Temporal precision via gesture completion frames
 - Deterministic for multiplayer
 
 **Weaknesses**:
 - More verbose than flat states
-- Three tiers must be synchronized
-- Learning curve for new team members
+- Three tiers require synchronization
+- Steeper learning curve for new team members
 
 **Best For**: Multiplayer games, deterministic simulation, complex AI
 
@@ -392,7 +394,7 @@ struct UnitState {
 struct Unit {
     // Simulation state
     status: String  // "MOVING", "AIMING", "READY"
-    
+
     // Visual state (declarative)
     visualState: VisualState
 }
@@ -401,7 +403,7 @@ struct Unit {
 function processOrderQueue(unit: Unit) {
     for order in unit.orders {
         if order.completed then continue
-        
+
         match order.type {
             Move => {
                 unit.status = "MOVING"
@@ -412,7 +414,7 @@ function processOrderQueue(unit: Unit) {
                 startAiming(order.target)
             }
         }
-        
+
         order.completed = true
         break  // One order at a time
     }
@@ -442,7 +444,7 @@ on unit.status changed to "DAMAGED":
 
 ### 12.2.3 Entity Model: OOP vs ECS vs Composition
 
-The choice of entity model fundamentally shapes code organization. Three paradigms present themselves:
+The entity model you choose determines how your code takes shape. Here are three common approaches:
 
 #### Object-Oriented Programming (OOP)
 
@@ -452,7 +454,7 @@ The choice of entity model fundamentally shapes code organization. Three paradig
 class Entity {
     position: Vec2
     health: Health
-    
+
     function update(dt: float)
     function render(renderer: Renderer)
 }
@@ -460,7 +462,7 @@ class Entity {
 class Soldier extends Entity {
     weapon: Weapon
     squad: SquadRef
-    
+
     override function update(dt: float) {
         super.update(dt)
         processWeapon(dt)
@@ -471,7 +473,7 @@ class Soldier extends Entity {
 class Vehicle extends Entity {
     crew: Array<CrewSlot>
     turret: Turret
-    
+
     override function update(dt: float) {
         super.update(dt)
         updateCrew()
@@ -481,16 +483,16 @@ class Vehicle extends Entity {
 ```
 
 **Strengths**:
-- Familiar to most developers
-- Natural modeling of "IS-A" relationships
+- Most developers already know it
+- Naturally models "IS-A" relationships
 - Polymorphism enables varied behavior
 - Encapsulation protects invariants
 
 **Weaknesses**:
 - Deep hierarchies become brittle
-- Diamond problem with multiple inheritance
-- Hard to create novel combinations (flying tank?)
-- Cache-unfriendly (scattered vtables)
+- Multiple inheritance creates the diamond problem
+- Hard to create novel combinations, like a flying tank
+- Cache-unfriendly due to scattered vtables
 
 **Best For**: Small teams, rapid prototyping, traditional game development
 
@@ -525,7 +527,7 @@ struct Weapon {
 class ComponentStorage<T> {
     entityToIndex: Map<Entity, int>
     components: Array<T>
-    
+
     function add(entity: Entity, component: T)
     function get(entity: Entity): T
     function remove(entity: Entity)
@@ -537,7 +539,7 @@ class MovementSystem extends System {
         for entity in query(Transform, Velocity) {
             transform = getComponent<Transform>(entity)
             velocity = getComponent<Velocity>(entity)
-            
+
             transform.position += velocity.value * dt
         }
     }
@@ -548,7 +550,7 @@ class CombatSystem extends System {
         for entity in query(Weapon, Target) {
             weapon = getComponent<Weapon>(entity)
             target = getComponent<Target>(entity)
-            
+
             if canFire(weapon) {
                 fireAt(entity, target.entity)
             }
@@ -558,16 +560,16 @@ class CombatSystem extends System {
 ```
 
 **Strengths**:
-- Cache-friendly (contiguous arrays)
-- Flexible composition (add/remove components)
+- Cache-friendly with contiguous arrays
+- Flexible composition lets you add or remove components
 - Parallel processing friendly
-- Data-driven design
+- Encourages data-driven design
 
 **Weaknesses**:
 - Steep learning curve
-- Verbose (lots of boilerplate)
-- Component lookup overhead
-- Harder to debug (scattered logic)
+- Verbose with lots of boilerplate
+- Component lookup adds overhead
+- Harder to debug with scattered logic
 
 **Best For**: Large-scale simulations, performance-critical code, many similar entities
 
@@ -615,7 +617,7 @@ function updateSoldiers(state: BattleState, dt: float) {
             Defend(angle) => updateDefense(soldier, angle)
             _ => updateIdle(soldier)
         }
-        
+
         updateGesture(soldier, dt)
     }
 }
@@ -635,33 +637,33 @@ function updateVehicles(state: BattleState, dt: float) {
 - Good cache locality
 - Simpler than pure ECS
 - Easy to serialize
-- Best of both worlds (OOP + ECS)
+- Combines the best of OOP and ECS
 
 **Weaknesses**:
 - Adding components requires struct changes
 - Less flexible than pure ECS
 - Entity types are static
 
-**Best For**: Tactical wargames (500-1000 entities), type safety critical, moderate complexity
+**Best For**: Tactical wargames with 500-1000 entities, when type safety matters, moderate complexity
 
 ---
 
 ### 12.2.4 Decision Matrix
 
-| If You Need... | Consider... | From This Book |
-|----------------|-------------|----------------|
-| Maximum moddability | Component Composition | CloseCombatFree's QML approach |
-| Deterministic multiplayer | Three-Tier Hierarchy | OpenCombat's message system |
-| Automatic action chaining | Bitfield + Prerequisite | OpenCombat-SDL's state system |
-| Maximum performance (1000+ units) | Pure ECS | Modern game architecture |
-| Rapid development | OOP Inheritance | OpenCombat-SDL's Object hierarchy |
-| Type safety | Modified ECS | OpenCombat's BattleState |
+| If You Need...                    | Consider...             | From This Book                    |
+| --------------------------------- | ----------------------- | --------------------------------- |
+| Maximum moddability               | Component Composition   | CloseCombatFree's QML approach    |
+| Deterministic multiplayer         | Three-Tier Hierarchy    | OpenCombat's message system       |
+| Automatic action chaining         | Bitfield + Prerequisite | OpenCombat-SDL's state system     |
+| Maximum performance (1000+ units) | Pure ECS                | Modern game architecture          |
+| Rapid development                 | OOP Inheritance         | OpenCombat-SDL's Object hierarchy |
+| Type safety                       | Modified ECS            | OpenCombat's BattleState          |
 
 ---
 
 ### 12.2.5 Spatial Indexing Options
 
-Spatial queries—"find all enemies within 100 meters"—are frequent in tactical games. Naive O(N) iteration fails at scale.
+Tactical games often need to answer questions like "find all enemies within 100 meters." A naive O(N) iteration won't scale.
 
 #### Uniform Grid (Tile-Based)
 
@@ -669,18 +671,18 @@ Spatial queries—"find all enemies within 100 meters"—are frequent in tactica
 class SpatialGrid {
     cellSize: float = 100.0
     cells: Map<CellCoord, Array<Entity>>
-    
+
     function insert(entity: Entity, position: Vec2) {
         cell = worldToCell(position)
         cells[cell].append(entity)
         entity.cell = cell
     }
-    
+
     function queryRadius(center: Vec2, radius: float): Array<Entity> {
         results = []
         minCell = worldToCell(center - Vec2(radius, radius))
         maxCell = worldToCell(center + Vec2(radius, radius))
-        
+
         for y in minCell.y to maxCell.y {
             for x in minCell.x to maxCell.x {
                 for entity in cells[CellCoord(x, y)] {
@@ -690,10 +692,10 @@ class SpatialGrid {
                 }
             }
         }
-        
+
         return results
     }
-    
+
     function updateEntity(entity: Entity, newPosition: Vec2) {
         newCell = worldToCell(newPosition)
         if newCell != entity.cell {
@@ -720,23 +722,23 @@ class SpatialGrid {
 class SpatialHash {
     cellSize: float = 100.0
     cells: Map<uint64, Array<Entity>>
-    
+
     function hash(position: Vec2): uint64 {
         x = floor(position.x / cellSize)
         y = floor(position.y / cellSize)
         return (uint64(x) << 32) | uint32(y)
     }
-    
+
     function insert(entity: Entity, position: Vec2) {
         h = hash(position)
         cells[h].append(entity)
     }
-    
+
     function queryRadius(center: Vec2, radius: float): Array<Entity> {
         results = []
         radiusInCells = ceil(radius / cellSize)
         centerCell = worldToCell(center)
-        
+
         for dy in -radiusInCells to radiusInCells {
             for dx in -radiusInCells to radiusInCells {
                 h = hashCell(centerCell + Vec2(dx, dy))
@@ -747,13 +749,13 @@ class SpatialHash {
                 }
             }
         }
-        
+
         return results
     }
 }
 ```
 
-**Complexity**: Same as uniform grid, but hash map overhead
+**Complexity**: Same as uniform grid, but with hash map overhead
 
 **Best For**: Sparse worlds, non-grid alignment, infinite worlds
 
@@ -767,66 +769,66 @@ class Quadtree {
     capacity: int = 4
     entities: Array<Entity>
     divided: bool = false
-    
+
     nw: Option<Quadtree>
     ne: Option<Quadtree>
     sw: Option<Quadtree>
     se: Option<Quadtree>
-    
+
     function insert(entity: Entity): bool {
         if !boundary.contains(entity.position) {
             return false
         }
-        
+
         if entities.length < capacity && !divided {
             entities.append(entity)
             return true
         }
-        
+
         if !divided {
             subdivide()
         }
-        
+
         return nw.insert(entity) ||
                ne.insert(entity) ||
                sw.insert(entity) ||
                se.insert(entity)
     }
-    
+
     function queryRange(range: Rect): Array<Entity> {
         results = []
-        
+
         if !boundary.intersects(range) {
             return results
         }
-        
+
         for entity in entities {
             if range.contains(entity.position) {
                 results.append(entity)
             }
         }
-        
+
         if divided {
             results.appendAll(nw.queryRange(range))
             results.appendAll(ne.queryRange(range))
             results.appendAll(sw.queryRange(range))
             results.appendAll(se.queryRange(range))
         }
-        
+
         return results
     }
-    
+
     function subdivide() {
         x = boundary.x
         y = boundary.y
         w = boundary.width / 2
         h = boundary.height / 2
-        
+
         nw = Quadtree(Rect(x, y, w, h))
         ne = Quadtree(Rect(x + w, y, w, h))
         sw = Quadtree(Rect(x, y + h, w, h))
         se = Quadtree(Rect(x + w, y + h, w, h))
-        
+
         divided = true
     }
 }
@@ -843,19 +845,19 @@ class Quadtree {
 
 ### 12.2.6 Serialization Strategy
 
-Tactical games require saving/loading, replay recording, and network synchronization. Three approaches present themselves:
+Tactical games need to save and load states, record replays, and synchronize over networks. Here are three approaches:
 
 #### Snapshot Serialization
 
 ```pseudocode
 function serialize(state: BattleState): Bytes {
     buffer = ByteBuffer()
-    
+
     // Write header
     buffer.writeU32(state.soldiers.length)
     buffer.writeU32(state.vehicles.length)
     buffer.writeU64(state.currentFrame)
-    
+
     // Write soldiers
     for soldier in state.soldiers {
         buffer.writeVec2(soldier.transform.position)
@@ -864,18 +866,18 @@ function serialize(state: BattleState): Bytes {
         buffer.writeU8(soldier.behavior as uint8)
         buffer.writeU64(soldier.gesture.endFrame)
     }
-    
+
     return buffer.toBytes()
 }
 
 function deserialize(data: Bytes): BattleState {
     buffer = ByteBuffer(data)
     state = BattleState()
-    
+
     soldierCount = buffer.readU32()
     vehicleCount = buffer.readU32()
     state.currentFrame = buffer.readU64()
-    
+
     for i in 0 to soldierCount {
         soldier = Soldier()
         soldier.transform.position = buffer.readVec2()
@@ -885,20 +887,20 @@ function deserialize(data: Bytes): BattleState {
         soldier.gesture.endFrame = buffer.readU64()
         state.soldiers.append(soldier)
     }
-    
+
     return state
 }
 ```
 
 **Strengths**:
 - Fast deserialization
-- Simple implementation
+- Simple to implement
 - Compact binary format
 
 **Weaknesses**:
 - Version compatibility issues
-- No human readability
-- Full state transfer (bandwidth heavy)
+- Not human-readable
+- Full state transfer uses more bandwidth
 
 ---
 
@@ -936,25 +938,25 @@ function serializeReplay(state: BattleState): Bytes {
 function loadReplay(data: Bytes): BattleState {
     messages = deserialize<Array<BattleMessage>>(data)
     state = BattleState()
-    
+
     for msg in messages {
         applyMessage(state, msg)
     }
-    
+
     return state
 }
 ```
 
 **Strengths**:
-- Complete history (replay debugging)
-- Smaller than snapshots (deltas only)
+- Complete history enables replay debugging
+- Smaller than snapshots since it stores only deltas
 - Network-friendly
-- Version migration easier
+- Easier version migration
 
 **Weaknesses**:
-- Slower loading (replay all messages)
-- Message schema must be stable
-- More complex implementation
+- Slower loading because it replays all messages
+- Message schema must remain stable
+- More complex to implement
 
 ---
 
@@ -963,38 +965,38 @@ function loadReplay(data: Bytes): BattleState {
 ```pseudocode
 function computeDelta(oldState: BattleState, newState: BattleState): Delta {
     delta = Delta()
-    
+
     for i in 0 to newState.soldiers.length {
         oldSoldier = oldState.soldiers[i]
         newSoldier = newState.soldiers[i]
-        
+
         if oldSoldier != newSoldier {
             soldierDelta = SoldierDelta()
             soldierDelta.index = i
-            
+
             if oldSoldier.transform != newSoldier.transform {
                 soldierDelta.transform = newSoldier.transform
             }
-            
+
             if oldSoldier.health != newSoldier.health {
                 soldierDelta.health = newSoldier.health
             }
-            
+
             delta.soldiers.append(soldierDelta)
         }
     }
-    
+
     return delta
 }
 
 function applyDelta(state: BattleState, delta: Delta) {
     for soldierDelta in delta.soldiers {
         soldier = state.soldiers[soldierDelta.index]
-        
+
         if soldierDelta.hasTransform {
             soldier.transform = soldierDelta.transform
         }
-        
+
         if soldierDelta.hasHealth {
             soldier.health = soldierDelta.health
         }
@@ -1003,84 +1005,84 @@ function applyDelta(state: BattleState, delta: Delta) {
 ```
 
 **Strengths**:
-- Minimal bandwidth
+- Minimal bandwidth usage
 - Fast state updates
 - Good for frequent synchronization
 
 **Weaknesses**:
-- Requires baseline state
+- Requires a baseline state
 - Complex to implement correctly
-- Desync recovery challenging
+- Desync recovery can be challenging
 
 ---
 
 ### 12.2.7 Scripting Options
 
-Moddable behaviors require a scripting layer. Three approaches:
+Moddable behaviors need a scripting layer. Here are three approaches:
 
 #### Lua Integration
 
 ```pseudocode
 // C++ side
 class LuaBehavior {
-    lua_State* L
-    string scriptPath
-    
+    lua_State* L;
+    string scriptPath;
+
     function onUpdate(soldier: Soldier, dt: float) {
-        lua_getglobal(L, "onUpdate")
-        pushSoldier(L, soldier)
-        lua_pushnumber(L, dt)
-        
+        lua_getglobal(L, "onUpdate");
+        pushSoldier(L, soldier);
+        lua_pushnumber(L, dt);
+
         if lua_pcall(L, 2, 1, 0) != 0 {
-            logError("Lua error: " + lua_tostring(L, -1))
-            return
+            logError("Lua error: " + lua_tostring(L, -1));
+            return;
         }
-        
-        newBehavior = lua_tostring(L, -1)
-        soldier.behavior = parseBehavior(newBehavior)
+
+        newBehavior = lua_tostring(L, -1);
+        soldier.behavior = parseBehavior(newBehavior);
     }
 }
 
 // Lua side (behaviors/sniper.lua)
 function onUpdate(soldier, dt)
     -- Find high-value targets
-    local target = findOfficer(soldier)
-    
+    local target = findOfficer(soldier);
+
     if target then
         if hasLineOfSight(soldier, target) then
-            return "ENGAGE"
+            return "ENGAGE";
         else
-            return "MOVE_TO_POSITION"
+            return "MOVE_TO_POSITION";
         end
     end
-    
+
     -- Default to standard behavior
-    return executeStandardOrder(soldier)
+    return executeStandardOrder(soldier);
 end
 
 function findOfficer(soldier)
-    local enemies = getEnemiesInRange(soldier, 200)
-    
+    local enemies = getEnemiesInRange(soldier, 200);
+
     for _, enemy in ipairs(enemies) do
         if enemy.rank == "OFFICER" then
-            return enemy
+            return enemy;
         end
     end
-    
-    return nil
+
+    return nil;
 end
 ```
 
 **Strengths**:
-- Fast, proven, widely used
-- Excellent C++ bindings (sol2)
+- Fast, proven, and widely used
+- Excellent C++ bindings like sol2
 - Easy to learn
-- Hot-reloadable
+- Supports hot-reloading
 
 **Weaknesses**:
-- Dynamic typing (runtime errors)
-- Another language to maintain
-- Sandboxing complexity
+- Dynamic typing leads to runtime errors
+- Requires maintaining another language
+- Sandboxing adds complexity
 
 ---
 
@@ -1092,35 +1094,35 @@ import "game" for Soldier, World
 
 class DefensiveBehavior {
     construct new() {}
-    
+
     update(soldier, dt) {
         // Check for threats
         if (soldier.underFire) {
-            return seekCover(soldier)
+            return seekCover(soldier);
         }
-        
+
         // Maintain formation
         if (soldier.distanceToSquadCenter > 50) {
-            return moveToSquad(soldier)
+            return moveToSquad(soldier);
         }
-        
-        return "HOLD_POSITION"
+
+        return "HOLD_POSITION";
     }
-    
+
     seekCover(soldier) {
-        var cover = World.findNearestCover(soldier.position, 100)
+        var cover = World.findNearestCover(soldier.position, 100);
         if (cover) {
-            soldier.moveTo(cover)
-            return "MOVING_TO_COVER"
+            soldier.moveTo(cover);
+            return "MOVING_TO_COVER";
         }
-        return "NO_COVER_FOUND"
+        return "NO_COVER_FOUND";
     }
 }
 ```
 
 **Strengths**:
 - Small embeddable VM
-- Class-based (familiar to OOP developers)
+- Class-based, familiar to OOP developers
 - Good performance
 - Minimal dependencies
 
@@ -1180,49 +1182,49 @@ class DefensiveBehavior {
 
 // Runtime execution
 class BehaviorTree {
-    root: BehaviorNode
-    
+    root: BehaviorNode;
+
     function tick(entity: Entity, world: World): Status {
-        return root.tick(entity, world)
+        return root.tick(entity, world);
     }
 }
 
 class Selector extends BehaviorNode {
-    children: Array<BehaviorNode>
-    currentIndex: int = 0
-    
+    children: Array<BehaviorNode>;
+    currentIndex: int = 0;
+
     function tick(entity: Entity, world: World): Status {
         while currentIndex < children.length {
-            status = children[currentIndex].tick(entity, world)
-            
+            status = children[currentIndex].tick(entity, world);
+
             if status == Status.Success {
-                currentIndex = 0
-                return Status.Success
+                currentIndex = 0;
+                return Status.Success;
             }
-            
+
             if status == Status.Running {
-                return Status.Running
+                return Status.Running;
             }
-            
-            currentIndex++
+
+            currentIndex++;
         }
-        
-        currentIndex = 0
-        return Status.Failure
+
+        currentIndex = 0;
+        return Status.Failure;
     }
 }
 ```
 
 **Strengths**:
-- Declarative, visual editing possible
+- Declarative, allows visual editing
 - No scripting language needed
-- Deterministic, safe
+- Deterministic and safe
 - Designer-friendly
 
 **Weaknesses**:
 - Less flexible than code
-- Complex logic hard to express
-- Requires custom editor
+- Complex logic becomes difficult to express
+- Requires a custom editor
 
 ---
 
@@ -1230,21 +1232,21 @@ class Selector extends BehaviorNode {
 
 ### 12.3.1 Overview
 
-Building a Close Combat clone is a multi-year endeavor. This roadmap breaks the work into five phases, each with clear deliverables and exit criteria. The phases are sequential—each builds upon the previous—but within a phase, work can be parallelized.
+Building a Close Combat clone takes years. This roadmap divides the work into five phases, each with clear deliverables. While phases are sequential, teams can parallelize work within them.
 
-| Phase | Duration | Focus | Deliverable |
-|-------|----------|-------|-------------|
-| **Phase 1** | 3-4 months | Core Simulation | Units move, basic state system |
-| **Phase 2** | 2-3 months | Orders & Movement | Squad commands, pathfinding |
-| **Phase 3** | 3-4 months | Combat & Morale | Shooting, suppression, morale |
-| **Phase 4** | 2-3 months | AI & Behaviors | Reactive AI, tactical decisions |
-| **Phase 5** | 2-3 months | Modding Support | Lua scripting, data-driven content |
+| Phase   | Duration   | Focus             | Deliverable                        |
+| ------- | ---------- | ----------------- | ---------------------------------- |
+| **Phase 1** | 3-4 months | Core Simulation   | Units move, basic state system     |
+| **Phase 2** | 2-3 months | Orders & Movement | Squad commands, pathfinding        |
+| **Phase 3** | 3-4 months | Combat & Morale   | Shooting, suppression, morale      |
+| **Phase 4** | 2-3 months | AI & Behaviors    | Reactive AI, tactical decisions    |
+| **Phase 5** | 2-3 months | Modding Support   | Lua scripting, data-driven content |
 
-Total estimated time: **12-17 months** for a small team (3-5 developers)
+Total estimated time: **12-17 months** for a small team of 3-5 developers.
 
 ### 12.3.2 Phase 1: Core Simulation
 
-**Goal**: Create the foundational systems upon which all gameplay rests. By the end of this phase, you should have units that can exist in the world, move, and track basic states.
+**Goal**: Create the foundational systems. By the end, units should exist in the world, move, and track basic states.
 
 **Key Components**:
 
@@ -1274,40 +1276,40 @@ enum Gesture {
 }
 
 struct UnitState {
-    phase: Phase
-    behavior: Behavior
-    gesture: Gesture
-    capabilities: uint64  // Bitfield
+    phase: Phase;
+    behavior: Behavior;
+    gesture: Gesture;
+    capabilities: uint64;  // Bitfield
 }
 
 class StateSystem {
     function transition(unit: Unit, newBehavior: Behavior) {
         // Validate transition
         if !isValidTransition(unit.state.behavior, newBehavior) {
-            logWarning("Invalid transition attempted")
-            return
+            logWarning("Invalid transition attempted");
+            return;
         }
-        
+
         // Exit old behavior
-        onBehaviorExit(unit, unit.state.behavior)
-        
+        onBehaviorExit(unit, unit.state.behavior);
+
         // Update state
-        unit.state.behavior = newBehavior
-        
+        unit.state.behavior = newBehavior;
+
         // Enter new behavior
-        onBehaviorEnter(unit, newBehavior)
+        onBehaviorEnter(unit, newBehavior);
     }
-    
+
     function canPerform(unit: Unit, capability: uint64): bool {
-        return (unit.state.capabilities & capability) == capability
+        return (unit.state.capabilities & capability) == capability;
     }
-    
+
     function addCapability(unit: Unit, capability: uint64) {
-        unit.state.capabilities |= capability
+        unit.state.capabilities |= capability;
     }
-    
+
     function removeCapability(unit: Unit, capability: uint64) {
-        unit.state.capabilities &= ~capability
+        unit.state.capabilities &= ~capability;
     }
 }
 ```
@@ -1326,45 +1328,45 @@ class StateSystem {
 // Priority: Critical
 // Pattern: Modified ECS with Type-Safe Indices
 
-struct SoldierIndex(uint32)
-struct VehicleIndex(uint32)
+struct SoldierIndex(uint32);
+struct VehicleIndex(uint32);
 
 struct Soldier {
-    transform: Transform
-    health: Health
-    state: UnitState
-    weapon: Option<Weapon>
+    transform: Transform;
+    health: Health;
+    state: UnitState;
+    weapon: Option<Weapon>;
 }
 
 struct BattleState {
-    soldiers: Array<Soldier>
-    vehicles: Array<Vehicle>
-    currentFrame: uint64
+    soldiers: Array<Soldier>;
+    vehicles: Array<Vehicle>;
+    currentFrame: uint64;
 }
 
 class EntityManager {
-    state: BattleState
-    
+    state: BattleState;
+
     function createSoldier(position: Vec2): SoldierIndex {
-        soldier = Soldier()
-        soldier.transform.position = position
-        soldier.health.current = 100
-        soldier.health.max = 100
-        soldier.state.phase = Phase.Deployment
-        soldier.state.behavior = Behavior.Idle(Body.Stand)
-        soldier.state.gesture = Gesture.Idle
-        
-        state.soldiers.append(soldier)
-        return SoldierIndex(state.soldiers.length - 1)
+        soldier = Soldier();
+        soldier.transform.position = position;
+        soldier.health.current = 100;
+        soldier.health.max = 100;
+        soldier.state.phase = Phase.Deployment;
+        soldier.state.behavior = Behavior.Idle(Body.Stand);
+        soldier.state.gesture = Gesture.Idle;
+
+        state.soldiers.append(soldier);
+        return SoldierIndex(state.soldiers.length - 1);
     }
-    
+
     function getSoldier(index: SoldierIndex): Soldier {
-        return state.soldiers[index.value]
+        return state.soldiers[index.value];
     }
-    
+
     function destroySoldier(index: SoldierIndex) {
         // Swap-remove for O(1) deletion
-        state.soldiers.swapRemove(index.value)
+        state.soldiers.swapRemove(index.value);
     }
 }
 ```
@@ -1387,24 +1389,24 @@ class Renderer {
     function render(state: BattleState, camera: Camera) {
         for soldier in state.soldiers {
             if isVisible(soldier.transform.position, camera) {
-                sprite = getSpriteForState(soldier)
-                drawSprite(sprite, soldier.transform.position)
-                
+                sprite = getSpriteForState(soldier);
+                drawSprite(sprite, soldier.transform.position);
+
                 // Visual feedback
                 if isSelected(soldier) {
-                    drawSelectionCircle(soldier.transform.position)
+                    drawSelectionCircle(soldier.transform.position);
                 }
             }
         }
     }
-    
+
     function getSpriteForState(soldier: Soldier): Sprite {
         // Map state to visual representation
         match soldier.state.behavior {
-            Idle(_) => return sprites.idle
-            MoveTo(_) => return sprites.moving
-            Defend(_) => return sprites.defending
-            Dead => return sprites.dead
+            Idle(_) => return sprites.idle;
+            MoveTo(_) => return sprites.moving;
+            Defend(_) => return sprites.defending;
+            Dead => return sprites.dead;
         }
     }
 }
@@ -1425,42 +1427,42 @@ class Renderer {
 // Pattern: Tiled Map Integration
 
 struct TerrainType {
-    name: String
-    movementCost: float
-    coverStanding: float  // 0.0 to 1.0
-    coverProne: float
-    blocksVision: bool
-    opacity: float
+    name: String;
+    movementCost: float;
+    coverStanding: float;  // 0.0 to 1.0
+    coverProne: float;
+    blocksVision: bool;
+    opacity: float;
 }
 
 class TerrainSystem {
-    tiles: Array<Tile>
-    width: int
-    height: int
-    
+    tiles: Array<Tile>;
+    width: int;
+    height: int;
+
     function loadFromTMX(filename: String) {
         // Parse Tiled map file
         // Convert to internal representation
     }
-    
+
     function getTile(position: Vec2): Tile {
-        x = floor(position.x / TILE_SIZE)
-        y = floor(position.y / TILE_SIZE)
-        return tiles[y * width + x]
+        x = floor(position.x / TILE_SIZE);
+        y = floor(position.y / TILE_SIZE);
+        return tiles[y * width + x];
     }
-    
+
     function getCoverAt(position: Vec2, stance: Body): float {
-        tile = getTile(position)
+        tile = getTile(position);
         match stance {
-            Stand => return tile.terrain.coverStanding
-            Crouch => return (tile.terrain.coverStanding + tile.terrain.coverProne) / 2
-            Prone => return tile.terrain.coverProne
+            Stand => return tile.terrain.coverStanding;
+            Crouch => return (tile.terrain.coverStanding + tile.terrain.coverProne) / 2;
+            Prone => return tile.terrain.coverProne;
         }
     }
-    
+
     function isValidPosition(position: Vec2): bool {
-        tile = getTile(position)
-        return tile != null && !tile.terrain.blocksMovement
+        tile = getTile(position);
+        return tile != null && !tile.terrain.blocksMovement;
     }
 }
 ```
@@ -1475,22 +1477,18 @@ class TerrainSystem {
 
 **Patterns to Use in Phase 1**:
 
-1. **Three-Tier State Hierarchy**: Clean separation of game phases, tactical behaviors, and physical gestures
-2. **Modified ECS**: Type-safe entity storage with contiguous arrays
-3. **Service Locator**: Access terrain, renderer, input systems without tight coupling
-4. **Command Pattern**: Queue and execute unit creation commands
+1. **Three-Tier State Hierarchy**: Separates game phases, tactical behaviors, and physical gestures.
+2. **Modified ECS**: Uses type-safe entity storage with contiguous arrays.
+3. **Service Locator**: Accesses terrain, renderer, and input systems without tight coupling.
+4. **Command Pattern**: Queues and executes unit creation commands.
 
 **Pitfalls to Avoid in Phase 1**:
 
-1. **Mixing Simulation and Rendering**: Keep these separate from day one. The renderer should be a view of the simulation, not part of it.
-
-2. **God Object**: Don't create a "Unit" class with 50 fields. Use composition.
-
-3. **Magic Numbers**: Define constants for tile sizes, view distances, etc. Don't hardcode 32 or 100.
-
-4. **No Save/Load**: Implement serialization early. If you can't save and load by the end of Phase 1, you're accumulating technical debt.
-
-5. **Floating-Point in Core Logic**: Use fixed-point or integers for position tracking if you need determinism. Floating-point varies by platform.
+1. **Mixing Simulation and Rendering**: Keep them separate from the start. The renderer should only display the simulation.
+2. **God Object**: Avoid a "Unit" class with too many fields. Use composition.
+3. **Magic Numbers**: Define constants for tile sizes, view distances, etc.
+4. **No Save/Load**: Implement serialization early to avoid technical debt.
+5. **Floating-Point in Core Logic**: Use fixed-point or integers for position tracking if determinism is needed.
 
 ---
 
@@ -1516,76 +1514,76 @@ enum OrderType {
 }
 
 struct Order {
-    type: OrderType
-    targetPosition: Option<Vec2>
-    targetEntity: Option<EntityRef>
-    formation: FormationType
+    type: OrderType;
+    targetPosition: Option<Vec2>;
+    targetEntity: Option<EntityRef>;
+    formation: FormationType;
 }
 
 class OrderSystem {
     function issueOrder(unit: Unit, order: Order) {
-        // Clear existing orders if this is a new command (not queue)
+        // Clear existing orders if not queueing
         if !isQueueing() {
-            unit.orders.clear()
+            unit.orders.clear();
         }
-        
+
         // Validate order
         if !canAcceptOrder(unit, order) {
-            logWarning("Unit cannot accept this order")
-            return
+            logWarning("Unit cannot accept this order");
+            return;
         }
-        
+
         // Add to queue
-        unit.orders.append(order)
-        
+        unit.orders.append(order);
+
         // Process immediately if idle
         if unit.state.behavior is Idle {
-            processNextOrder(unit)
+            processNextOrder(unit);
         }
     }
-    
+
     function processNextOrder(unit: Unit) {
         if unit.orders.empty() {
-            transitionToState(unit, Behavior.Idle(getCurrentBody(unit)))
-            return
+            transitionToState(unit, Behavior.Idle(getCurrentBody(unit)));
+            return;
         }
-        
-        order = unit.orders[0]
-        
+
+        order = unit.orders[0];
+
         match order.type {
             MoveTo => {
-                path = pathfinder.findPath(unit.position, order.targetPosition)
+                path = pathfinder.findPath(unit.position, order.targetPosition);
                 if path.valid {
-                    transitionToState(unit, Behavior.MoveTo(path))
+                    transitionToState(unit, Behavior.MoveTo(path));
                 } else {
-                    logWarning("No path found")
-                    unit.orders.remove(0)
-                    processNextOrder(unit)
+                    logWarning("No path found");
+                    unit.orders.remove(0);
+                    processNextOrder(unit);
                 }
             }
             Defend => {
-                transitionToState(unit, Behavior.Defend(order.targetPosition))
+                transitionToState(unit, Behavior.Defend(order.targetPosition));
             }
             // ... other order types
         }
     }
-    
+
     function onOrderComplete(unit: Unit) {
-        unit.orders.remove(0)
-        processNextOrder(unit)
+        unit.orders.remove(0);
+        processNextOrder(unit);
     }
-    
+
     function canAcceptOrder(unit: Unit, order: Order): bool {
         // Check if unit state allows this order
         if unit.state.behavior is Dead {
-            return false
+            return false;
         }
-        
+
         if order.type == MoveFastTo && unit.state.phase != Phase.Battle {
-            return false  // Can't run during deployment
+            return false;  // Can't run during deployment
         }
-        
-        return true
+
+        return true;
     }
 }
 ```
@@ -1605,72 +1603,72 @@ class OrderSystem {
 // Pattern: A* with Terrain Costs
 
 struct PathNode {
-    position: Vec2
-    gCost: float  // Cost from start
-    hCost: float  // Heuristic to end
-    parent: Option<PathNode>
-    
-    function fCost(): float { return gCost + hCost }
+    position: Vec2;
+    gCost: float;  // Cost from start
+    hCost: float;  // Heuristic to end
+    parent: Option<PathNode>;
+
+    function fCost(): float { return gCost + hCost; }
 }
 
 class Pathfinder {
-    terrain: TerrainSystem
-    
+    terrain: TerrainSystem;
+
     function findPath(start: Vec2, end: Vec2): Path {
-        openSet = PriorityQueue<PathNode>(compareByFCost)
-        closedSet = Set<Vec2>()
-        
-        startNode = PathNode(start, 0, heuristic(start, end), null)
-        openSet.push(startNode)
-        
+        openSet = PriorityQueue<PathNode>(compareByFCost);
+        closedSet = Set<Vec2>();
+
+        startNode = PathNode(start, 0, heuristic(start, end), null);
+        openSet.push(startNode);
+
         while !openSet.empty() {
-            current = openSet.pop()
-            
+            current = openSet.pop();
+
             if distance(current.position, end) < THRESHOLD {
-                return reconstructPath(current)
+                return reconstructPath(current);
             }
-            
-            closedSet.insert(current.position)
-            
+
+            closedSet.insert(current.position);
+
             for neighbor in getNeighbors(current.position) {
                 if closedSet.contains(neighbor) {
-                    continue
+                    continue;
                 }
-                
-                movementCost = terrain.getMovementCost(neighbor)
-                tentativeG = current.gCost + movementCost
-                
-                existing = openSet.find(neighbor)
+
+                movementCost = terrain.getMovementCost(neighbor);
+                tentativeG = current.gCost + movementCost;
+
+                existing = openSet.find(neighbor);
                 if existing == null {
                     neighborNode = PathNode(
                         neighbor,
                         tentativeG,
                         heuristic(neighbor, end),
                         current
-                    )
-                    openSet.push(neighborNode)
+                    );
+                    openSet.push(neighborNode);
                 } else if tentativeG < existing.gCost {
-                    existing.gCost = tentativeG
-                    existing.parent = current
+                    existing.gCost = tentativeG;
+                    existing.parent = current;
                 }
             }
         }
-        
-        return Path.invalid()  // No path found
+
+        return Path.invalid();  // No path found
     }
-    
+
     function heuristic(a: Vec2, b: Vec2): float {
         // Manhattan distance on grid
-        return abs(a.x - b.x) + abs(a.y - b.y)
+        return abs(a.x - b.x) + abs(a.y - b.y);
     }
-    
+
     function getNeighbors(position: Vec2): Array<Vec2> {
         // Return 8-connected neighbors
         return [
             position + Vec2(-1, -1), position + Vec2(0, -1), position + Vec2(1, -1),
             position + Vec2(-1, 0),                          position + Vec2(1, 0),
             position + Vec2(-1, 1),  position + Vec2(0, 1),  position + Vec2(1, 1)
-        ]
+        ];
     }
 }
 ```
@@ -1678,7 +1676,7 @@ class Pathfinder {
 **Exit Criteria**:
 - [ ] A* finds paths around obstacles
 - [ ] Terrain affects path cost (slow through mud)
-- [ ] Paths are reasonable (not zigzagging)
+- [ ] Paths are reasonable (no zigzagging)
 - [ ] Pathfinding is fast (< 10ms for 100m path)
 
 ---
@@ -1697,35 +1695,35 @@ enum FormationType {
 }
 
 struct Formation {
-    type: FormationType
-    spacing: float = 10.0
-    
+    type: FormationType;
+    spacing: float = 10.0;
+
     function getPosition(memberIndex: int, leaderPosition: Vec2, leaderHeading: Vec2): Vec2 {
         match type {
             Column => {
                 // Members follow behind leader
-                offset = -memberIndex * spacing
-                return leaderPosition + leaderHeading * offset
+                offset = -memberIndex * spacing;
+                return leaderPosition + leaderHeading * offset;
             }
             Line => {
                 // Members form line perpendicular to heading
-                perpendicular = leaderHeading.perpendicular()
-                offset = (memberIndex - centerIndex()) * spacing
-                return leaderPosition + perpendicular * offset
+                perpendicular = leaderHeading.perpendicular();
+                offset = (memberIndex - centerIndex()) * spacing;
+                return leaderPosition + perpendicular * offset;
             }
             Wedge => {
                 // V-shape formation
                 if memberIndex == 0 {
-                    return leaderPosition
+                    return leaderPosition;
                 }
-                
-                side = (memberIndex % 2 == 1) ? 1 : -1
-                row = (memberIndex + 1) / 2
-                
-                forward = leaderHeading * (-row * spacing)
-                lateral = leaderHeading.perpendicular() * (side * row * spacing)
-                
-                return leaderPosition + forward + lateral
+
+                side = (memberIndex % 2 == 1) ? 1 : -1;
+                row = (memberIndex + 1) / 2;
+
+                forward = leaderHeading * (-row * spacing);
+                lateral = leaderHeading.perpendicular() * (side * row * spacing);
+
+                return leaderPosition + forward + lateral;
             }
         }
     }
@@ -1733,22 +1731,22 @@ struct Formation {
 
 class SquadMovement {
     function moveSquad(squad: Squad, destination: Vec2, formation: FormationType) {
-        leader = squad.getLeader()
-        
+        leader = squad.getLeader();
+
         // Leader pathfinds
-        leaderPath = pathfinder.findPath(leader.position, destination)
-        
+        leaderPath = pathfinder.findPath(leader.position, destination);
+
         // Calculate formation positions along path
-        formation = Formation(formation)
-        
+        formation = Formation(formation);
+
         for i, member in squad.members.enumerate() {
             if member == leader {
-                issueOrder(member, Order(MoveTo, leaderPath))
+                issueOrder(member, Order(MoveTo, leaderPath));
             } else {
                 // Calculate member's target in formation
-                targetPos = formation.getPosition(i, destination, leader.heading)
-                memberPath = pathfinder.findPath(member.position, targetPos)
-                issueOrder(member, Order(MoveTo, memberPath))
+                targetPos = formation.getPosition(i, destination, leader.heading);
+                memberPath = pathfinder.findPath(member.position, targetPos);
+                issueOrder(member, Order(MoveTo, memberPath));
             }
         }
     }
@@ -1765,28 +1763,24 @@ class SquadMovement {
 
 **Patterns to Use in Phase 2**:
 
-1. **Command Pattern**: Orders are commands that can be queued, cancelled, and potentially undone
-2. **Prerequisite Chain**: Automatic insertion of stand-up before running
-3. **Strategy Pattern**: Different pathfinding algorithms (A*, Dijkstra)
-4. **Observer Pattern**: Notify UI when orders complete
+1. **Command Pattern**: Orders are commands that can be queued, cancelled, and potentially undone.
+2. **Prerequisite Chain**: Automatically inserts stand-up before running.
+3. **Strategy Pattern**: Different pathfinding algorithms (A*, Dijkstra).
+4. **Observer Pattern**: Notifies UI when orders complete.
 
 **Pitfalls to Avoid in Phase 2**:
 
 1. **Synchronous Pathfinding**: Pathfind on a background thread or in chunks to avoid hitches.
-
 2. **Ignoring Unit Radius**: Units need personal space. Don't let them stack on the same pixel.
-
 3. **No Path Smoothing**: A* produces jagged paths. Smooth them or units look robotic.
-
 4. **Formation Rigidity**: Real formations adjust to terrain. Don't force units into walls.
-
 5. **Order Staleness**: A queued order to attack a target that died causes crashes. Validate orders before executing.
 
 ---
 
 ### 12.3.4 Phase 3: Combat and Morale
 
-**Goal**: Implement the core tactical gameplay—shooting, suppression, and the psychological state of combat.
+**Goal**: Build the core tactical gameplay—shooting, suppression, and the psychological effects of combat.
 
 **Key Components**:
 
@@ -1805,11 +1799,11 @@ struct WeaponType {
     reloadTime: float
     accuracy: float  // 0.0 to 1.0
     suppression: float  // Suppression generated per shot
-    
+
     // Ballistics
     projectileSpeed: float
     penetration: float
-    
+
     // Sounds
     fireSound: String
     reloadSound: String
@@ -1826,64 +1820,57 @@ struct Weapon {
 
 class WeaponSystem {
     weaponTypes: Map<String, WeaponType>
-    
+
     function loadWeaponTypes(filename: String) {
         // Load from JSON
     }
-    
+
     function canFire(weapon: Weapon, currentTime: uint64): bool {
-        if weapon.isReloading {
+        if weapon.isReloading || weapon.ammoInMagazine <= 0 {
             return false
         }
-        
-        if weapon.ammoInMagazine <= 0 {
-            return false
-        }
-        
+
         timeSinceLastShot = currentTime - weapon.lastFiredTime
         minTimeBetweenShots = 1.0 / weapon.type.fireRate
-        
+
         return timeSinceLastShot >= minTimeBetweenShots
     }
-    
+
     function fire(weapon: Weapon, shooter: Unit, target: Unit, currentTime: uint64): FireResult {
         if !canFire(weapon, currentTime) {
             return FireResult.CannotFire
         }
-        
-        // Consume ammo
+
         weapon.ammoInMagazine--
         weapon.lastFiredTime = currentTime
-        
-        // Calculate hit
+
         hitChance = calculateHitChance(shooter, target, weapon)
-        
+
         if random() < hitChance {
             damage = calculateDamage(weapon, shooter, target)
             applyDamage(target, damage)
             return FireResult.Hit(damage)
-        } else {
-            return FireResult.Miss
         }
+        return FireResult.Miss
     }
-    
+
     function startReload(weapon: Weapon, currentTime: uint64) {
         if weapon.isReloading || weapon.ammoInReserve <= 0 {
             return
         }
-        
+
         weapon.isReloading = true
         weapon.reloadCompleteTime = currentTime + weapon.type.reloadTime
     }
-    
+
     function finishReload(weapon: Weapon, currentTime: uint64) {
         if !weapon.isReloading || currentTime < weapon.reloadCompleteTime {
             return
         }
-        
+
         ammoNeeded = weapon.type.magazineSize - weapon.ammoInMagazine
         ammoToLoad = min(ammoNeeded, weapon.ammoInReserve)
-        
+
         weapon.ammoInMagazine += ammoToLoad
         weapon.ammoInReserve -= ammoToLoad
         weapon.isReloading = false
@@ -1892,10 +1879,10 @@ class WeaponSystem {
 ```
 
 **Exit Criteria**:
-- [ ] Weapons can fire and reload
-- [ ] Ammunition is tracked and consumed
-- [ ] Hit chance depends on range, stance, cover
-- [ ] Different weapon types behave differently
+- Weapons fire and reload correctly.
+- Ammunition is tracked and consumed.
+- Hit chance depends on range, stance, and cover.
+- Different weapon types behave uniquely.
 
 ---
 
@@ -1907,87 +1894,77 @@ class WeaponSystem {
 
 class CombatSystem {
     rng: SeededRandom
-    
+
     function calculateHitChance(shooter: Unit, target: Unit, weapon: Weapon): float {
         baseChance = weapon.type.accuracy
-        
-        // Distance penalty
+
         distance = distance(shooter.position, target.position)
         effectiveRange = weapon.type.range
-        
+
         if distance > effectiveRange {
-            baseChance *= 0.1  // 90% penalty beyond effective range
+            baseChance *= 0.1
         } else {
             baseChance *= (1.0 - (distance / effectiveRange) * 0.5)
         }
-        
-        // Stance modifier
+
         match getStance(shooter) {
             Stand => baseChance *= 0.7
             Crouch => baseChance *= 0.85
-            Prone => baseChance *= 1.0  // Best accuracy
+            Prone => baseChance *= 1.0
         }
-        
-        // Target stance (harder to hit prone)
+
         match getStance(target) {
             Stand => baseChance *= 1.0
             Crouch => baseChance *= 0.85
             Prone => baseChance *= 0.6
         }
-        
-        // Cover protection
+
         cover = terrain.getCoverAt(target.position, getStance(target))
         baseChance *= (1.0 - cover * 0.8)
-        
-        // Suppression (harder to aim when suppressed)
+
         if shooter.state.capabilities & IsSuppressed {
             baseChance *= 0.5
         }
-        
-        // Morale (panicking reduces accuracy)
+
         moraleModifier = shooter.morale / 100.0
         baseChance *= moraleModifier
-        
+
         return clamp(baseChance, 0.01, 0.99)
     }
-    
+
     function calculateDamage(weapon: Weapon, shooter: Unit, target: Unit): int {
         baseDamage = weapon.type.damage
-        
-        // Random variation (deterministic with seed)
         variation = rng.randomFloat(0.8, 1.2)
-        
-        // Hit location (simplified)
+
         locationRoll = rng.randomFloat(0, 1)
         locationModifier = match locationRoll {
-            < 0.05 => 3.0  // Head (5% chance, 3x damage)
-            < 0.25 => 1.5  // Torso (20% chance, 1.5x damage)
-            _ => 1.0       // Limbs (75% chance, normal damage)
+            < 0.05 => 3.0
+            < 0.25 => 1.5
+            _ => 1.0
         }
-        
+
         return floor(baseDamage * variation * locationModifier)
     }
-    
+
     function applyDamage(unit: Unit, damage: int) {
         unit.health.current -= damage
-        
+
         if unit.health.current <= 0 {
             killUnit(unit)
         } else if unit.health.current < unit.health.max * 0.3 {
-            unit.morale -= 20  // Being wounded hurts morale
+            unit.morale -= 20
         }
-        
-        // Spawn hit effect
+
         spawnHitEffect(unit.position)
     }
 }
 ```
 
 **Exit Criteria**:
-- [ ] Hit chance considers all factors
-- [ ] Damage has realistic variation
-- [ ] Combat is deterministic (same seed = same results)
-- [ ] Units can die
+- Hit chance accounts for all relevant factors.
+- Damage varies realistically.
+- Combat remains deterministic (same seed produces same results).
+- Units can die from damage.
 
 ---
 
@@ -1999,57 +1976,54 @@ class CombatSystem {
 
 class LineOfSight {
     terrain: TerrainSystem
-    
+
     function canSee(from: Unit, to: Unit): bool {
         return canSeePosition(from.position, to.position, from.state.phase)
     }
-    
+
     function canSeePosition(from: Vec2, to: Vec2, phase: Phase): bool {
-        // Immediate vicinity always visible
         if distance(from, to) < 6.0 {
             return true
         }
-        
-        // Bresenham line sampling
+
         points = bresenhamLine(from, to)
         accumulatedOpacity = 0.0
-        
+
         for point in points {
-            // Skip first few points (shooter's position)
             if distance(from, point) < 6.0 {
                 continue
             }
-            
+
             terrainType = terrain.getTile(point)
             accumulatedOpacity += terrainType.opacity
-            
+
             if accumulatedOpacity >= 0.5 {
-                return false  // Blocked
+                return false
             }
         }
-        
+
         return true
     }
-    
+
     function getVisibleEnemies(unit: Unit): Array<Unit> {
         enemies = []
-        
+
         for other in getAllEnemies(unit.side) {
             if canSee(unit, other) {
                 enemies.append(other)
             }
         }
-        
+
         return enemies
     }
 }
 ```
 
 **Exit Criteria**:
-- [ ] Terrain blocks vision
-- [ ] Elevation affects LOS
-- [ ] Can query visible enemies
-- [ ] LOS is fast enough for AI (< 1ms per check)
+- Terrain blocks vision.
+- Elevation affects line of sight.
+- The system can query visible enemies.
+- Line of sight checks complete in under 1ms per unit.
 
 ---
 
@@ -2076,55 +2050,47 @@ enum MoraleLevel {
 
 class MoraleSystem {
     function updateMorale(unit: Unit, dt: float) {
-        // Recovery over time
         if unit.morale.suppression > 0 {
-            unit.morale.suppression -= dt * 5.0  // Recover 5/sec
+            unit.morale.suppression -= dt * 5.0
         }
-        
-        // Leader bonus
+
         if !unit.morale.leaderAlive {
-            unit.morale.current -= dt * 2.0  // Lose morale without leader
+            unit.morale.current -= dt * 2.0
         }
-        
-        // Recent casualties
+
         casualtyPenalty = unit.morale.recentCasualties * 5.0
         unit.morale.current -= casualtyPenalty * dt
-        
-        // Clamp
+
         unit.morale.current = clamp(unit.morale.current, 0, 100)
-        
-        // Update behavior based on morale
         updateBehaviorFromMorale(unit)
     }
-    
+
     function applySuppression(unit: Unit, amount: float) {
         unit.morale.suppression += amount
-        
+
         if unit.morale.suppression > 30 {
             unit.state.capabilities |= IsSuppressed
             addStatusEffect(unit, Suppressed)
         }
     }
-    
+
     function onCasualty(unit: Unit, squad: Squad) {
         unit.morale.recentCasualties++
-        
-        // Cascade to squad
+
         for member in squad.members {
             if member != unit && member.alive {
-                member.morale.current -= 10  // -10 morale per casualty
-                
-                // Check for leader death
+                member.morale.current -= 10
+
                 if isLeader(unit, squad) {
                     member.morale.leaderAlive = false
                 }
             }
         }
     }
-    
+
     function updateBehaviorFromMorale(unit: Unit) {
         level = getMoraleLevel(unit)
-        
+
         match level {
             Steady => {
                 removeStatusEffect(unit, Suppressed)
@@ -2137,13 +2103,11 @@ class MoraleSystem {
                 unit.state.capabilities |= IsSuppressed
             }
             Broken => {
-                // May refuse orders
                 if random() < 0.3 {
                     cancelCurrentOrder(unit)
                 }
             }
             Panicked => {
-                // AI takes over
                 issueOrder(unit, Order(Flee))
             }
         }
@@ -2152,37 +2116,31 @@ class MoraleSystem {
 ```
 
 **Exit Criteria**:
-- [ ] Morale affects behavior
-- [ ] Suppression reduces combat effectiveness
-- [ ] Casualties affect squad morale
-- [ ] Leader death impacts squad
+- Morale influences unit behavior.
+- Suppression reduces combat effectiveness.
+- Casualties lower squad morale.
+- Leader death impacts the squad.
 
 ---
 
 **Patterns to Use in Phase 3**:
-
-1. **Strategy Pattern**: Different weapons, different tactics
-2. **Observer Pattern**: Notify when units die, morale changes
-3. **State Pattern**: Morale levels drive behavior
-4. **Flyweight Pattern**: Share weapon type data
+1. **Strategy Pattern**: Different weapons enable different tactics.
+2. **Observer Pattern**: Notify systems when units die or morale changes.
+3. **State Pattern**: Morale levels drive behavior.
+4. **Flyweight Pattern**: Share weapon type data across units.
 
 **Pitfalls to Avoid in Phase 3**:
-
-1. **Unbalanced Combat**: Test extensively. A rifle shouldn't one-shot a tank.
-
-2. **Morale Too Harsh**: Frustrating when units don't obey. Balance carefully.
-
-3. **LOS Too Expensive**: Cache results, don't calculate every frame for every pair.
-
-4. **No Feedback**: Players need to know WHY they missed (suppression? cover? range?)
-
-5. **Randomness Without Seeds**: Use seeded RNG for deterministic combat.
+1. **Unbalanced Combat**: Test extensively. Rifles should not one-shot tanks.
+2. **Overly Harsh Morale**: Units refusing orders frustrates players. Balance carefully.
+3. **Slow Line of Sight**: Cache results. Avoid recalculating every frame for every unit pair.
+4. **No Feedback**: Players need to know why they missed—suppression, cover, or range.
+5. **Unseeded Randomness**: Use seeded RNG for deterministic combat.
 
 ---
 
 ### 12.3.5 Phase 4: AI and Behaviors
 
-**Goal**: Create autonomous units that react intelligently to threats without player micromanagement.
+**Goal**: Create autonomous units that react intelligently to threats without requiring player micromanagement.
 
 **Key Components**:
 
@@ -2202,11 +2160,10 @@ struct SensoryData {
 
 class PerceptionSystem {
     los: LineOfSight
-    
+
     function updatePerception(unit: Unit) {
         sensory = unit.sensoryData
-        
-        // Visual scan
+
         sensory.visibleEnemies.clear()
         for enemy in getAllEnemies(unit.side) {
             if los.canSee(unit, enemy) {
@@ -2214,15 +2171,13 @@ class PerceptionSystem {
                 sensory.knownEnemyPositions[enemy] = enemy.position
             }
         }
-        
-        // Process audible events
+
         for event in getRecentSoundEvents(unit.position, 100) {
             if event.time > sensory.lastThreatTime {
                 sensory.audibleEvents.append(event)
             }
         }
-        
-        // Update threat status
+
         if sensory.visibleEnemies.length > 0 {
             sensory.underFire = true
             sensory.lastThreatTime = currentTime()
@@ -2230,12 +2185,12 @@ class PerceptionSystem {
             sensory.underFire = false
         }
     }
-    
+
     function getNearestKnownEnemy(unit: Unit): Option<Unit> {
         sensory = unit.sensoryData
         nearest = null
         nearestDist = infinity
-        
+
         for (enemy, position) in sensory.knownEnemyPositions {
             dist = distance(unit.position, position)
             if dist < nearestDist {
@@ -2243,17 +2198,17 @@ class PerceptionSystem {
                 nearestDist = dist
             }
         }
-        
+
         return nearest
     }
 }
 ```
 
 **Exit Criteria**:
-- [ ] Units track visible enemies
-- [ ] Last known positions remembered
-- [ ] Auditory events processed
-- [ ] Under-fire status accurate
+- Units track visible enemies.
+- Last known enemy positions are remembered.
+- Auditory events are processed.
+- Under-fire status updates accurately.
 
 ---
 
@@ -2276,24 +2231,23 @@ class BehaviorNode {
 class Selector extends BehaviorNode {
     children: Array<BehaviorNode>
     currentIndex: int = 0
-    
+
     function tick(unit: Unit, world: World): NodeStatus {
         while currentIndex < children.length {
             status = children[currentIndex].tick(unit, world)
-            
+
             if status == Success {
                 currentIndex = 0
                 return Success
             }
-            
+
             if status == Running {
                 return Running
             }
-            
-            // Failed, try next child
+
             currentIndex++
         }
-        
+
         currentIndex = 0
         return Failure
     }
@@ -2302,24 +2256,23 @@ class Selector extends BehaviorNode {
 class Sequence extends BehaviorNode {
     children: Array<BehaviorNode>
     currentIndex: int = 0
-    
+
     function tick(unit: Unit, world: World): NodeStatus {
         while currentIndex < children.length {
             status = children[currentIndex].tick(unit, world)
-            
+
             if status == Failure {
                 currentIndex = 0
                 return Failure
             }
-            
+
             if status == Running {
                 return Running
             }
-            
-            // Succeeded, continue to next
+
             currentIndex++
         }
-        
+
         currentIndex = 0
         return Success
     }
@@ -2327,7 +2280,7 @@ class Sequence extends BehaviorNode {
 
 class Condition extends BehaviorNode {
     check: Function<Unit, bool>
-    
+
     function tick(unit: Unit, world: World): NodeStatus {
         if check(unit) {
             return Success
@@ -2338,7 +2291,7 @@ class Condition extends BehaviorNode {
 
 class Action extends BehaviorNode {
     action: Function<Unit, NodeStatus>
-    
+
     function tick(unit: Unit, world: World): NodeStatus {
         return action(unit)
     }
@@ -2347,8 +2300,7 @@ class Action extends BehaviorNode {
 // Example: Infantry AI tree
 function createInfantryTree(): BehaviorNode {
     root = Selector()
-    
-    // Priority 1: Survival
+
     survival = Sequence()
     survival.addChild(Condition(unit => unit.sensoryData.underFire))
     survival.addChild(Action(unit => {
@@ -2360,8 +2312,7 @@ function createInfantryTree(): BehaviorNode {
         return Failure
     }))
     root.addChild(survival)
-    
-    // Priority 2: Engagement
+
     engagement = Sequence()
     engagement.addChild(Condition(unit => unit.sensoryData.visibleEnemies.length > 0))
     engagement.addChild(Action(unit => {
@@ -2370,30 +2321,28 @@ function createInfantryTree(): BehaviorNode {
         return Running
     }))
     root.addChild(engagement)
-    
-    // Priority 3: Execute orders
+
     root.addChild(Action(unit => {
         if unit.orders.length > 0 {
-            return Running  // Already has orders
+            return Running
         }
         return Failure
     }))
-    
-    // Priority 4: Idle
+
     root.addChild(Action(unit => {
         transitionToState(unit, Behavior.Idle)
         return Success
     }))
-    
+
     return root
 }
 ```
 
 **Exit Criteria**:
-- [ ] Behavior trees evaluate correctly
-- [ ] Selectors try children until success
-- [ ] Sequences execute children in order
-- [ ] Actions can return Running for multi-frame tasks
+- Behavior trees evaluate correctly.
+- Selectors try children until one succeeds.
+- Sequences execute children in order.
+- Actions can return Running for multi-frame tasks.
 
 ---
 
@@ -2406,10 +2355,10 @@ function createInfantryTree(): BehaviorNode {
 class TacticalAI {
     function selectBestPosition(unit: Unit, goal: Goal): Vec2 {
         candidates = generateCandidatePositions(unit.position, 50)
-        
+
         bestScore = -infinity
         bestPosition = unit.position
-        
+
         for pos in candidates {
             score = evaluatePosition(unit, pos, goal)
             if score > bestScore {
@@ -2417,58 +2366,49 @@ class TacticalAI {
                 bestPosition = pos
             }
         }
-        
+
         return bestPosition
     }
-    
+
     function evaluatePosition(unit: Unit, pos: Vec2, goal: Goal): float {
         score = 0.0
-        
+
         match goal {
             SeekCover => {
-                // High cover value
                 cover = terrain.getCoverAt(pos, getStance(unit))
                 score += cover * 100
-                
-                // Distance to current position (closer is better)
+
                 distancePenalty = distance(unit.position, pos) * 0.5
                 score -= distancePenalty
-                
-                // Can be seen by enemies?
+
                 for enemy in unit.sensoryData.visibleEnemies {
                     if canSeePosition(enemy.position, pos) {
-                        score -= 50  // Penalty for visible positions
+                        score -= 50
                     }
                 }
             }
-            
+
             Ambush => {
-                // Good cover
                 cover = terrain.getCoverAt(pos, Prone)
                 score += cover * 50
-                
-                // Good visibility of likely enemy approaches
+
                 for approach in getLikelyApproaches() {
                     if canSeePosition(pos, approach) {
                         score += 20
                     }
                 }
-                
-                // Concealment (hard to spot)
+
                 visibility = calculateVisibilityScore(pos)
                 score += visibility
             }
-            
+
             Advance => {
-                // Progress toward objective
                 progress = distance(unit.position, objective) - distance(pos, objective)
                 score += progress * 2
-                
-                // Cover along the way
+
                 cover = terrain.getCoverAt(pos, getStance(unit))
                 score += cover * 30
-                
-                // Not exposed to enemies
+
                 for enemy in unit.sensoryData.visibleEnemies {
                     if canSeePosition(enemy.position, pos) {
                         score -= 40
@@ -2476,44 +2416,38 @@ class TacticalAI {
                 }
             }
         }
-        
+
         return score
     }
 }
 ```
 
 **Exit Criteria**:
-- [ ] AI seeks cover when under fire
-- [ ] AI selects good ambush positions
-- [ ] AI advances intelligently
-- [ ] AI conserves ammunition
+- AI seeks cover when under fire.
+- AI selects effective ambush positions.
+- AI advances toward objectives intelligently.
+- AI conserves ammunition.
 
 ---
 
 **Patterns to Use in Phase 4**:
-
-1. **Behavior Tree Pattern**: Hierarchical, modular AI decisions
-2. **Strategy Pattern**: Different AI personalities (aggressive, cautious)
-3. **Blackboard Pattern**: Shared AI memory
-4. **Goal-Oriented Action Planning**: Complex multi-step goals
+1. **Behavior Tree Pattern**: Modular, hierarchical AI decisions.
+2. **Strategy Pattern**: Different AI personalities (aggressive, cautious).
+3. **Blackboard Pattern**: Shared AI memory for coordination.
+4. **Goal-Oriented Action Planning**: Complex, multi-step goals.
 
 **Pitfalls to Avoid in Phase 4**:
-
-1. **Perfect AI**: AI with perfect knowledge is frustrating. Limit perception.
-
+1. **Perfect AI**: AI with perfect knowledge frustrates players. Limit perception.
 2. **No Player Override**: Players must be able to override AI decisions.
-
-3. **Stupid Behavior**: AI that runs into the open or ignores obvious threats.
-
-4. **Performance**: AI can be expensive. Profile and optimize hot paths.
-
-5. **Determinism**: Ensure AI is deterministic for multiplayer.
+3. **Stupid Behavior**: AI should not run into the open or ignore obvious threats.
+4. **Performance Issues**: AI can be expensive. Profile and optimize hot paths.
+5. **Non-Determinism**: Ensure AI behaves deterministically for multiplayer.
 
 ---
 
 ### 12.3.6 Phase 5: Modding Support
 
-**Goal**: Enable community content creation—new units, weapons, behaviors, and scenarios.
+**Goal**: Enable community content creation for new units, weapons, behaviors, and scenarios.
 
 **Key Components**:
 
@@ -2581,14 +2515,14 @@ class TacticalAI {
 class DataLoader {
     function loadUnitTypes(directory: String): Map<String, UnitType> {
         unitTypes = {}
-        
+
         for filename in listFiles(directory, ".json") {
             json = parseJSON(filename)
             unitType = UnitType()
             unitType.id = json.id
             unitType.name = json.name
             unitType.faction = json.faction
-            
+
             for memberJson in json.composition {
                 member = SquadMember()
                 member.role = memberJson.role
@@ -2597,20 +2531,20 @@ class DataLoader {
                 member.experience = parseExperience(memberJson.experience)
                 unitType.composition.append(member)
             }
-            
+
             unitTypes[unitType.id] = unitType
         }
-        
+
         return unitTypes
     }
 }
 ```
 
 **Exit Criteria**:
-- [ ] Units defined in JSON
-- [ ] Weapons defined in JSON
-- [ ] Can load new units without recompilation
-- [ ] Validation catches malformed data
+- Units defined in JSON
+- Weapons defined in JSON
+- Can load new units without recompilation
+- Validation catches malformed data
 
 ---
 
@@ -2628,43 +2562,37 @@ function onInit(soldier)
 end
 
 function onUpdate(soldier, dt, world)
-    -- Priority 1: Survival
     if soldier.isUnderFire then
         if not soldier.coverPosition then
             soldier.coverPosition = world.findNearestCover(soldier.position, 100)
         end
-        
+
         if soldier.coverPosition then
             soldier:orderMoveTo(soldier.coverPosition)
             return
         end
     end
-    
-    -- Priority 2: Engagement
+
     local enemies = world.getVisibleEnemies(soldier, 200)
     if #enemies > 0 then
         local target = selectBestTarget(soldier, enemies)
         soldier:orderEngage(target)
         return
     end
-    
-    -- Priority 3: Execute orders
+
     if soldier.currentOrder then
         soldier:executeOrder(soldier.currentOrder)
         return
     end
-    
-    -- Idle
+
     soldier:orderIdle()
 end
 
 function onDamaged(soldier, attacker, damage)
-    -- React to being hit
     if damage > soldier.maxHealth * 0.5 then
         soldier:moraleDrop(30)
     end
-    
-    -- Try to locate attacker
+
     if attacker then
         soldier:addKnownEnemyPosition(attacker, attacker.position)
     end
@@ -2673,30 +2601,26 @@ end
 function selectBestTarget(soldier, enemies)
     local bestTarget = nil
     local bestScore = -1
-    
+
     for _, enemy in ipairs(enemies) do
         local score = 0
-        
-        -- Distance (closer is better)
         local dist = world.distance(soldier.position, enemy.position)
         score = score + (200 - dist)
-        
-        -- Threat level
+
         if enemy.isFiring then
             score = score + 50
         end
-        
-        -- Vulnerability
+
         if enemy.isExposed then
             score = score + 30
         end
-        
+
         if score > bestScore then
             bestScore = score
             bestTarget = enemy
         end
     end
-    
+
     return bestTarget
 end
 ```
@@ -2704,11 +2628,10 @@ end
 ```pseudocode
 class ScriptSystem {
     lua: LuaState
-    
+
     function init() {
         lua = LuaState()
-        
-        // Bind game functions to Lua
+
         lua.registerFunction("world.findNearestCover", findNearestCover)
         lua.registerFunction("world.getVisibleEnemies", getVisibleEnemies)
         lua.registerFunction("world.distance", distance)
@@ -2716,20 +2639,20 @@ class ScriptSystem {
         lua.registerFunction("soldier.orderEngage", orderEngage)
         lua.registerFunction("soldier.moraleDrop", moraleDrop)
     }
-    
+
     function loadBehaviorScript(path: String): Script {
         script = Script()
         script.path = path
         script.luaRef = lua.loadFile(path)
         return script
     }
-    
+
     function executeUpdate(script: Script, soldier: Soldier, dt: float) {
         lua.pushFunction(script.luaRef, "onUpdate")
         lua.pushUserdata(soldier)
         lua.pushNumber(dt)
         lua.pushUserdata(world)
-        
+
         if lua.pcall(3, 0, 0) != 0 {
             logError("Lua error in " + script.path + ": " + lua.toString(-1))
         }
@@ -2738,10 +2661,10 @@ class ScriptSystem {
 ```
 
 **Exit Criteria**:
-- [ ] Lua scripts can control unit behavior
-- [ ] Game API exposed to scripts
-- [ ] Scripts can be hot-reloaded
-- [ ] Sandboxed (scripts can't crash game)
+- Lua scripts can control unit behavior
+- Game API exposed to scripts
+- Scripts can be hot-reloaded
+- Sandboxed to prevent crashes
 
 ---
 
@@ -2773,7 +2696,7 @@ struct ModInfo {
     version: String
     author: String
     description: String
-    gameVersion: String  // Required game version
+    gameVersion: String
     dependencies: Array<ModDependency>
     conflicts: Array<String>
     loadOrder: int
@@ -2781,13 +2704,13 @@ struct ModInfo {
 
 struct ModDependency {
     modId: String
-    version: String  // e.g., ">= 1.0.0"
+    version: String
 }
 
 class ModManager {
     mods: Map<String, Mod>
     loadedMods: Array<Mod>
-    
+
     function scanMods(directory: String) {
         for modDir in listDirectories(directory) {
             infoPath = modDir + "/mod.json"
@@ -2799,11 +2722,10 @@ class ModManager {
             }
         }
     }
-    
+
     function loadMod(modId: String) {
         mod = mods[modId]
-        
-        // Check dependencies
+
         for dep in mod.info.dependencies {
             if !isModLoaded(dep.modId) {
                 if dep.optional {
@@ -2811,63 +2733,57 @@ class ModManager {
                 }
                 throw Error("Missing dependency: " + dep.modId)
             }
-            
+
             loadedVersion = getLoadedModVersion(dep.modId)
             if !versionSatisfies(loadedVersion, dep.version) {
                 throw Error("Version mismatch for " + dep.modId)
             }
         }
-        
-        // Check conflicts
+
         for conflict in mod.info.conflicts {
             if isModLoaded(conflict) {
                 throw Error("Mod conflict: " + mod.id + " conflicts with " + conflict)
             }
         }
-        
-        // Load data
+
         loadModData(mod)
-        
+
         loadedMods.append(mod)
         sortByLoadOrder(loadedMods)
     }
-    
+
     function loadModData(mod: Mod) {
-        // Load unit types
         for file in listFiles(mod.path + "/data/units", ".json") {
             unitType = dataLoader.loadUnitType(file)
             registerUnitType(unitType)
         }
-        
-        // Load weapons
+
         for file in listFiles(mod.path + "/data/weapons", ".json") {
             weapon = dataLoader.loadWeapon(file)
             registerWeapon(weapon)
         }
-        
-        // Load scripts
+
         for file in listFiles(mod.path + "/scripts", ".lua") {
             script = scriptSystem.loadBehaviorScript(file)
             registerBehaviorScript(script)
         }
-        
-        // Load assets
+
         assetLoader.loadDirectory(mod.path + "/assets")
     }
 }
 ```
 
 **Exit Criteria**:
-- [ ] Mods have metadata and dependencies
-- [ ] Mod loading order respected
-- [ ] Conflicts detected and reported
-- [ ] Can enable/disable mods at runtime
+- Mods have metadata and dependencies
+- Mod loading order respected
+- Conflicts detected and reported
+- Can enable/disable mods at runtime
 
 ---
 
 **Patterns to Use in Phase 5**:
 
-1. **Factory Pattern**: Create units/entities from data
+1. **Factory Pattern**: Create units and entities from data
 2. **Plugin Architecture**: Load scripts as plugins
 3. **Virtual File System**: Overlay mod files over base game
 4. **Dependency Injection**: Make systems replaceable by mods
@@ -2875,13 +2791,9 @@ class ModManager {
 **Pitfalls to Avoid in Phase 5**:
 
 1. **No Versioning**: Mods break with game updates. Provide migration paths.
-
 2. **Monolithic Data**: Hard to override single values. Make data granular.
-
 3. **No Validation**: Crashes from malformed mod data. Validate everything.
-
 4. **Security**: Scripts can access filesystem. Use sandboxing.
-
 5. **No Documentation**: Modders need docs. Provide API reference.
 
 ---
@@ -2890,56 +2802,46 @@ class ModManager {
 
 ### 12.4.1 Determinism Testing
 
-Deterministic simulation is essential for multiplayer and replay. Test it rigorously.
+Deterministic simulation matters for multiplayer and replay. Test it thoroughly.
 
 ```pseudocode
 class DeterminismTest {
     function testDeterministicSimulation() {
-        // Create initial state
         state1 = createTestState()
         state2 = cloneState(state1)
-        
-        // Run simulation for 1000 frames
+
         for frame in 0 to 1000 {
-            // Generate deterministic inputs
             input = generateTestInput(frame)
-            
-            // Apply to both states
+
             applyInput(state1, input)
             applyInput(state2, input)
-            
-            // Step simulation
+
             stepSimulation(state1)
             stepSimulation(state2)
-            
-            // Verify states match
+
             if !statesEqual(state1, state2) {
                 logError("Desync at frame " + frame)
                 dumpStates(state1, state2)
                 return false
             }
         }
-        
+
         return true
     }
-    
+
     function generateTestInput(frame: int): Input {
-        // Use seeded RNG for deterministic inputs
         rng = SeededRandom(12345)
-        
-        // Generate random commands
         commands = []
         for i in 0 to 10 {
             if rng.random() < 0.1 {
                 commands.append(generateRandomCommand(rng))
             }
         }
-        
+
         return Input(frame, commands)
     }
-    
+
     function statesEqual(a: BattleState, b: BattleState): bool {
-        // Check soldier positions
         for i in 0 to a.soldiers.length {
             if a.soldiers[i].position != b.soldiers[i].position {
                 return false
@@ -2951,12 +2853,11 @@ class DeterminismTest {
                 return false
             }
         }
-        
-        // Check frame count
+
         if a.currentFrame != b.currentFrame {
             return false
         }
-        
+
         return true
     }
 }
@@ -2965,10 +2866,10 @@ class DeterminismTest {
 **Test Cases**:
 
 1. **Basic Movement**: Two identical runs should produce identical positions
-2. **Combat**: Same seed + same actions = same hits/misses
+2. **Combat**: Same seed plus same actions equals same hits and misses
 3. **Random Events**: Seeded RNG produces same sequence
 4. **Floating-Point**: Use fixed-point or consistent rounding
-5. **Threading**: Single-threaded simulation (or deterministic ordering)
+5. **Threading**: Single-threaded simulation or deterministic ordering
 
 ---
 
@@ -2980,35 +2881,24 @@ Validate state transitions and invariants.
 class StateValidationTest {
     function testStateTransitions() {
         unit = createTestUnit()
-        
-        // Test valid transitions
+
         assert(canTransition(unit, Idle, MoveTo))
         assert(canTransition(unit, MoveTo, Defend))
-        assert(!canTransition(unit, Dead, MoveTo))  // Dead can't move
-        
-        // Test capability system
-        addCapability(unit, CanFire)
-        assert(hasCapability(unit, CanFire))
-        
-        removeCapability(unit, CanFire)
-        assert(!hasCapability(unit, CanFire))
+        assert(!canTransition(unit, Dead, MoveTo))
     }
-    
+
     function testStateInvariants() {
         state = createTestState()
-        
-        // All soldiers should have valid health
+
         for soldier in state.soldiers {
             assert(soldier.health.current >= 0)
             assert(soldier.health.current <= soldier.health.max)
         }
-        
-        // All positions should be valid
+
         for soldier in state.soldiers {
             assert(isValidPosition(soldier.position))
         }
-        
-        // No duplicate IDs
+
         ids = Set()
         for soldier in state.soldiers {
             assert(!ids.contains(soldier.id))
@@ -3028,65 +2918,62 @@ Profile and benchmark critical systems.
 class PerformanceBenchmark {
     function benchmarkPathfinding() {
         world = createLargeWorld()
-        
-        // Benchmark A* with different distances
+
         for distance in [50, 100, 200, 500] {
             totalTime = 0
             iterations = 100
-            
+
             for i in 0 to iterations {
                 start = randomPosition()
                 end = start + randomDirection() * distance
-                
+
                 timer = Timer()
                 path = pathfinder.findPath(start, end)
                 elapsed = timer.elapsed()
-                
+
                 totalTime += elapsed
             }
-            
+
             avgTime = totalTime / iterations
             log("Pathfinding " + distance + "m: " + avgTime + "ms avg")
-            
-            // Assert performance requirement
-            assert(avgTime < 10.0)  // Must be under 10ms
+
+            assert(avgTime < 10.0)
         }
     }
-    
+
     function benchmarkLineOfSight() {
         world = createLargeWorld()
-        
-        // Benchmark LOS checks
+
         totalTime = 0
         iterations = 10000
-        
+
         for i in 0 to iterations {
             from = randomPosition()
             to = randomPosition()
-            
+
             timer = Timer()
             visible = los.canSeePosition(from, to)
             elapsed = timer.elapsed()
-            
+
             totalTime += elapsed
         }
-        
+
         avgTime = totalTime / iterations
         log("LOS check: " + (avgTime * 1000) + "µs avg")
-        
-        assert(avgTime < 0.001)  // Must be under 1ms
+
+        assert(avgTime < 0.001)
     }
-    
+
     function benchmarkAI() {
-        state = createStressTestState(1000)  // 1000 units
-        
+        state = createStressTestState(1000)
+
         timer = Timer()
-        aiSystem.updateAll(state, 0.016)  // One frame
+        aiSystem.updateAll(state, 0.016)
         elapsed = timer.elapsed()
-        
+
         log("AI update (1000 units): " + elapsed + "ms")
-        
-        assert(elapsed < 16.0)  // Must fit in 16ms frame
+
+        assert(elapsed < 16.0)
     }
 }
 ```
@@ -3101,52 +2988,42 @@ Test that mods work correctly and don't break the game.
 class ModCompatibilityTest {
     function testModLoading() {
         modManager = ModManager()
-        
-        // Test valid mod
+
         validMod = createTestMod("valid_mod")
         assertNoThrow(() => modManager.loadMod(validMod.id))
-        
-        // Test missing dependency
+
         missingDepMod = createTestMod("missing_dep")
         missingDepMod.dependencies = ["nonexistent_mod"]
         assertThrows(() => modManager.loadMod(missingDepMod.id))
-        
-        // Test version conflict
+
         versionConflictMod = createTestMod("version_conflict")
         versionConflictMod.dependencies = [{modId: "base", version: ">= 2.0"}]
-        // Assume base is version 1.0
         assertThrows(() => modManager.loadMod(versionConflictMod.id))
     }
-    
+
     function testModIsolation() {
-        // Load mod A
         modA = createTestMod("mod_a")
         modA.data.units = {custom_unit: {...}}
         modManager.loadMod(modA.id)
-        
-        // Load mod B
+
         modB = createTestMod("mod_b")
-        modB.data.units = {custom_unit: {...}}  // Same ID, different data
+        modB.data.units = {custom_unit: {...}}
         modManager.loadMod(modB.id)
-        
-        // Verify both units exist (namespaced by mod)
+
         assert(exists("mod_a:custom_unit"))
         assert(exists("mod_b:custom_unit"))
     }
-    
+
     function testModHotReload() {
         mod = createTestMod("hot_reload_test")
         modManager.loadMod(mod.id)
-        
+
         originalValue = getModValue(mod.id, "test_value")
-        
-        // Modify mod file
+
         modifyModFile(mod, "test_value", "new_value")
-        
-        // Hot reload
+
         modManager.reloadMod(mod.id)
-        
-        // Verify change applied
+
         newValue = getModValue(mod.id, "test_value")
         assert(newValue == "new_value")
         assert(newValue != originalValue)
@@ -3165,7 +3042,6 @@ If you start with OOP and need to migrate to ECS:
 #### Step 1: Identify Components
 
 ```pseudocode
-// Before: Monolithic Soldier class
 class Soldier {
     position: Vec2
     health: int
@@ -3173,10 +3049,8 @@ class Soldier {
     behavior: Behavior
     renderData: RenderData
     aiData: AIData
-    // ... 50 more fields
 }
 
-// After: Components identified
 struct Transform { position: Vec2, rotation: float }
 struct Health { current: int, max: int }
 struct Weapon { type: WeaponType, ammo: int }
@@ -3188,27 +3062,22 @@ struct AI { personality: AIPersonality }
 #### Step 2: Extract Systems
 
 ```pseudocode
-// Before: Logic in Soldier.update()
 class Soldier {
     function update(dt: float) {
-        // Movement
         if moving {
             position += velocity * dt
         }
-        
-        // Combat
+
         if target && canFire() {
             fireAt(target)
         }
-        
-        // AI
+
         if !orders {
             evaluateSituation()
         }
     }
 }
 
-// After: Separate systems
 class MovementSystem {
     function update(entities: Array<Entity>, dt: float) {
         for e in entities {
@@ -3251,47 +3120,38 @@ class AISystem {
 #### Step 3: Migrate Gradually
 
 ```pseudocode
-// Hybrid approach during migration
 class Entity {
     id: EntityID
-    
-    // Old OOP data (temporary)
-    soldier: Option<Soldier>  // Legacy
-    
-    // New ECS data
+
+    soldier: Option<Soldier>
     transform: Option<Transform>
     health: Option<Health>
     weapon: Option<Weapon>
 }
 
-// Bridge between old and new
 class HybridWorld {
     oldWorld: OldWorld
     newWorld: ECSWorld
     entityMap: Map<OldSoldierID, EntityID>
-    
+
     function update(dt: float) {
-        // Sync old -> new
         for oldSoldier in oldWorld.soldiers {
             entityId = entityMap[oldSoldier.id]
             entity = newWorld.getEntity(entityId)
-            
+
             entity.transform.position = oldSoldier.position
             entity.health.current = oldSoldier.health
         }
-        
-        // Update new ECS systems
+
         newWorld.update(dt)
-        
-        // Sync new -> old (for rendering)
+
         for (oldId, newId) in entityMap {
             entity = newWorld.getEntity(newId)
             oldSoldier = oldWorld.getSoldier(oldId)
-            
+
             oldSoldier.position = entity.transform.position
         }
-        
-        // Old rendering still works
+
         oldWorld.render()
     }
 }
@@ -3310,7 +3170,6 @@ If your game is hardcoded and you want to add modding:
 #### Step 1: Externalize Data
 
 ```pseudocode
-// Before: Hardcoded weapons
 function createM1Garand(): Weapon {
     weapon = Weapon()
     weapon.name = "M1 Garand"
@@ -3319,10 +3178,9 @@ function createM1Garand(): Weapon {
     return weapon
 }
 
-// After: Load from data
 function loadWeapon(weaponId: String): Weapon {
     json = loadJSON("data/weapons/" + weaponId + ".json")
-    
+
     weapon = Weapon()
     weapon.id = weaponId
     weapon.name = json.name
@@ -3335,7 +3193,6 @@ function loadWeapon(weaponId: String): Weapon {
 #### Step 2: Add Script Hooks
 
 ```pseudocode
-// Before: Hardcoded behavior
 function updateAI(soldier: Soldier) {
     if soldier.underFire {
         seekCover(soldier)
@@ -3344,16 +3201,13 @@ function updateAI(soldier: Soldier) {
     }
 }
 
-// After: Script hook
 function updateAI(soldier: Soldier) {
-    // Call mod script if available
     if hasBehaviorScript(soldier.behaviorType) {
         script = getBehaviorScript(soldier.behaviorType)
         script.call("onUpdate", soldier)
         return
     }
-    
-    // Fallback to default
+
     defaultAI(soldier)
 }
 ```
@@ -3364,37 +3218,32 @@ function updateAI(soldier: Soldier) {
 class VirtualFileSystem {
     basePath: String
     modPaths: Array<String>
-    
+
     function readFile(path: String): Data {
-        // Check mods first (reverse load order)
         for modPath in modPaths.reversed() {
             fullPath = modPath + "/" + path
             if fileExists(fullPath) {
                 return readFileData(fullPath)
             }
         }
-        
-        // Fallback to base game
+
         fullPath = basePath + "/" + path
         return readFileData(fullPath)
     }
-    
+
     function listFiles(directory: String): Array<String> {
-        // Aggregate from all sources
         files = Set()
-        
-        // Base game
+
         for file in listFilesImpl(basePath + "/" + directory) {
             files.insert(file)
         }
-        
-        // Mods
+
         for modPath in modPaths {
             for file in listFilesImpl(modPath + "/" + directory) {
                 files.insert(file)
             }
         }
-        
+
         return files.toArray()
     }
 }
@@ -3407,24 +3256,23 @@ class ModMenu {
     function show() {
         availableMods = modManager.scanAvailableMods()
         loadedMods = modManager.getLoadedMods()
-        
+
         for mod in availableMods {
             renderModEntry(mod, isLoaded(mod))
         }
     }
-    
+
     function enableMod(modId: String) {
         modManager.loadMod(modId)
         showNotification("Mod enabled: " + modId)
     }
-    
+
     function disableMod(modId: String) {
         modManager.unloadMod(modId)
         showNotification("Mod disabled: " + modId)
     }
-    
+
     function applyChanges() {
-        // Restart required for most changes
         showDialog("Restart required to apply mod changes")
     }
 }
@@ -3439,55 +3287,48 @@ If your game is non-deterministic and you need multiplayer:
 #### Step 1: Eliminate Floating-Point Non-Determinism
 
 ```pseudocode
-// Before: Floating-point position
 struct Transform {
-    position: Vec2  // float x, y
+    position: Vec2
 }
 
-// After: Fixed-point position
 struct FixedTransform {
-    position: FixedVec2  // Fixed-point representation
+    position: FixedVec2
 }
 
-// Helper functions for fixed-point math
 function fixedAdd(a: Fixed, b: Fixed): Fixed
 function fixedMul(a: Fixed, b: Fixed): Fixed
 function fixedDiv(a: Fixed, b: Fixed): Fixed
-function fixedToFloat(a: Fixed): float  // For rendering only
+function fixedToFloat(a: Fixed): float
 ```
 
 #### Step 2: Seeded Random Number Generation
 
 ```pseudocode
-// Before: Platform RNG
 function rollDice(): int {
-    return random() % 6 + 1  // Non-deterministic across platforms
+    return random() % 6 + 1
 }
 
-// After: Seeded RNG
 class SeededRNG {
     seed: uint64
     state: uint64
-    
+
     function init(seed: uint64) {
         this.seed = seed
         this.state = seed
     }
-    
+
     function next(): uint64 {
-        // Deterministic algorithm (e.g., xorshift)
         state ^= state << 13
         state ^= state >> 7
         state ^= state << 17
         return state
     }
-    
+
     function randomFloat(min: float, max: float): float {
         return min + (next() / maxUint64) * (max - min)
     }
 }
 
-// Usage
 rng = SeededRNG(gameState.randomSeed)
 damage = rng.randomFloat(0.8, 1.2) * baseDamage
 ```
@@ -3495,27 +3336,24 @@ damage = rng.randomFloat(0.8, 1.2) * baseDamage
 #### Step 3: Fixed Timestep
 
 ```pseudocode
-// Before: Variable timestep
 function update() {
-    dt = getDeltaTime()  // Varies by frame rate
+    dt = getDeltaTime()
     updatePhysics(dt)
     updateAI(dt)
 }
 
-// After: Fixed timestep
-const FIXED_DT = 1.0 / 60.0  // 60 FPS
+const FIXED_DT = 1.0 / 60.0
 
 function update() {
     accumulatedTime += getDeltaTime()
-    
+
     while accumulatedTime >= FIXED_DT {
         updatePhysics(FIXED_DT)
         updateAI(FIXED_DT)
         accumulatedTime -= FIXED_DT
         gameState.frame++
     }
-    
-    // Interpolate for smooth rendering
+
     interpolationFactor = accumulatedTime / FIXED_DT
     render(interpolationFactor)
 }
@@ -3524,7 +3362,6 @@ function update() {
 #### Step 4: Message-Driven State Updates
 
 ```pseudocode
-// Before: Direct state modification
 function fireWeapon(shooter: Unit, target: Unit) {
     if hit(shooter, target) {
         target.health -= calculateDamage()
@@ -3532,14 +3369,13 @@ function fireWeapon(shooter: Unit, target: Unit) {
     }
 }
 
-// After: Message-driven
 function fireWeapon(shooter: Unit, target: Unit) {
     msg = WeaponFiredMessage()
     msg.shooter = shooter.id
     msg.target = target.id
     msg.hit = hit(shooter, target)
     msg.damage = calculateDamage()
-    
+
     broadcastMessage(msg)
 }
 
@@ -3556,31 +3392,27 @@ function onWeaponFired(msg: WeaponFiredMessage) {
 
 ```pseudocode
 function verifyDeterminism() {
-    // Hash game state periodically
     stateHash = hash(gameState)
     broadcastToAllPlayers(stateHash)
-    
-    // Compare with other players
+
     if !allHashesMatch() {
         logError("Desync detected!")
-        
-        // Request state from authoritative source (server)
         requestStateSync()
     }
 }
 
 function hash(state: BattleState): uint64 {
     hasher = XXHash64()
-    
+
     for soldier in state.soldiers {
         hasher.update(soldier.position.x)
         hasher.update(soldier.position.y)
         hasher.update(soldier.health.current)
         hasher.update(soldier.state.behavior as int)
     }
-    
+
     hasher.update(state.currentFrame)
-    
+
     return hasher.finalize()
 }
 ```
@@ -3594,56 +3426,37 @@ function hash(state: BattleState): uint64 {
 **The Problem**: A single class that knows and does too much.
 
 ```pseudocode
-// ANTI-PATTERN: The God Object
 class Unit {
-    // Position and physics
     position: Vec2
     velocity: Vec2
     heading: float
-    
-    // Health and status
     health: int
     maxHealth: int
     isAlive: bool
     morale: float
     suppression: float
-    
-    // Equipment
     primaryWeapon: Weapon
     secondaryWeapon: Weapon
     equipment: Array<Item>
     ammunition: Map<AmmoType, int>
-    
-    // State
     currentState: String
     previousState: String
     stateTimer: float
-    
-    // AI
     currentOrder: Order
     orderQueue: Array<Order>
     behaviorTree: BehaviorTree
     target: Unit
     visibleEnemies: Array<Unit>
-    
-    // Squad
     squad: Squad
     isLeader: bool
-    
-    // Rendering
     sprite: Sprite
     animation: Animation
     selectionCircle: Sprite
-    
-    // Audio
     footstepSound: Sound
     voiceLines: Map<String, Sound>
-    
-    // Input handling (why is this here?!)
     isSelected: bool
     wasClicked: bool
-    
-    // 200+ methods...
+
     function update(dt: float) { /* 500 lines */ }
     function render(renderer: Renderer) { /* 300 lines */ }
     function onInput(event: InputEvent) { /* 200 lines */ }
@@ -3654,21 +3467,19 @@ class Unit {
     function takeDamage(amount: int, attacker: Unit) { /* ... */ }
     function updateMorale(delta: float) { /* ... */ }
     function updateAnimation(dt: float) { /* ... */ }
-    // ... and 50 more methods
 }
 ```
 
 **Why It's Bad**:
 - Violates Single Responsibility Principle
-- Hard to test (500-line methods)
-- Merge conflicts (everyone touches this file)
+- Hard to test with 500-line methods
+- Merge conflicts as everyone touches this file
 - Can't reuse components elsewhere
-- Memory waste (all units have all fields, even if unused)
+- Memory waste as all units have all fields, even if unused
 
 **The Solution**: Decompose into focused components
 
 ```pseudocode
-// Components
 transform: Transform
 health: Health
 weapon: Weapon
@@ -3678,7 +3489,6 @@ sensory: SensoryData
 renderable: Renderable
 audio: AudioEmitter
 
-// Each component is small and focused
 struct Transform {
     position: Vec2
     rotation: float
@@ -3688,11 +3498,11 @@ struct Transform {
 struct Health {
     current: int
     max: int
-    
+
     function takeDamage(amount: int) {
         current = max(0, current - amount)
     }
-    
+
     function isAlive(): bool {
         return current > 0
     }
@@ -3702,12 +3512,11 @@ struct Weapon {
     type: WeaponTypeRef
     ammoInMagazine: int
     lastFiredTime: uint64
-    
+
     function canFire(currentTime: uint64): bool
     function fire(): FireResult
 }
 
-// Systems process entities with specific components
 class CombatSystem {
     function update(entities: Query<Transform, Weapon, Health>) {
         for entity in entities {
@@ -3729,16 +3538,14 @@ class CombatSystem {
 **The Problem**: Systems depend directly on each other, creating a web of dependencies.
 
 ```pseudocode
-// ANTI-PATTERN: Tight Coupling
 class Soldier {
     function update(dt: float) {
-        // Direct calls to other systems
-        world.spawnBullet(this, target)  // Spawns bullet directly
-        audio.playSound("rifle_fire")    // Plays sound directly
-        renderer.spawnParticle("muzzle_flash", position)  // Spawns particles directly
-        ui.showHitMarker(target)          // Updates UI directly
-        achievements.check("first_kill")  // Checks achievements directly
-        analytics.track("shot_fired")     // Tracks analytics directly
+        world.spawnBullet(this, target)
+        audio.playSound("rifle_fire")
+        renderer.spawnParticle("muzzle_flash", position)
+        ui.showHitMarker(target)
+        achievements.check("first_kill")
+        analytics.track("shot_fired")
     }
 }
 ```
@@ -3750,10 +3557,9 @@ class Soldier {
 - Circular dependencies common
 - Hard to refactor
 
-**The Solution**: Use messages/events
+**The Solution**: Use messages and events
 
 ```pseudocode
-// Message-driven architecture
 enum GameEvent {
     WeaponFired,
     BulletHit,
@@ -3770,11 +3576,11 @@ struct WeaponFiredEvent {
 
 class EventBus {
     listeners: Map<GameEvent, Array<Function>>
-    
+
     function subscribe(event: GameEvent, callback: Function) {
         listeners[event].append(callback)
     }
-    
+
     function publish(event: GameEvent, data: Any) {
         for callback in listeners[event] {
             callback(data)
@@ -3782,12 +3588,10 @@ class EventBus {
     }
 }
 
-// Soldier only knows about the event bus
 class Soldier {
     eventBus: EventBus
-    
+
     function fireAt(target: Entity) {
-        // Just publish an event
         eventBus.publish(WeaponFired, WeaponFiredEvent {
             shooter: this.entity,
             target: target,
@@ -3797,12 +3601,11 @@ class Soldier {
     }
 }
 
-// Other systems subscribe to events
 class AudioSystem {
     function init(eventBus: EventBus) {
         eventBus.subscribe(WeaponFired, onWeaponFired)
     }
-    
+
     function onWeaponFired(event: WeaponFiredEvent) {
         sound = getSoundForWeapon(event.weaponType)
         playSoundAt(sound, event.position)
@@ -3813,13 +3616,11 @@ class ParticleSystem {
     function init(eventBus: EventBus) {
         eventBus.subscribe(WeaponFired, onWeaponFired)
     }
-    
+
     function onWeaponFired(event: WeaponFiredEvent) {
         spawnParticle("muzzle_flash", event.position)
     }
 }
-
-// Systems are decoupled
 ```
 
 ---
@@ -3829,7 +3630,6 @@ class ParticleSystem {
 **The Problem**: Game data embedded in code, requiring recompilation for changes.
 
 ```pseudocode
-// ANTI-PATTERN: Hardcoded content
 function createM1Garand(): Weapon {
     weapon = Weapon()
     weapon.name = "M1 Garand"
@@ -3859,23 +3659,18 @@ function createRifleSquad(): Squad {
     squad.addMember(createSoldier(SoldierType.MachineGunner))
     return squad
 }
-
-// Want to change Garand damage? Recompile.
-// Want to add a new weapon? Add new function, recompile.
-// Want to change squad composition? Modify code, recompile.
 ```
 
 **Why It's Bad**:
-- Slow iteration (minutes per change)
+- Slow iteration with minutes per change
 - Non-designers can't modify
-- Code bloat (thousands of create functions)
+- Code bloat with thousands of create functions
 - No modding support
 - Balance changes require patches
 
 **The Solution**: Data-driven design
 
 ```pseudocode
-// JSON: data/weapons/m1_garand.json
 {
     "id": "m1_garand",
     "name": "M1 Garand",
@@ -3888,7 +3683,6 @@ function createRifleSquad(): Squad {
     "ammoType": "30_06_springfield"
 }
 
-// JSON: data/units/us_rifle_squad.json
 {
     "id": "us_rifle_squad",
     "name": "Rifle Squad",
@@ -3899,28 +3693,25 @@ function createRifleSquad(): Squad {
     ]
 }
 
-// Code: Generic loaders
 class DataLoader {
     function loadWeapon(weaponId: String): Weapon {
         json = loadJSON("data/weapons/" + weaponId + ".json")
-        
+
         weapon = Weapon()
         weapon.id = weaponId
         weapon.name = json.name
         weapon.damage = json.damage
         weapon.range = json.range
-        // ...
-        
         return weapon
     }
-    
+
     function loadSquadType(squadId: String): SquadType {
         json = loadJSON("data/units/" + squadId + ".json")
-        
+
         squadType = SquadType()
         squadType.id = squadId
         squadType.name = json.name
-        
+
         for memberJson in json.composition {
             for i in 0 to memberJson.count {
                 member = SquadMember()
@@ -3929,18 +3720,13 @@ class DataLoader {
                 squadType.members.append(member)
             }
         }
-        
+
         return squadType
     }
 }
 
-// Usage
 weapon = dataLoader.loadWeapon("m1_garand")
 squad = dataLoader.loadSquadType("us_rifle_squad")
-
-// Change Garand damage? Edit JSON. No recompile.
-// Add new weapon? Create JSON file. No code changes.
-// Change squad composition? Edit JSON. No recompile.
 ```
 
 ---
@@ -3950,44 +3736,36 @@ squad = dataLoader.loadSquadType("us_rifle_squad")
 **The Problem**: Save files break when game updates.
 
 ```pseudocode
-// ANTI-PATTERN: Binary serialization without versioning
 function saveGame(state: BattleState): Bytes {
     buffer = ByteBuffer()
-    
-    // No version header!
-    
+
     for soldier in state.soldiers {
         buffer.writeFloat(soldier.position.x)
         buffer.writeFloat(soldier.position.y)
         buffer.writeInt(soldier.health)
         buffer.writeString(soldier.name)
-        buffer.writeInt(soldier.state as int)  // Enum as int - fragile!
+        buffer.writeInt(soldier.state as int)
     }
-    
+
     return buffer.toBytes()
 }
 
 function loadGame(data: Bytes): BattleState {
     buffer = ByteBuffer(data)
     state = BattleState()
-    
-    // Assumes exact format - will break on any change
+
     while buffer.hasRemaining() {
         soldier = Soldier()
         soldier.position.x = buffer.readFloat()
         soldier.position.y = buffer.readFloat()
         soldier.health = buffer.readInt()
         soldier.name = buffer.readString()
-        soldier.state = SoldierState(buffer.readInt())  // Crashes if enum changed!
+        soldier.state = SoldierState(buffer.readInt())
         state.soldiers.append(soldier)
     }
-    
+
     return state
 }
-
-// Add a new field to Soldier? Old saves break.
-// Reorder enum values? Old saves break.
-// Change string encoding? Old saves break.
 ```
 
 **Why It's Bad**:
@@ -3999,7 +3777,6 @@ function loadGame(data: Bytes): BattleState {
 **The Solution**: Versioned, schema-based serialization
 
 ```pseudocode
-// JSON save format with schema
 {
     "version": 3,
     "savedAt": "2024-03-15T10:30:00Z",
@@ -4023,70 +3800,66 @@ function loadGame(data: Bytes): BattleState {
                     "ammoInReserve": 40
                 }
             }
-            // ...
         ]
     }
 }
 
 class SaveSystem {
     CURRENT_VERSION = 3
-    
+
     function save(state: BattleState): JSON {
         saveData = {}
         saveData.version = CURRENT_VERSION
         saveData.savedAt = getCurrentTime()
         saveData.gameVersion = getGameVersion()
-        
+
         saveData.state = serializeState(state)
-        
+
         return saveData
     }
-    
+
     function load(json: JSON): BattleState {
         version = json.version
-        
-        // Migrate old versions
+
         if version == 1 {
             json = migrateV1ToV2(json)
             version = 2
         }
-        
+
         if version == 2 {
             json = migrateV2ToV3(json)
             version = 3
         }
-        
+
         if version != CURRENT_VERSION {
             throw Error("Unsupported save version: " + version)
         }
-        
+
         return deserializeState(json.state)
     }
-    
+
     function migrateV1ToV2(old: JSON): JSON {
-        // V1 had flat health, V2 has current/max
         for soldier in old.state.soldiers {
-            health = soldier.health  // Old flat value
+            health = soldier.health
             soldier.health = {
                 current: health,
-                max: 100  // Assume max
+                max: 100
             }
         }
-        
+
         return old
     }
-    
+
     function migrateV2ToV3(old: JSON): JSON {
-        // V2 had string states, V3 has structured states
         for soldier in old.state.soldiers {
-            oldState = soldier.state  // e.g., "Moving"
+            oldState = soldier.state
             soldier.state = {
                 phase: "Battle",
                 behavior: oldState,
                 gesture: "Idle"
             }
         }
-        
+
         return old
     }
 }
@@ -4099,38 +3872,27 @@ class SaveSystem {
 **The Problem**: Optimizing before knowing what needs optimization.
 
 ```pseudocode
-// ANTI-PATTERN: Premature optimization
 class Soldier {
-    // Over-engineered for "performance"
-    position: FixedPoint64  // Fixed-point for determinism... but we're single-player
-    
-    // Object pool for allocation... but we have 50 soldiers
+    position: FixedPoint64
+
     static pool: ObjectPool<Soldier>
-    
-    // SIMD-optimized vector math... but vectors are rarely used
+
     function calculateDistance(other: Soldier): FixedPoint64 {
-        // 200 lines of SIMD intrinsics
     }
-    
-    // Manual memory management... but language has GC
+
     function destroy() {
-        // Complex cleanup code
     }
 }
 
-// Complex ECS with SoA... but only 50 entities
 class SoldierSystem {
     positionsX: Array<float>
     positionsY: Array<float>
     healths: Array<int>
-    // ... dozens of parallel arrays
-    
+
     function update(dt: float) {
-        // Complex indexing logic
         for i in 0 to count {
             positionsX[i] += velocitiesX[i] * dt
             positionsY[i] += velocitiesY[i] * dt
-            // Hard to read, hard to debug
         }
     }
 }
@@ -4140,46 +3902,38 @@ class SoldierSystem {
 - Wasted development time
 - Harder to read and maintain
 - Bugs in complex optimization code
-- May not even be faster (cache misses, branch misprediction)
+- May not even be faster
 
 **The Solution**: Profile first, optimize second
 
 ```pseudocode
-// Start simple
 class Soldier {
-    position: Vec2  // Simple float vector
+    position: Vec2
     health: int
-    
+
     function update(dt: float) {
         position += velocity * dt
     }
 }
 
-// Profile to find bottlenecks
 function profileGame() {
     Profiler.begin("update")
     updateAllSoldiers()
     Profiler.end("update")
-    
+
     Profiler.begin("render")
     renderAllSoldiers()
     Profiler.end("render")
-    
+
     Profiler.begin("pathfinding")
     updatePathfinding()
     Profiler.end("pathfinding")
-    
+
     Profiler.report()
-    // Shows: pathfinding = 80% of frame time!
 }
 
-// Optimize the actual bottleneck
 class Pathfinder {
-    // Only optimize after profiling shows this is slow
     function findPath(start: Vec2, end: Vec2): Path {
-        // Use A* with priority queue
-        // Cache frequently used paths
-        // Use spatial partitioning for neighbor queries
     }
 }
 ```
@@ -4191,21 +3945,17 @@ class Pathfinder {
 **The Problem**: Designing for single-player, then trying to add multiplayer later.
 
 ```pseudocode
-// ANTI-PATTERN: Non-deterministic from the start
 class Game {
     function update() {
-        dt = getDeltaTime()  // Varies every frame!
-        
+        dt = getDeltaTime()
+
         for soldier in soldiers {
-            // Random without seed
-            if random() < 0.5 {  // Platform-dependent random!
+            if random() < 0.5 {
                 soldier.shoot()
             }
-            
-            // Floating-point physics
-            soldier.position += soldier.velocity * dt  // FP varies by CPU!
-            
-            // Time-based rather than frame-based
+
+            soldier.position += soldier.velocity * dt
+
             if getCurrentTime() - soldier.lastShot > 1.0 {
                 soldier.reload()
             }
@@ -4223,41 +3973,36 @@ class Game {
 **The Solution**: Design for determinism from day one
 
 ```pseudocode
-// Deterministic from the start
 class Game {
     const FIXED_DT = 1.0 / 60.0
     currentFrame: uint64 = 0
     rng: SeededRandom
-    
+
     function init(seed: uint64) {
         rng = SeededRandom(seed)
     }
-    
+
     function update() {
-        // Fixed timestep
         accumulatedTime += getDeltaTime()
-        
+
         while accumulatedTime >= FIXED_DT {
             fixedUpdate(FIXED_DT)
             accumulatedTime -= FIXED_DT
             currentFrame++
         }
     }
-    
+
     function fixedUpdate(dt: float) {
         for soldier in soldiers {
-            // Seeded random
             if rng.randomFloat(0, 1) < 0.5 {
                 soldier.shoot()
             }
-            
-            // Deterministic math (or fixed-point)
+
             soldier.position = fixedPointAdd(
                 soldier.position,
                 fixedPointMul(soldier.velocity, dt)
             )
-            
-            // Frame-based rather than time-based
+
             if currentFrame - soldier.lastShotFrame > 60 {
                 soldier.reload()
             }
@@ -4270,26 +4015,18 @@ class Game {
 
 ## 12.7 Conclusion
 
-This chapter has provided a practical, actionable guide for implementing a Close Combat clone. From the Architecture Decision Records that capture your design rationale, to the migration paths that help you evolve your codebase, to the anti-patterns that warn you away from common pitfalls—you now have a blueprint for building a robust tactical wargame.
+This chapter provides a practical guide for implementing a Close Combat clone. From architecture decisions to migration paths and anti-patterns, you now have a blueprint for building a robust tactical wargame.
 
-Remember:
+Key takeaways:
 
 1. **Start simple**. Complexity emerges from simple systems interacting.
-
-2. **Test everything**. Determinism, state validation, performance, and mod compatibility are not afterthoughts.
-
-3. **Plan for change**. Your codebase will evolve. Design for it.
-
-4. **Avoid the anti-patterns**. God objects, tight coupling, hardcoded content, save-game incompatibility, premature optimization, and ignoring determinism will cost you months of rework.
-
-5. **Learn from the past**. The three implementations in this book made different choices, each valid for their context. Learn from their successes and failures.
+2. **Test everything**. Determinism, state validation, performance, and mod compatibility matter.
+3. **Plan for change**. Your codebase will evolve.
+4. **Avoid anti-patterns**. God objects, tight coupling, hardcoded content, save-game incompatibility, premature optimization, and ignoring determinism will cost you months of rework.
+5. **Learn from the past**. The three implementations in this book made different choices, each valid for their context.
 
 The architecture you build today determines what your game can become tomorrow. Choose wisely, build carefully, and ship bravely.
 
 ---
 
-**End of Chapter 12**
-
----
-
-*This implementation guide was synthesized from three Close Combat clone projects spanning 2005-2024. May it serve as a practical reference for the next generation of tactical wargame developers.*
+*Next: [Chapter 13: Practical Case Studies](chapter_13_case_studies.md)*

@@ -2,20 +2,20 @@
 
 ## A Practical Guide Based on 20 Years of Close Combat Clones
 
-*What OpenCombat-SDL (2005-2008), CloseCombatFree (2011-2012), and OpenCombat (2020-2024) teach us about what NOT to do.*
+*Lessons from OpenCombat-SDL (2005-2008), CloseCombatFree (2011-2012), and OpenCombat (2020-2024)*
 
 ---
 
 ## Introduction
 
-After analyzing three implementations of Close Combat-style tactical wargames spanning nearly two decades, distinct patterns emerge—not just of what works, but of what consistently causes problems. This guide documents the most common pitfalls encountered across these projects, providing actionable advice for avoiding them in your own tactical wargame development.
+Three Close Combat-style tactical wargame implementations over two decades reveal consistent problem patterns. This guide documents these pitfalls with practical solutions for your own projects.
 
 Each pitfall includes:
-- **Why it's bad** — The consequences you'll face
-- **How to detect it** — Warning signs in your codebase
-- **How to fix it** — Concrete solutions
-- **Prevention tips** — How to avoid it from the start
-- **Reference** — Where to find more detail in the architecture book
+- **Consequences** of the problem
+- **Detection methods** for your codebase
+- **Solutions** with concrete examples
+- **Prevention** strategies
+- **Reference** to architecture book details
 
 ---
 
@@ -24,7 +24,7 @@ Each pitfall includes:
 ### 1.1 The God Object (Unit That Does Everything)
 
 **The Problem:**
-Creating a single `Unit` or `Soldier` class that contains 50+ fields covering position, health, AI, rendering, physics, and networking concerns.
+A single `Unit` or `Soldier` class with 50+ fields handling position, health, AI, rendering, physics, and networking.
 
 **Real Example from OpenCombat-SDL:**
 ```cpp
@@ -34,36 +34,36 @@ class Soldier : public Object {
     Vector2D position, velocity;
     float health, morale, suppression;
     uint64_t state_bits;
-    
+
     // AI
     AIState ai_state;
     Path current_path;
     Target current_target;
-    
+
     // Rendering
     Sprite sprite;
     Animation current_animation;
     float animation_frame;
-    
+
     // Physics
     CollisionShape hitbox;
     PhysicsBody body;
-    
+
     // Orders
     Queue<Order> orders;
     Action current_action;
-    
+
     // 40+ more fields...
 };
 ```
 
-**Why It's Bad:**
-- Cache inefficiency: Mixing frequently accessed data (position) with rarely accessed data (rendering state) causes cache misses
-- Unclear ownership: Which system owns which data?
-- Testing nightmare: Hard to unit test with so many dependencies
-- Serialization complexity: Must handle all fields for save/load
+**Consequences:**
+- Cache inefficiency from mixing frequently and rarely accessed data
+- Unclear data ownership across systems
+- Testing difficulties with excessive dependencies
+- Complex serialization for save/load operations
 
-**How to Detect It:**
+**Detection:**
 ```bash
 # Look for classes with excessive fields
 grep -r "class.*{" --include="*.cpp" --include="*.h" -A 100 | grep -c ";" | sort -n
@@ -71,8 +71,8 @@ grep -r "class.*{" --include="*.cpp" --include="*.h" -A 100 | grep -c ";" | sort
 # Classes with >30 fields are suspicious
 ```
 
-**How to Fix It:**
-Use component composition instead:
+**Solution:**
+Use component composition:
 ```rust
 // OpenCombat's approach - components as fields
 struct Soldier {
@@ -96,19 +96,19 @@ struct Health {
 }
 ```
 
-**Prevention Tips:**
-- Apply the Single Responsibility Principle: If a field is only used by one system, it belongs in that system's component
-- Group fields by update frequency (every frame vs. occasional)
+**Prevention:**
+- Apply the Single Responsibility Principle
+- Group fields by update frequency
 - Separate simulation data from rendering data
 
-**Reference:** See Chapter 5: Unit Hierarchy and Chapter 12: Modified ECS with Type-Safe Indices
+**Reference:** Chapter 5: Unit Hierarchy and Chapter 12: Modified ECS with Type-Safe Indices
 
 ---
 
 ### 1.2 Spaghetti State Transitions
 
 **The Problem:**
-State transitions scattered throughout the codebase, with implicit rules that exist only in the developer's head.
+State transitions spread across the codebase with undocumented rules.
 
 **Real Example from CloseCombatFree:**
 ```cpp
@@ -137,21 +137,21 @@ void AI::Update() {
 }
 ```
 
-**Why It's Bad:**
-- Impossible to enumerate all valid state transitions
-- Race conditions: Multiple systems trying to change state simultaneously
-- No way to validate state changes for multiplayer security
-- Bugs when invalid transitions occur (aiming while prone reloading)
+**Consequences:**
+- Impossible to track all valid state transitions
+- Race conditions from simultaneous state changes
+- No validation for multiplayer security
+- Bugs from invalid transitions (aiming while prone reloading)
 
-**How to Detect It:**
+**Detection:**
 ```bash
 # Find all places where state is modified
 grep -r "unitStatus\s*=" --include="*.cpp" --include="*.h"
 
-# If you find modifications in >5 different files, you have spaghetti
+# Modifications in >5 different files indicate spaghetti
 ```
 
-**How to Fix It:**
+**Solution:**
 Centralize state transitions with explicit rules:
 ```rust
 // OpenCombat's message-based approach
@@ -164,7 +164,7 @@ enum Behavior {
 }
 
 impl BattleState {
-    // ONLY way to change behavior
+    // Only way to change behavior
     pub fn apply(&mut self, msg: BattleStateMessage) {
         match msg {
             BattleStateMessage::SetBehavior(idx, behavior) => {
@@ -174,7 +174,7 @@ impl BattleState {
             }
         }
     }
-    
+
     fn can_transition(&self, idx: SoldierIndex, new: Behavior) -> bool {
         let current = &self.soldiers[idx.0].behavior;
         match (current, new) {
@@ -187,26 +187,26 @@ impl BattleState {
 }
 ```
 
-**Prevention Tips:**
-- Use a message-based architecture where all state changes flow through a single function
-- Define explicit transition rules (state machine matrix)
-- Never allow direct state mutation from arbitrary code locations
+**Prevention:**
+- Use message-based architecture with a single state change function
+- Define explicit transition rules
+- Prevent direct state mutation from arbitrary code
 
-**Reference:** See Chapter 3: State Management Patterns, Section 3.8.2
+**Reference:** Chapter 3: State Management Patterns, Section 3.8.2
 
 ---
 
 ### 1.3 Mutating State During Iteration
 
 **The Problem:**
-Modifying a collection while iterating over it, causing skipped elements, use-after-free, or infinite loops.
+Modifying collections while iterating over them causes skipped elements, use-after-free, or infinite loops.
 
 **Real Example from OpenCombat-SDL:**
 ```cpp
 void World::UpdateSoldiers(float dt) {
     for (auto& soldier : _soldiers) {
         soldier->Update(dt);
-        
+
         // DANGER: What if Update() removes the soldier?
         // DANGER: What if Update() adds new soldiers?
     }
@@ -214,33 +214,33 @@ void World::UpdateSoldiers(float dt) {
 }
 ```
 
-**Why It's Bad:**
+**Consequences:**
 - Iterator invalidation when removing elements
-- Infinite loops when adding elements that match iteration criteria
-- Non-deterministic behavior (depends on collection order)
+- Infinite loops from adding matching elements
+- Non-deterministic behavior based on collection order
 - Memory corruption in unsafe languages
 
-**How to Detect It:**
+**Detection:**
 ```bash
 # Look for modification inside loops
 grep -rn "for.*soldier" --include="*.cpp" -A 10 | grep -E "(remove|add|push|delete)"
 ```
 
-**How to Fix It:**
+**Solution:**
 Use deferred updates:
 ```rust
 // OpenCombat's approach
 tick_soldiers(&mut self) {
     // Collect changes first
     let mut changes: Vec<(SoldierIndex, SoldierMessage)> = Vec::new();
-    
+
     for idx in self.all_soldiers() {
         let soldier = self.soldier(idx);
         if let Some(msg) = soldier.update() {
             changes.push((idx, msg));
         }
     }
-    
+
     // Apply all changes after iteration
     for (idx, msg) in changes {
         self.apply_soldier_message(idx, msg);
@@ -255,7 +255,7 @@ fn remove_soldier(&mut self, idx: SoldierIndex) {
     let last_idx = self.soldiers.len() - 1;
     self.soldiers.swap(idx.0, last_idx);
     self.soldiers.pop();
-    
+
     // Update index of moved soldier
     if idx.0 != last_idx {
         self.soldier_index_map.insert(self.soldiers[idx.0].id, idx);
@@ -263,19 +263,19 @@ fn remove_soldier(&mut self, idx: SoldierIndex) {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 - Never modify collections during iteration
 - Use deferred updates: collect changes, apply after iteration
 - For deletion, use swap-remove or mark-and-sweep patterns
 
-**Reference:** See Chapter 5: Section 5.2.3 Modified ECS Pattern
+**Reference:** Chapter 5: Section 5.2.3 Modified ECS Pattern
 
 ---
 
-### 1.4 Not Handling State Prerequisites
+### 1.4 Ignoring State Prerequisites
 
 **The Problem:**
-Requiring micromanagement for obvious state transitions (prone soldier must stand before running).
+Requiring manual handling of obvious state transitions (prone soldiers must stand before running).
 
 **Real Example from CloseCombatFree:**
 ```cpp
@@ -293,20 +293,20 @@ void Unit::ProcessOrder(Order order) {
 }
 ```
 
-**Why It's Bad:**
-- Frustrating micromanagement burden on players
-- Real soldiers automatically handle these transitions
-- Requires players to memorize valid state sequences
-- Wastes APM (Actions Per Minute) on trivial details
+**Consequences:**
+- Frustrating micromanagement for players
+- Unrealistic behavior (real soldiers handle these transitions automatically)
+- Forces players to memorize valid state sequences
+- Wastes actions on trivial details
 
-**How to Detect It:**
-- Playtest: Count how many clicks it takes to issue a simple "attack while moving" command
-- If it takes >3 clicks, you have a prerequisite problem
+**Detection:**
+- Playtest: Count clicks needed for a simple "attack while moving" command
+- More than 3 clicks indicates a prerequisite problem
 
-**How to Fix It:**
+**Solution:**
 Implement automatic prerequisite chaining:
 ```cpp
-// OpenCombat-SDL's elegant solution
+// OpenCombat-SDL's solution
 class Action {
 public:
     uint64_t requires;  // Bitfield of required states
@@ -317,14 +317,14 @@ public:
 void Soldier::QueueAction(Action action) {
     // Check prerequisites
     uint64_t missing = action.requires & ~state_bits;
-    
+
     // Automatically insert actions to meet prerequisites
     while (missing != 0) {
         Action prereq = FindActionThatAdds(missing.firstBit());
         action_queue.push_front(prereq);
         missing &= ~prereq.adds;
     }
-    
+
     action_queue.push_back(action);
 }
 
@@ -335,19 +335,19 @@ void Soldier::QueueAction(Action action) {
 // 2. RunTo (requires STANDING, adds RUNNING)
 ```
 
-**Prevention Tips:**
+**Prevention:**
 - Define actions with explicit requirements
 - Implement automatic prerequisite resolution
-- Never require players to micromanage obvious transitions
+- Avoid requiring players to handle obvious transitions
 
-**Reference:** See Chapter 3: Section 3.3.2 Automatic Prerequisite Chaining
+**Reference:** Chapter 3: Section 3.3.2 Automatic Prerequisite Chaining
 
 ---
 
 ### 1.5 Hardcoded State Dependencies
 
 **The Problem:**
-State logic scattered in if-statements throughout the codebase, making it impossible to find all code affected by a state change.
+State logic scattered in if-statements throughout the codebase, making it impossible to find all affected code.
 
 **Real Example from OpenCombat-SDL:**
 ```cpp
@@ -376,20 +376,20 @@ void Movement::GetSpeed() {
 // Finding all places that check PRONE requires grep!
 ```
 
-**Why It's Bad:**
-- Impossible to enumerate all effects of a state
-- Adding new states requires hunting through entire codebase
-- Inconsistent handling (some places forget to check a state)
+**Consequences:**
+- Impossible to track all effects of a state
+- Adding new states requires searching the entire codebase
+- Inconsistent handling (some places miss state checks)
 - Can't data-drive state effects
 
-**How to Detect It:**
+**Detection:**
 ```bash
 # Count state checks scattered in code
 grep -r "state_bits\s*&" --include="*.cpp" | wc -l
-# If >20, you have scattered dependencies
+# More than 20 indicates scattered dependencies
 ```
 
-**How to Fix It:**
+**Solution:**
 Centralize state effects:
 ```rust
 // Define capabilities as a bitfield
@@ -406,16 +406,16 @@ bitflags! {
 impl Soldier {
     fn update_capabilities(&mut self) {
         self.capabilities = Capabilities::empty();
-        
+
         // Centralized logic: all capability calculations in one place
         if self.health > 0 && !self.unconscious {
             self.capabilities |= Capabilities::CAN_MOVE;
-            
+
             if self.stance != Stance::Prone {
                 self.capabilities |= Capabilities::CAN_SPRINT;
             }
         }
-        
+
         if self.weapon.is_some() && !self.reloading {
             self.capabilities |= Capabilities::CAN_FIRE;
         }
@@ -428,12 +428,12 @@ if soldier.capabilities.contains(Capabilities::CAN_FIRE) {
 }
 ```
 
-**Prevention Tips:**
-- Use capability bitfields instead of checking raw states
-- Recalculate capabilities whenever state changes
-- Never check raw state bits outside the capability calculation
+**Prevention:**
+- Use capability bitfields instead of raw state checks
+- Recalculate capabilities when state changes
+- Never check raw state bits outside capability calculation
 
-**Reference:** See Chapter 3: Section 3.6.3 Pattern Combinations
+**Reference:** Chapter 3: Section 3.6.3 Pattern Combinations
 
 ---
 
@@ -442,7 +442,7 @@ if soldier.capabilities.contains(Capabilities::CAN_FIRE) {
 ### 2.1 Deep Inheritance Hierarchies
 
 **The Problem:**
-Creating inheritance trees 5+ levels deep, leading to the "diamond problem" and rigid taxonomies.
+Inheritance trees five or more levels deep create the diamond problem and rigid taxonomies.
 
 **Real Example from OpenCombat-SDL:**
 ```cpp
@@ -453,23 +453,23 @@ class Soldier : public Unit { /* ... */ };
 class Sniper : public Soldier { /* ... */ };
 class VeteranSniper : public Sniper { /* ... */ };
 
-// Problem: What about a vehicle that acts like both soldier and vehicle?
-// Problem: What about a defensive emplacement that acts like terrain?
-// Diamond problem if we try to add Mobile and Armed as mixins
+// Problem: A vehicle that acts like both soldier and vehicle becomes impossible.
+// Problem: A defensive emplacement that acts like terrain can't be modeled.
+// The diamond problem appears if Mobile and Armed mixins are added.
 ```
 
 **Why It's Bad:**
-- Diamond inheritance problem (multiple inheritance)
+- Multiple inheritance creates the diamond problem
 - Rigid taxonomies force premature classification
-- Can't create novel combinations (flying tank?)
-- Fragile base class problem
-- Cache-unfriendly (scattered vtables)
+- Novel combinations become impossible (flying tank?)
+- The fragile base class problem emerges
+- Cache performance suffers from scattered vtables
 
 **How to Detect It:**
 ```bash
 # Check inheritance depth
 grep -r "class.*:.*public" --include="*.h" | grep -v "//" | awk -F: '{print $2}' | grep -c "public"
-# If you have chains like A->B->C->D, you have deep hierarchies
+# Chains like A->B->C->D indicate deep hierarchies
 ```
 
 **How to Fix It:**
@@ -484,17 +484,17 @@ struct Soldier {
     armor: Option<Armor>,    // Defense capabilities
 }
 
-// A "flying tank" is just a different combination:
+// A flying tank needs only different components:
 struct Vehicle {
     transform: Transform,
     health: Health,
-    mobility: Mobility,      // Now with tracks!
+    mobility: Mobility,      // Now with tracks
     weapon: Option<Weapon>,  // Big gun
     armor: Option<Armor>,    // Heavy armor
     flight: Option<Flight>,  // VTOL capability
 }
 
-// No inheritance needed - just different component combinations
+// Components replace inheritance
 ```
 
 Or CloseCombatFree's QML composition:
@@ -502,7 +502,7 @@ Or CloseCombatFree's QML composition:
 // Tank composed of components, not inheriting from Vehicle
 Entity {
     id: tank
-    
+
     Mobile { maxSpeed: 15 }
     Armored { armor: 50 }
     Turret { rotationSpeed: 20 }
@@ -511,8 +511,8 @@ Entity {
 ```
 
 **Prevention Tips:**
-- Favor composition over inheritance
-- Keep inheritance hierarchies shallow (max 2-3 levels)
+- Prefer composition over inheritance
+- Keep inheritance hierarchies shallow (2-3 levels maximum)
 - Use ECS or component-based architecture
 
 **Reference:** See Chapter 5: Section 5.2 Evolution from Deep Inheritance to Composition
@@ -522,7 +522,7 @@ Entity {
 ### 2.2 Premature ECS Adoption
 
 **The Problem:**
-Adopting a full Entity-Component-System architecture for a small-scale game where it adds unnecessary complexity.
+Implementing a full Entity-Component-System architecture for small games adds unnecessary complexity.
 
 **The Temptation:**
 ```cpp
@@ -532,10 +532,10 @@ class World {
     ComponentStorage<Health> healths;
     ComponentStorage<Weapon> weapons;
     ComponentStorage<AI> ais;
-    
+
     void Update() {
         // Complex query system
-        for (auto [pos, health, weapon] : 
+        for (auto [pos, health, weapon] :
              Query<Position, Health, Weapon>()) {
             // Process...
         }
@@ -544,15 +544,15 @@ class World {
 ```
 
 **Why It's Bad:**
-- Massive boilerplate for simple games
+- Excessive boilerplate for simple games
 - Component lookup overhead
-- Harder to debug (scattered logic)
-- Overkill for <1000 entities
-- Steep learning curve for team
+- Debugging becomes difficult with scattered logic
+- Overkill for games with fewer than 1,000 entities
+- Steep learning curve for teams
 
 **How to Detect It:**
-- Your game has <500 units
-- You're spending more time on ECS plumbing than gameplay
+- The game has fewer than 500 units
+- More time is spent on ECS plumbing than gameplay
 - Simple operations require 50+ lines of code
 
 **How to Fix It:**
@@ -570,22 +570,22 @@ pub struct Soldier {
     pub weapon: Option<Weapon>,    // Optional component
 }
 
-// Systems are just functions
+// Systems become simple functions
 fn update_soldiers(state: &mut BattleState, dt: f32) {
     for soldier in &mut state.soldiers {
         update_movement(soldier, dt);
     }
 }
 
-// Best of both worlds:
-// - Cache-friendly (contiguous arrays)
-// - Type-safe (compile-time)
-// - Simple (no complex query system)
+// Benefits include:
+// - Cache-friendly contiguous arrays
+// - Type safety at compile time
+// - Simplicity without complex query systems
 ```
 
 **Prevention Tips:**
-- Use pure ECS only for 10,000+ entities
-- For tactical wargames (500-1000 units), use modified ECS
+- Use pure ECS only for games with 10,000+ entities
+- For tactical wargames (500-1,000 units), use modified ECS
 - Start simple, add complexity only when needed
 
 **Reference:** See Chapter 5: Section 5.2.3 Modified ECS with Type-Safe Indices
@@ -595,31 +595,31 @@ fn update_soldiers(state: &mut BattleState, dt: f32) {
 ### 2.3 Mixing Simulation with Rendering
 
 **The Problem:**
-Calling render functions from within simulation update code, creating tight coupling and preventing headless operation.
+Calling render functions from simulation update code creates tight coupling and prevents headless operation.
 
 **Real Example from Early Prototypes:**
 ```cpp
 void Soldier::Update(float dt) {
     // Simulation logic
     position += velocity * dt;
-    
-    // DANGER: Rendering inside simulation!
+
+    // DANGER: Rendering inside simulation
     sprite.SetPosition(position);
-    sprite.Draw();  // NO! This couples sim to rendering
+    sprite.Draw();  // This couples simulation to rendering
 }
 
 void World::Simulate(float dt) {
     for (auto& soldier : soldiers) {
-        soldier.Update(dt);  // Implicitly renders!
+        soldier.Update(dt);  // Implicitly renders
     }
 }
 ```
 
 **Why It's Bad:**
-- Can't run simulation without graphics initialized
-- Can't run headless servers
-- Can't run at different framerates for sim vs. render
-- Impossible to implement deterministic replay
+- Simulation cannot run without graphics initialized
+- Headless servers become impossible
+- Different framerates for simulation and rendering can't be used
+- Deterministic replay cannot be implemented
 - Testing requires display initialization
 
 **How to Detect It:**
@@ -639,7 +639,7 @@ public:
             soldier->Update(dt);  // Pure simulation
         }
     }
-    
+
     void Render(Screen* screen) {
         for (auto& soldier : _soldiers) {
             soldier->Draw(screen);  // Pure rendering
@@ -659,7 +659,7 @@ game_loop() {
 
 **Prevention Tips:**
 - Never call render functions from simulation code
-- Use separate update rates (sim at 60Hz, render at display rate)
+- Use separate update rates (simulation at 60Hz, rendering at display rate)
 - Ensure simulation can run without graphics
 
 **Reference:** See Chapter 9: Section 9.2.2 Separation of Simulation from Rendering
@@ -669,15 +669,15 @@ game_loop() {
 ### 2.4 Tight Coupling (AI in Graphics)
 
 **The Problem:**
-AI systems directly accessing rendering data or vice versa, creating bidirectional dependencies.
+AI systems directly access rendering data or vice versa, creating bidirectional dependencies.
 
 **Real Example from Prototype Code:**
 ```cpp
 class AI {
     void SelectTarget(Soldier* self) {
-        // AI should NOT know about sprites!
+        // AI should not know about sprites
         for (auto& enemy : world->soldiers) {
-            if (enemy->sprite.IsVisible() &&  // Tight coupling!
+            if (enemy->sprite.IsVisible() &&  // Tight coupling
                 enemy->side != self->side) {
                 return enemy;
             }
@@ -687,8 +687,8 @@ class AI {
 
 class Renderer {
     void DrawSoldier(Soldier* soldier) {
-        // Renderer should NOT make AI decisions!
-        if (soldier->ai.IsAlert()) {  // Tight coupling!
+        // Renderer should not make AI decisions
+        if (soldier->ai.IsAlert()) {  // Tight coupling
             sprite.color = RED;
         }
     }
@@ -696,15 +696,15 @@ class Renderer {
 ```
 
 **Why It's Bad:**
-- Can't test AI without rendering system
-- Can't modify rendering without breaking AI
-- Circular dependencies
-- Violates separation of concerns
+- AI cannot be tested without the rendering system
+- Rendering cannot be modified without breaking AI
+- Circular dependencies appear
+- Separation of concerns is violated
 
 **How to Detect It:**
-- Look for imports of graphics headers in AI code
-- Look for imports of AI headers in rendering code
-- Use dependency analysis tools
+- Graphics headers appear in AI code
+- AI headers appear in rendering code
+- Dependency analysis tools reveal circular references
 
 **How to Fix It:**
 Use intermediate data structures:
@@ -714,10 +714,10 @@ pub struct SoldierView {
     pub position: WorldPoint,
     pub side: Side,
     pub health: f32,
-    pub visible: bool,  // Calculated by simulation, not rendering!
+    pub visible: bool,  // Calculated by simulation, not rendering
 }
 
-// AI operates on simulation data only
+// AI operates only on simulation data
 impl AI {
     fn select_target(&self, soldier: &Soldier, world: &World) -> Option<SoldierIndex> {
         for (idx, other) in world.soldiers.iter().enumerate() {
@@ -752,8 +752,8 @@ fn build_render_state(battle: &BattleState) -> RenderState {
 ```
 
 **Prevention Tips:**
-- AI should only access simulation state
-- Rendering should only access render state
+- AI should access only simulation state
+- Rendering should access only render state
 - Use explicit conversion between states
 - Never import graphics headers in AI code
 
@@ -766,7 +766,7 @@ fn build_render_state(battle: &BattleState) -> RenderState {
 ### 3.1 Adding Determinism Late
 
 **The Problem:**
-Building a complete single-player game, then trying to retrofit multiplayer with deterministic simulation.
+Developers often build a complete single-player game, then attempt to add multiplayer support by making the simulation deterministic afterward.
 
 **Real Example from OpenCombat-SDL:**
 ```cpp
@@ -776,7 +776,7 @@ void Soldier::Fire() {
     if (rand() % 100 < accuracy) {
         HitTarget();
     }
-    
+
     // Uses floating-point - slightly different on different CPUs!
     float damage = base_damage * distance_factor;
     target.TakeDamage(damage);
@@ -789,11 +789,7 @@ void Soldier::Move(float dt) {
 ```
 
 **Why It's Bad:**
-- Requires rewriting core systems
-- Floating-point behavior varies by platform
-- Random number generation must be synchronized
-- Frame-rate dependent logic causes desyncs
-- Often requires complete architectural overhaul
+Rewriting core systems becomes necessary. Floating-point behavior differs across platforms. Random number generation requires synchronization. Frame-rate dependent logic causes desyncs. The process often demands a complete architectural overhaul.
 
 **How to Detect It:**
 ```bash
@@ -804,7 +800,7 @@ grep -rn "float.*=.*dt\|delta_time" --include="*.cpp"
 ```
 
 **How to Fix It:**
-Design for determinism from day one:
+Design for determinism from the start:
 ```rust
 // OpenCombat's deterministic approach
 pub struct DeterministicRNG {
@@ -828,7 +824,7 @@ impl FixedPoint {
     pub fn new(value: f32) -> Self {
         FixedPoint((value * 65536.0) as i32)
     }
-    
+
     pub fn to_f32(&self) -> f32 {
         self.0 as f32 / 65536.0
     }
@@ -838,7 +834,7 @@ impl FixedPoint {
 pub fn tick(state: &mut BattleState, tick_number: u64) {
     // Always advance by fixed amount
     let dt = TICK_DURATION;
-    
+
     // Use tick_number for any time-based decisions
     if tick_number % RELOAD_TICKS == 0 {
         // Reload completes exactly at this tick
@@ -847,10 +843,7 @@ pub fn tick(state: &mut BattleState, tick_number: u64) {
 ```
 
 **Prevention Tips:**
-- Use deterministic RNG from day one
-- Use fixed-point or consistent floating-point rounding
-- Fixed timestep simulation (not frame-rate dependent)
-- All state changes through message system
+Use deterministic RNG from the beginning. Implement fixed-point or consistent floating-point rounding. Adopt fixed timestep simulation instead of frame-rate dependent logic. Ensure all state changes occur through a message system.
 
 **Reference:** See Chapter 15: Section 15.1.1 The Determinism Requirement
 
@@ -859,7 +852,7 @@ pub fn tick(state: &mut BattleState, tick_number: u64) {
 ### 3.2 Non-Deterministic Random
 
 **The Problem:**
-Using system random number generators that produce different sequences on different platforms or compiler versions.
+System random number generators produce different sequences across platforms or compiler versions.
 
 **Real Example:**
 ```cpp
@@ -867,7 +860,7 @@ Using system random number generators that produce different sequences on differ
 void Soldier::Fire() {
     srand(time(NULL));  // Seeding with time - different on each machine!
     int roll = rand();
-    
+
     if (roll % 100 < accuracy) {
         HitTarget();
     }
@@ -879,10 +872,7 @@ std::mt19937 rng(std::random_device{}());  // Different seed on each machine!
 ```
 
 **Why It's Bad:**
-- Different RNG sequences on different platforms
-- Desyncs in multiplayer
-- Can't reproduce bugs reliably
-- Replay systems break
+RNG sequences vary across platforms, causing multiplayer desyncs. Bug reproduction becomes unreliable. Replay systems fail.
 
 **How to Detect It:**
 ```bash
@@ -890,7 +880,7 @@ grep -rn "rand()\|srand()\|std::random" --include="*.cpp" --include="*.h"
 ```
 
 **How to Fix It:**
-Use deterministic RNG with synchronized seeds:
+Implement deterministic RNG with synchronized seeds:
 ```rust
 // OpenCombat's solution
 pub struct SeededRNG {
@@ -901,7 +891,7 @@ impl SeededRNG {
     pub fn new(seed: u64) -> Self {
         Self { state: seed }
     }
-    
+
     pub fn next_u64(&mut self) -> u64 {
         // xorshift64* - deterministic across platforms
         self.state ^= self.state << 13;
@@ -909,7 +899,7 @@ impl SeededRNG {
         self.state ^= self.state << 17;
         self.state.wrapping_mul(2685821657736338717)
     }
-    
+
     pub fn next_f32(&mut self) -> f32 {
         (self.next_u64() as f32) / (u64::MAX as f32)
     }
@@ -928,7 +918,7 @@ impl BattleState {
             seed,
         }
     }
-    
+
     pub fn fire_weapon(&mut self, soldier: SoldierIndex) -> FireResult {
         let roll = self.rng.next_f32();
         if roll < self.soldiers[soldier.0].accuracy {
@@ -939,15 +929,12 @@ impl BattleState {
     }
 }
 
-// Same seed = identical sequence on all machines
-// Replay just needs initial seed + inputs
+// Same seed produces identical sequence on all machines
+// Replay only requires initial seed plus inputs
 ```
 
 **Prevention Tips:**
-- Never use system RNG
-- Always seed from game state, not system time
-- Use deterministic algorithms (xorshift, PCG)
-- Include RNG state in save files
+Avoid system RNG entirely. Always seed from game state, not system time. Use deterministic algorithms like xorshift or PCG. Include RNG state in save files.
 
 **Reference:** See Chapter 15: Section 15.2.1 Message-Based State Updates
 
@@ -956,7 +943,7 @@ impl BattleState {
 ### 3.3 Floating-Point Inconsistencies
 
 **The Problem:**
-Using floating-point arithmetic for critical calculations, causing tiny differences between platforms that compound into desyncs.
+Floating-point arithmetic in critical calculations introduces tiny differences between platforms that compound into desyncs.
 
 **Real Example:**
 ```cpp
@@ -970,15 +957,10 @@ float new_y = position.y + sin(angle) * speed;
 ```
 
 **Why It's Bad:**
-- x86 vs ARM: Different FPU implementations
-- Different compilers: Different optimization strategies
-- Math libraries: Slight variations in transcendental functions
-- Tiny differences compound over thousands of operations
+x86 and ARM have different FPU implementations. Compilers use different optimization strategies. Math libraries show slight variations in transcendental functions. Tiny differences accumulate over thousands of operations.
 
 **How to Detect It:**
-- Search for `float` or `double` in simulation code
-- Test on multiple platforms (x86, ARM)
-- Use different compilers (GCC, Clang, MSVC)
+Search for `float` or `double` in simulation code. Test on multiple platforms (x86, ARM). Use different compilers (GCC, Clang, MSVC).
 
 **How to Fix It:**
 Use fixed-point arithmetic or consistent rounding:
@@ -993,20 +975,20 @@ pub struct FixedPoint(i32);
 
 impl FixedPoint {
     pub const SCALE: i32 = 65536;  // 2^16
-    
+
     pub fn from_f32(value: f32) -> Self {
         FixedPoint((value * Self::SCALE as f32) as i32)
     }
-    
+
     pub fn to_f32(&self) -> f32 {
         self.0 as f32 / Self::SCALE as f32
     }
-    
+
     // Deterministic arithmetic
     pub fn add(self, other: FixedPoint) -> FixedPoint {
         FixedPoint(self.0 + other.0)
     }
-    
+
     pub fn mul(self, other: FixedPoint) -> FixedPoint {
         // Use 64-bit intermediate to avoid overflow
         let result = (self.0 as i64 * other.0 as i64) / Self::SCALE as i64;
@@ -1023,10 +1005,7 @@ pub fn consistent_sqrt(value: f32) -> f32 {
 ```
 
 **Prevention Tips:**
-- Use fixed-point for positions and critical calculations
-- Round floating-point results to consistent precision
-- Avoid transcendental functions (sin/cos) in simulation
-- Use lookup tables for trigonometry if needed
+Use fixed-point for positions and critical calculations. Round floating-point results to consistent precision. Avoid transcendental functions like sin/cos in simulation code. Use lookup tables for trigonometry when needed.
 
 **Reference:** See Chapter 15: Section 15.1.1 The Determinism Requirement
 
@@ -1035,7 +1014,7 @@ pub fn consistent_sqrt(value: f32) -> f32 {
 ### 3.4 State Mutation Order
 
 **The Problem:**
-Processing state changes in different orders on different machines, leading to divergent simulations.
+Processing state changes in different orders on different machines leads to divergent simulations.
 
 **Real Example:**
 ```cpp
@@ -1052,14 +1031,10 @@ void World::Update() {
 ```
 
 **Why It's Bad:**
-- Hash map iteration order varies by implementation
-- Different STL versions iterate differently
-- Results depend on memory layout
-- Desyncs occur even with same inputs
+Hash map iteration order varies by implementation. Different STL versions iterate differently. Results depend on memory layout. Desyncs occur even with identical inputs.
 
 **How to Detect It:**
-- Use `std::unordered_map` or hash maps? Check iteration usage
-- Does order of `Update()` calls affect results?
+Check if `std::unordered_map` or hash maps are used. Verify whether the order of `Update()` calls affects results.
 
 **How to Fix It:**
 Use deterministic ordering:
@@ -1067,23 +1042,23 @@ Use deterministic ordering:
 // OpenCombat's solution
 pub fn tick(state: &mut BattleState) {
     // Sort soldiers by ID for deterministic iteration
-    let mut soldier_indices: Vec<SoldierIndex> = 
+    let mut soldier_indices: Vec<SoldierIndex> =
         (0..state.soldiers.len()).map(SoldierIndex).collect();
     soldier_indices.sort_by_key(|idx| state.soldiers[idx.0].id);
-    
+
     // Collect all changes first (no mutation during iteration)
     let mut changes: Vec<(SoldierIndex, SoldierMessage)> = Vec::new();
-    
+
     for idx in &soldier_indices {
         let soldier = &state.soldiers[idx.0];
         if let Some(msg) = soldier.update(state) {
             changes.push((*idx, msg));
         }
     }
-    
+
     // Apply changes in deterministic order
     changes.sort_by_key(|(idx, _)| state.soldiers[idx.0].id);
-    
+
     for (idx, msg) in changes {
         state.apply_soldier_message(idx, msg);
     }
@@ -1091,10 +1066,7 @@ pub fn tick(state: &mut BattleState) {
 ```
 
 **Prevention Tips:**
-- Always iterate in sorted order
-- Never rely on hash map iteration order
-- Collect changes before applying them
-- Sort changes before application
+Always iterate in sorted order. Never rely on hash map iteration order. Collect changes before applying them. Sort changes before application.
 
 **Reference:** See Chapter 15: Section 15.2.2 Fixed Timestep Simulation
 
@@ -1102,7 +1074,7 @@ pub fn tick(state: &mut BattleState) {
 
 ### 3.5 Solution: Message-Based Architecture
 
-The solution to all multiplayer pitfalls is a message-based architecture:
+A message-based architecture solves all multiplayer pitfalls:
 
 ```rust
 // All state changes are messages
@@ -1135,11 +1107,11 @@ impl BattleState {
 }
 
 // Benefits:
-// 1. Deterministic: Same messages = same state
-// 2. Replay: Just record messages
-// 3. Network: Serialize messages
-// 4. Debug: Log shows every state change
-// 5. Multiplayer: Server validates and broadcasts
+1. Deterministic: Same messages produce the same state
+2. Replay: Record messages to recreate sessions
+3. Network: Serialize messages for transmission
+4. Debug: Logs show every state change
+5. Multiplayer: Server validates and broadcasts messages
 ```
 
 **Reference:** See Chapter 15: Section 15.2 The Deterministic Simulation Approach
@@ -1151,7 +1123,7 @@ impl BattleState {
 ### 4.1 Omniscient AI (Cheating)
 
 **The Problem:**
-AI has access to information it shouldn't—knowing enemy positions through walls, having perfect accuracy, or seeing the entire battlefield.
+AI gains unfair advantages by accessing information it shouldn't—seeing through walls, achieving perfect accuracy, or monitoring the entire battlefield.
 
 **Real Example from Early Prototypes:**
 ```cpp
@@ -1168,18 +1140,15 @@ class AI {
 ```
 
 **Why It's Bad:**
-- Frustrating for players (unfair advantage)
-- Breaks immersion (AI doesn't follow same rules)
-- Impossible to balance (AI always has advantage)
-- Can't support fog of war
+Players find it frustrating when AI operates outside the same rules. Immersion breaks, balance becomes impossible, and fog of war fails to function.
 
 **How to Detect It:**
-- Does AI use different LoS checks than player?
-- Can AI target enemies the player can't see?
-- Does AI have map-wide knowledge?
+- Does the AI use different line-of-sight checks than the player?
+- Can the AI target enemies the player can't see?
+- Does the AI possess map-wide knowledge?
 
 **How to Fix It:**
-Implement proper perception system:
+Implement a proper perception system:
 ```rust
 // OpenCombat's perception system
 pub struct Perception {
@@ -1191,7 +1160,7 @@ pub struct Perception {
 impl AI {
     fn update_perception(&mut self, soldier: &Soldier, world: &World) {
         self.perception.visible_enemies.clear();
-        
+
         for (idx, enemy) in world.enemies() {
             // Same LoS check as player!
             if has_line_of_sight(soldier.position, enemy.position, world) {
@@ -1203,7 +1172,7 @@ impl AI {
             }
         }
     }
-    
+
     fn select_target(&self) -> Option<SoldierIndex> {
         // Can ONLY target visible enemies
         self.perception.visible_enemies
@@ -1215,10 +1184,7 @@ impl AI {
 ```
 
 **Prevention Tips:**
-- AI must use same LoS checks as player
-- AI should have limited information (memory-based)
-- Implement fog of war for AI
-- AI makes mistakes (not 100% accuracy)
+Use the same line-of-sight checks for AI and players. Limit AI knowledge to what it can perceive, implement fog of war, and ensure AI makes mistakes—no perfect accuracy.
 
 **Reference:** See Chapter 14: Section 14.3 Perception Systems
 
@@ -1227,7 +1193,7 @@ impl AI {
 ### 4.2 Frame-Rate Dependent AI
 
 **The Problem:**
-AI that behaves differently depending on frame rate, making it unpredictable and hard to balance.
+AI behavior changes with frame rate, creating unpredictability and balance issues.
 
 **Real Example:**
 ```cpp
@@ -1236,7 +1202,7 @@ void AI::Update(float dt) {
     if (dt > 0.1f) {  // Different behavior at low FPS
         panic_mode = true;
     }
-    
+
     // Timing based on real time, not game time
     if (last_decision_time + 1000 < GetTime()) {
         MakeDecision();
@@ -1246,18 +1212,15 @@ void AI::Update(float dt) {
 ```
 
 **Why It's Bad:**
-- AI behaves differently on fast vs slow machines
-- Timing exploits possible
-- Can't reproduce bugs reliably
-- Unfair in multiplayer
+AI behaves differently on fast and slow machines. Timing exploits emerge, bugs become hard to reproduce, and multiplayer fairness suffers.
 
 **How to Detect It:**
-- Does AI use `delta_time` for decision timing?
-- Does AI use system time (`gettimeofday`)?
-- Test AI at different frame rates (30fps vs 60fps vs 144fps)
+- Does the AI use `delta_time` for decision timing?
+- Does the AI rely on system time (`gettimeofday`)?
+- Test AI at 30fps, 60fps, and 144fps to spot inconsistencies.
 
 **How to Fix It:**
-Use fixed timestep for AI:
+Use a fixed timestep for AI:
 ```rust
 // OpenCombat's approach
 pub fn tick_ai(state: &mut BattleState, tick: u64) {
@@ -1266,7 +1229,7 @@ pub fn tick_ai(state: &mut BattleState, tick: u64) {
         for idx in state.all_soldiers() {
             if let Some(behavior) = evaluate_threats(idx, state) {
                 state.apply(BattleStateMessage::Soldier(
-                    idx, 
+                    idx,
                     SoldierMessage::SetBehavior(behavior)
                 ));
             }
@@ -1276,10 +1239,7 @@ pub fn tick_ai(state: &mut BattleState, tick: u64) {
 ```
 
 **Prevention Tips:**
-- Never use real time for AI decisions
-- Never use `delta_time` for AI logic
-- Use tick counts for all timing
-- Run AI at fixed frequency (e.g., 10Hz)
+Avoid real time for AI decisions. Never use `delta_time` for AI logic. Rely on tick counts for timing and run AI at a fixed frequency, such as 10Hz.
 
 **Reference:** See Chapter 14: Section 14.1.2 System AI Timescales
 
@@ -1288,7 +1248,7 @@ pub fn tick_ai(state: &mut BattleState, tick: u64) {
 ### 4.3 Too Complex AI (Unpredictable)
 
 **The Problem:**
-AI so sophisticated that it becomes unpredictable—players can't understand why units made certain decisions.
+Overly sophisticated AI becomes unpredictable, leaving players confused about unit decisions.
 
 **Real Example:**
 ```cpp
@@ -1308,19 +1268,16 @@ class UtilityAI {
         return score;
     }
 };
-// Player can't understand why AI chose position A over B!
+// Players can't understand why AI chose position A over B.
 ```
 
 **Why It's Bad:**
-- Players can't predict AI behavior
-- Can't debug AI decisions
-- Difficult to balance (too many variables)
-- Emergent behavior becomes chaotic
+Players struggle to predict AI behavior. Debugging becomes difficult, balance suffers from too many variables, and emergent behavior turns chaotic.
 
 **How to Detect It:**
-- Can you explain why AI made a specific decision?
-- Does AI require >10 considerations per decision?
-- Is AI behavior chaotic (different each time)?
+- Can you explain why the AI made a specific decision?
+- Does the AI require more than 10 considerations per decision?
+- Does AI behavior vary chaotically between playthroughs?
 
 **How to Fix It:**
 Simplify AI with clear rules:
@@ -1328,36 +1285,33 @@ Simplify AI with clear rules:
 // OpenCombat's simpler approach
 fn evaluate_threat_response(soldier: &Soldier) -> Option<Behavior> {
     // Simple priority system
-    
+
     // 1. Critical danger - seek cover immediately
     if soldier.under_fire.intensity >= 150 {
         return find_immediate_cover(soldier);
     }
-    
+
     // 2. Warning level - proceed with caution
     if soldier.under_fire.intensity >= 100 {
         if !has_good_cover(soldier) {
             return find_better_cover(soldier);
         }
     }
-    
+
     // 3. Visible enemy - engage if possible
     if let Some(enemy) = find_visible_enemy(soldier) {
         if can_engage(soldier, enemy) {
             return Some(Behavior::EngageSoldier(enemy));
         }
     }
-    
+
     // 4. Follow orders
     None
 }
 ```
 
 **Prevention Tips:**
-- AI should be explainable
-- Use simple priority systems over complex scoring
-- Limit considerations to 3-5 per decision
-- Make AI behavior consistent and predictable
+Keep AI explainable. Use simple priority systems instead of complex scoring. Limit considerations to 3-5 per decision. Ensure AI behavior remains consistent and predictable.
 
 **Reference:** See Chapter 14: Section 14.2.4 Comparative Summary
 
@@ -1366,7 +1320,7 @@ fn evaluate_threat_response(soldier: &Soldier) -> Option<Behavior> {
 ### 4.4 AI That Ignores Orders
 
 **The Problem:**
-AI taking complete autonomy and ignoring player commands, leading to frustrating loss of control.
+AI overrides player commands, leading to frustration and loss of control.
 
 **Real Example:**
 ```cpp
@@ -1377,16 +1331,13 @@ void Soldier::Update() {
         Attack(enemy);
         return;
     }
-    
+
     // ... never checks current_order
 }
 ```
 
 **Why It's Bad:**
-- Players lose sense of control
-- Frustrating when units don't follow commands
-- Can't execute planned strategies
-- Feels like the game is playing itself
+Players lose control when units disregard commands. Frustration builds, planned strategies fail, and the game feels like it plays itself.
 
 **How to Detect It:**
 - Can units be ordered to retreat?
@@ -1399,7 +1350,7 @@ Implement order override with priority:
 // OpenCombat's approach - three-tier system
 pub fn tick_soldier(soldier_idx: SoldierIndex, state: &mut BattleState) {
     let soldier = state.soldier(soldier_idx);
-    
+
     // Check for threats that override orders
     if soldier.under_fire.intensity >= 150 {
         // Survival priority: seek cover
@@ -1411,7 +1362,7 @@ pub fn tick_soldier(soldier_idx: SoldierIndex, state: &mut BattleState) {
             return;
         }
     }
-    
+
     // Otherwise, follow player orders
     if let Some(order) = &soldier.current_order {
         let behavior = translate_order_to_behavior(order, soldier, state);
@@ -1429,10 +1380,7 @@ pub fn tick_soldier(soldier_idx: SoldierIndex, state: &mut BattleState) {
 ```
 
 **Prevention Tips:**
-- AI should prioritize survival (return fire, seek cover)
-- But otherwise follow player orders
-- Allow "hold fire" and "hold position" orders
-- Make AI autonomy visible to player
+AI should prioritize survival—returning fire or seeking cover—but otherwise follow player orders. Allow "hold fire" and "hold position" commands. Make AI autonomy visible to players.
 
 **Reference:** See Chapter 6: Section 6.2.2 Dynamic Behavior Override
 
@@ -1440,7 +1388,7 @@ pub fn tick_soldier(soldier_idx: SoldierIndex, state: &mut BattleState) {
 
 ### 4.5 Solution: Perception + Behavior Separation
 
-The solution to AI pitfalls is separating perception from behavior:
+The key to avoiding AI pitfalls lies in separating perception from behavior:
 
 ```rust
 // Perception system - what AI knows
@@ -1450,18 +1398,18 @@ impl PerceptionSystem {
     pub fn update(soldier: &mut Soldier, world: &World) {
         // Update what this soldier can see/hear
         soldier.visible_enemies.clear();
-        
+
         for enemy in world.enemies_near(soldier.position, soldier.view_distance) {
             if has_line_of_sight(soldier, enemy, world) {
                 soldier.visible_enemies.push(enemy);
             }
         }
-        
+
         // Update suppression level
         for explosion in world.recent_explosions_near(soldier.position, 10.0) {
             soldier.under_fire.increase(explosion.intensity);
         }
-        
+
         soldier.under_fire.decay();
     }
 }
@@ -1472,7 +1420,7 @@ pub struct BehaviorSystem;
 impl BehaviorSystem {
     pub fn update(soldier_idx: SoldierIndex, state: &mut BattleState) {
         let soldier = &state.soldiers[soldier_idx.0];
-        
+
         // Simple priority-based decisions
         if soldier.under_fire.intensity >= 150 {
             // Survival
@@ -1495,10 +1443,7 @@ impl BehaviorSystem {
 ```
 
 **Benefits:**
-- Perception limits information (no cheating)
-- Behavior is simple and explainable
-- Can test independently
-- Easy to balance
+Perception limits information, preventing cheating. Behavior becomes simple and explainable. Systems can be tested independently, and balancing becomes straightforward.
 
 **Reference:** See Chapter 14: Section 14.4.1 Overview of Decision Architectures
 
@@ -1509,7 +1454,7 @@ impl BehaviorSystem {
 ### 5.1 Hardcoded Content
 
 **The Problem:**
-Game content (weapons, units, scenarios) embedded in code, requiring recompilation to change.
+Game content like weapons, units, and scenarios embedded directly in code forces recompilation for any changes.
 
 **Real Example from OpenCombat-SDL:**
 ```cpp
@@ -1534,10 +1479,7 @@ void Soldier::Fire() {
 ```
 
 **Why It's Bad:**
-- Can't balance without recompilation
-- Community can't create mods
-- Developers can't iterate quickly
-- Binary bloat with all content compiled in
+Balancing requires recompilation. The community can't create mods. Developers lose time waiting for builds. Binaries bloat with compiled content.
 
 **How to Detect It:**
 ```bash
@@ -1549,7 +1491,7 @@ grep -rn "damage\s*=\s*[0-9]" --include="*.cpp"
 ```
 
 **How to Fix It:**
-Externalize to data files:
+Move content to external data files:
 ```json
 // weapons.json
 {
@@ -1584,15 +1526,15 @@ impl WeaponDatabase {
     pub fn load_from_json(path: &str) -> Result<Self> {
         let file = std::fs::read_to_string(path)?;
         let data: WeaponData = serde_json::from_str(&file)?;
-        
+
         let mut weapons = HashMap::new();
         for weapon in data.weapons {
             weapons.insert(weapon.id.clone(), weapon);
         }
-        
+
         Ok(Self { weapons })
     }
-    
+
     pub fn get(&self, id: &str) -> Option<&WeaponTemplate> {
         self.weapons.get(id)
     }
@@ -1600,10 +1542,7 @@ impl WeaponDatabase {
 ```
 
 **Prevention Tips:**
-- Externalize all content to JSON/XML/YAML
-- Use string IDs, not enums
-- Load at runtime
-- Hot-reload for development
+Externalize all content to JSON, XML, or YAML. Use string IDs instead of enums. Load data at runtime. Implement hot-reload for development.
 
 **Reference:** See Chapter 7: Section 7.3 OpenCombat-SDL Configuration Approach
 
@@ -1612,35 +1551,29 @@ impl WeaponDatabase {
 ### 5.2 Binary Save Formats
 
 **The Problem:**
-Using opaque binary formats for save files that break between versions and can't be edited.
+Opaque binary save files break between versions and resist editing.
 
 **Real Example:**
 ```cpp
 // BAD: Binary save
 void SaveGame(const char* filename) {
     FILE* f = fopen(filename, "wb");
-    
+
     // Write raw structs - breaks if struct changes!
     fwrite(&world, sizeof(World), 1, f);
-    
+
     // Write pointers - corrupted on load!
     fwrite(soldiers.data(), sizeof(Soldier*), soldiers.size(), f);
-    
+
     fclose(f);
 }
 ```
 
 **Why It's Bad:**
-- Breaks when game updates (struct changes)
-- Can't debug save files
-- Can't recover corrupted saves
-- Modders can't edit
-- Platform-dependent (endianness, struct padding)
+Saves break when game updates. Debugging becomes impossible. Corrupted saves can't be recovered. Modders can't edit files. Platform differences cause issues.
 
 **How to Detect It:**
-- Are save files human-readable?
-- Can you open saves in a text editor?
-- Do saves break between versions?
+Check if save files are human-readable. Try opening them in a text editor. Test if saves break between versions.
 
 **How to Fix It:**
 Use text-based serialization:
@@ -1657,25 +1590,22 @@ pub fn save_game(state: &BattleState, path: &str) -> Result<()> {
             behavior: s.behavior.clone(),
         }).collect(),
     };
-    
+
     let json = serde_json::to_string_pretty(&save_data)?;
     std::fs::write(path, json)?;
-    
+
     Ok(())
 }
 
 // Benefits:
-// - Human-readable
-// - Version-migratable
-// - Debuggable
-// - Platform-independent
+// Human-readable
+// Version-migratable
+// Debuggable
+// Platform-independent
 ```
 
 **Prevention Tips:**
-- Use JSON, XML, or YAML for saves
-- Include version numbers for migration
-- Pretty-print for debugging
-- Never write raw memory
+Use JSON, XML, or YAML for saves. Include version numbers for migration. Pretty-print for debugging. Never write raw memory.
 
 **Reference:** See Chapter 7: Section 7.4.2 JSON Deployment System
 
@@ -1684,7 +1614,7 @@ pub fn save_game(state: &BattleState, path: &str) -> Result<()> {
 ### 5.3 No Hot-Reload Capability
 
 **The Problem:**
-Requiring game restart to see content changes, slowing iteration to a crawl.
+Content changes require game restarts, turning iteration into a slow process.
 
 **Real Example:**
 ```cpp
@@ -1698,21 +1628,16 @@ class Game {
 };
 
 // Designer tweaks weapon damage
-// ... must restart game to test ...
-// ... 30 second iteration cycle ...
-// ... 100 tweaks = 50 minutes waiting ...
+// Must restart game to test
+// 30-second iteration cycle
+// 100 tweaks = 50 minutes wasted
 ```
 
 **Why It's Bad:**
-- Slow iteration for developers
-- Impossible to balance effectively
-- Frustrating for modders
-- Wastes development time
+Developers wait too long. Balancing becomes inefficient. Modders get frustrated. Time gets wasted.
 
 **How to Detect It:**
-- Does changing a JSON file require restart?
-- How long is your iteration cycle?
-- Can you tweak values while playing?
+Check if changing a JSON file requires restart. Measure iteration cycle time. Test if values can be tweaked while playing.
 
 **How to Fix It:**
 Implement hot-reload:
@@ -1728,7 +1653,7 @@ impl ConfigSystem {
         // Check if file changed
         if let Ok(modified) = std::fs::metadata(&self.path)
             .and_then(|m| m.modified()) {
-            
+
             if modified > self.last_modified {
                 // Reload!
                 if let Ok(contents) = std::fs::read_to_string(&self.path) {
@@ -1741,7 +1666,7 @@ impl ConfigSystem {
             }
         }
     }
-    
+
     pub fn get(&self) -> &ServerConfig {
         &self.config
     }
@@ -1750,17 +1675,14 @@ impl ConfigSystem {
 // In game loop
 fn tick(state: &mut BattleState) {
     state.config_system.update();  // Check for changes every frame
-    
+
     // Use latest config
     let visibility = state.config_system.get().visibility_modifier;
 }
 ```
 
 **Prevention Tips:**
-- Watch files for changes
-- Reload automatically
-- Keep iteration cycle <5 seconds
-- Use inotify/FSEvents for efficient watching
+Watch files for changes. Reload automatically. Keep iteration cycles under five seconds. Use inotify or FSEvents for efficient watching.
 
 **Reference:** See Chapter 9: Section 9.6.3 Hot-Reload Development
 
@@ -1769,50 +1691,48 @@ fn tick(state: &mut BattleState) {
 ### 5.4 Inconsistent Mod API
 
 **The Problem:**
-Different modding interfaces for different systems—JSON for weapons, XML for units, Lua for AI, custom format for maps.
+Different systems use different modding interfaces—JSON for weapons, XML for units, Lua for AI, custom formats for maps.
 
 **Real Example:**
-```
-mods/
-├── weapons/
-│   └── pistol.json        # JSON
-├── units/
-│   └── sniper.xml         # XML
-├── ai/
-│   └── aggressive.lua     # Lua
-├── maps/
-│   └── level1.tmx         # Tiled format
-└── sounds/
-    └── explosion.ogg      # Raw file
+```mermaid
+mindmap
+  root((mods/))
+    weapons["weapons/"]
+      pistol.json["pistol.json - JSON"]
+    units["units/"]
+      sniper.xml["sniper.xml - XML"]
+    ai["ai/"]
+      aggressive.lua["aggressive.lua - Lua"]
+    maps["maps/"]
+      level1.tmx["level1.tmx - Tiled format"]
+    sounds["sounds/"]
+      explosion.ogg["explosion.ogg - Raw file"]
 ```
 
 **Why It's Bad:**
-- Modders must learn multiple formats
-- Inconsistent tooling
-- No unified workflow
-- Hard to document
+Modders must learn multiple formats. Tooling varies. Workflows become fragmented. Documentation gets complicated.
 
 **How to Detect It:**
-- How many different file formats does your modding use?
-- Do modders need multiple editors/tools?
+Count how many file formats your modding system uses. Check if modders need multiple editors or tools.
 
 **How to Fix It:**
-Standardize on one format (or few):
-```
-mods/
-├── weapons/
-│   └── pistol.yaml        # All YAML
-├── units/
-│   └── sniper.yaml
-├── ai/
-│   └── aggressive.yaml    # Behavior trees in YAML
-├── maps/
-│   └── level1.yaml        # Map data in YAML
-└── sounds/
-    └── explosion.ogg      # Binary assets OK
+Standardize on one format:
+```mermaid
+mindmap
+  root((mods/))
+    weapons["weapons/"]
+      pistol.yaml["pistol.yaml - All YAML"]
+    units["units/"]
+      sniper.yaml["sniper.yaml"]
+    ai["ai/"]
+      aggressive.yaml["aggressive.yaml - Behavior trees in YAML"]
+    maps["maps/"]
+      level1.yaml["level1.yaml - Map data in YAML"]
+    sounds["sounds/"]
+      explosion.ogg["explosion.ogg - Binary assets remain acceptable"]
 ```
 
-Or use CloseCombatFree's QML approach:
+Or adopt CloseCombatFree's QML approach:
 ```qml
 // Everything in one declarative language
 Sniper {
@@ -1821,7 +1741,7 @@ Sniper {
         damage: 80
         range: 800
     }
-    
+
     ai: BehaviorTree {
         Selector {
             Sequence {
@@ -1831,16 +1751,13 @@ Sniper {
             Action { action: "Hide" }
         }
     }
-    
+
     spawn_position: Point { x: 100; y: 200 }
 }
 ```
 
 **Prevention Tips:**
-- Choose one primary format (JSON/YAML preferred)
-- Be consistent across all content types
-- Provide unified tooling
-- Document the API comprehensively
+Choose one primary format like JSON or YAML. Maintain consistency across all content types. Provide unified tooling. Document the API thoroughly.
 
 **Reference:** See Chapter 7: Section 7.5 CloseCombatFree Declarative Modding
 
@@ -1848,7 +1765,7 @@ Sniper {
 
 ### 5.5 Solution: Data-Driven from Day One
 
-The solution to modding pitfalls is designing for modding from the start:
+Design for modding from the start:
 
 ```rust
 // Core principle: Content is data, not code
@@ -1875,11 +1792,11 @@ impl ContentDatabase {
 }
 
 // 4. Consistent API
-// All content follows same pattern:
-// - JSON definition
-// - Runtime loading
-// - Hot-reload support
-// - Version migration
+// All content follows the same pattern:
+// JSON definition
+// Runtime loading
+// Hot-reload support
+// Version migration
 ```
 
 **Reference:** See Chapter 7: Section 7.2 The Modding Spectrum
@@ -1891,7 +1808,7 @@ impl ContentDatabase {
 ### 6.1 O(n²) Squad Coordination
 
 **The Problem:**
-Calculating squad cohesion or coordination with nested loops over all squad members.
+Nested loops over squad members create performance bottlenecks when calculating cohesion or coordination.
 
 **Real Example:**
 ```cpp
@@ -1912,27 +1829,24 @@ void UpdateSquadCohesion(Squad* squad) {
 ```
 
 **Why It's Bad:**
-- Scales terribly (10 soldiers = 100 checks, 100 soldiers = 10,000 checks)
-- Causes frame drops with large units
-- Unnecessary precision (squad cohesion is fuzzy)
+Squad coordination checks scale poorly. Ten soldiers require 100 checks; 100 soldiers need 10,000. This causes frame drops with large units and delivers unnecessary precision since squad cohesion is inherently fuzzy.
 
 **How to Detect It:**
-- Profile with large unit counts (100+)
-- Look for nested loops over unit lists
-- Check for O(n²) algorithms
+Profile with large unit counts (100+). Watch for nested loops over unit lists and O(n²) algorithms.
 
 **How to Fix It:**
-Use leader-based approximation:
+Use leader-based approximation instead:
+
 ```rust
 // O(n) - leader-based cohesion
 pub fn update_squad_cohesion(squad: &mut Squad, state: &BattleState) {
     let leader_pos = state.soldiers[squad.leader.0].position;
-    
+
     // Only check distance to leader, not all members
     for member_idx in &squad.members {
         let member = &state.soldiers[member_idx.0];
         let dist = distance(member.position, leader_pos);
-        
+
         if dist > squad.cohesion_radius {
             // Issue move order to return to formation
             let target = formation_position(leader_pos, *member_idx, squad);
@@ -1943,10 +1857,7 @@ pub fn update_squad_cohesion(squad: &mut Squad, state: &BattleState) {
 ```
 
 **Prevention Tips:**
-- Use spatial partitioning
-- Approximate with leader-based calculations
-- Limit squad sizes (8-12 is realistic anyway)
-- Cache results when possible
+Use spatial partitioning. Approximate with leader-based calculations. Keep squad sizes realistic (8-12 members). Cache results when possible.
 
 **Reference:** See Chapter 5: Section 5.4.3 Formation Following
 
@@ -1955,7 +1866,7 @@ pub fn update_squad_cohesion(squad: &mut Squad, state: &BattleState) {
 ### 6.2 No Spatial Partitioning
 
 **The Problem:**
-Checking every unit against every other unit for line-of-sight, collision, or targeting.
+Checking every unit against every other unit for line-of-sight, collision, or targeting creates quadratic scaling.
 
 **Real Example:**
 ```cpp
@@ -1974,17 +1885,14 @@ void UpdateVisibility() {
 ```
 
 **Why It's Bad:**
-- Quadratic scaling kills performance
-- Most checks are unnecessary (distant units)
-- Cache-unfriendly (random memory access)
+Quadratic scaling destroys performance. Most checks are unnecessary because units are too distant. Random memory access patterns hurt cache efficiency.
 
 **How to Detect It:**
-- Profile with >200 units
-- Look for nested loops over all units
-- Frame time increases quadratically with unit count
+Profile with more than 200 units. Look for nested loops over all units. Watch for frame time increasing quadratically with unit count.
 
 **How to Fix It:**
-Use spatial hashing:
+Implement spatial hashing:
+
 ```rust
 pub struct SpatialHash {
     cell_size: f32,
@@ -1996,12 +1904,12 @@ impl SpatialHash {
         let hash = self.hash(position);
         self.cells.entry(hash).or_default().push(entity);
     }
-    
+
     pub fn query_radius(&self, center: Vec2, radius: f32) -> Vec<EntityIndex> {
         let mut results = Vec::new();
         let radius_in_cells = (radius / self.cell_size).ceil() as i32;
         let center_cell = self.world_to_cell(center);
-        
+
         // Only check nearby cells
         for dy in -radius_in_cells..=radius_in_cells {
             for dx in -radius_in_cells..=radius_in_cells {
@@ -2015,7 +1923,7 @@ impl SpatialHash {
                 }
             }
         }
-        
+
         results
     }
 }
@@ -2030,10 +1938,7 @@ for enemy in nearby_enemies {
 ```
 
 **Prevention Tips:**
-- Always use spatial partitioning for queries
-- Choose cell size based on typical query radius
-- Update spatial hash when units move
-- Query before expensive operations
+Always use spatial partitioning for queries. Choose cell size based on typical query radius. Update the spatial hash when units move. Query before expensive operations.
 
 **Reference:** See Chapter 12: Section 12.2.5 Spatial Indexing Options
 
@@ -2042,39 +1947,35 @@ for enemy in nearby_enemies {
 ### 6.3 Excessive Memory Allocation
 
 **The Problem:**
-Allocating memory every frame—creating temporary vectors, strings, or objects that cause GC pressure or fragmentation.
+Allocating memory every frame creates temporary vectors, strings, or objects that cause garbage collection pressure or fragmentation.
 
 **Real Example:**
 ```cpp
 // Allocating every frame!
 void Update() {
     std::vector<Soldier*> visible;  // Allocated on heap every frame!
-    
+
     for (auto& soldier : soldiers) {
         if (CanSee(soldier)) {
             visible.push_back(soldier);  // Reallocation as vector grows!
         }
     }
-    
+
     std::string status = GetStatusString();  // String allocation!
-    
+
     ProcessTargets(visible);  // Temporary vector discarded
 }
 ```
 
 **Why It's Bad:**
-- GC pauses (in managed languages)
-- Memory fragmentation
-- Cache misses (heap allocations scattered)
-- Unpredictable frame times
+Frequent allocations cause garbage collection pauses in managed languages. Memory fragmentation leads to scattered heap allocations and cache misses. Frame times become unpredictable.
 
 **How to Detect It:**
-- Use memory profilers (Valgrind, heaptrack)
-- Watch for `malloc`/`new` in frame loops
-- Monitor GC frequency (in Java/C#/JS)
+Use memory profilers like Valgrind or heaptrack. Watch for `malloc`/`new` in frame loops. Monitor garbage collection frequency in Java, C#, or JavaScript.
 
 **How to Fix It:**
-Preallocate and reuse:
+Preallocate and reuse buffers:
+
 ```rust
 pub struct GameSystems {
     // Preallocated buffers
@@ -2087,17 +1988,17 @@ impl GameSystems {
     pub fn tick(&mut self, state: &mut BattleState) {
         // Clear and reuse (no allocation!)
         self.visible_buffer.clear();
-        
+
         // Collect visible enemies
         for idx in state.all_soldiers() {
             if is_visible(idx, state) {
                 self.visible_buffer.push(idx);
             }
         }
-        
+
         // Process using preallocated buffer
         process_visible(&self.visible_buffer, state);
-        
+
         // Buffer is reused next frame, not reallocated
     }
 }
@@ -2120,10 +2021,7 @@ impl BulletPool {
 ```
 
 **Prevention Tips:**
-- Preallocate buffers at startup
-- Use `clear()` instead of `new`
-- Use object pools for temporary objects
-- Profile memory allocations per frame
+Preallocate buffers at startup. Use `clear()` instead of `new`. Implement object pools for temporary objects. Profile memory allocations per frame.
 
 **Reference:** See Chapter 5: Section 5.2.3 Cache Efficiency
 
@@ -2132,7 +2030,7 @@ impl BulletPool {
 ### 6.4 Pathfinding on Every Frame
 
 **The Problem:**
-Recalculating paths every frame instead of caching them.
+Recalculating paths every frame wastes CPU cycles when paths rarely change.
 
 **Real Example:**
 ```cpp
@@ -2148,17 +2046,14 @@ void UpdateSoldier(Soldier* soldier) {
 ```
 
 **Why It's Bad:**
-- A* is expensive (O(n log n))
-- Path rarely changes every frame
-- Wastes CPU on redundant calculations
+A* pathfinding is expensive (O(n log n)). Paths rarely change every frame. This wastes CPU on redundant calculations.
 
 **How to Detect It:**
-- Profile pathfinding calls per frame
-- Check if path is recalculated when destination unchanged
-- Frame time spikes when units move
+Profile pathfinding calls per frame. Check if paths are recalculated when destinations remain unchanged. Watch for frame time spikes when units move.
 
 **How to Fix It:**
-Cache paths and only recalculate when needed:
+Cache paths and only recalculate when necessary:
+
 ```rust
 pub struct MovementSystem;
 
@@ -2166,20 +2061,20 @@ impl MovementSystem {
     pub fn update(state: &mut BattleState, dt: f32) {
         for idx in state.all_soldiers() {
             let soldier = &state.soldiers[idx.0];
-            
+
             if let Behavior::MoveTo(ref path) = soldier.behavior {
                 // Only recalculate if:
                 // 1. No current path
                 // 2. Path is blocked
                 // 3. Destination changed
                 // 4. Soldier strayed too far from path
-                
+
                 if path.needs_recalculation(soldier.position) {
                     let new_path = pathfinder.find_path(
-                        soldier.position, 
+                        soldier.position,
                         path.destination
                     );
-                    
+
                     state.apply(BattleStateMessage::Soldier(
                         idx,
                         SoldierMessage::SetBehavior(Behavior::MoveTo(new_path))
@@ -2197,27 +2092,24 @@ impl Path {
         if self.age > MAX_PATH_AGE {
             return true;
         }
-        
+
         // Too far from path
         if self.distance_from_path(current_pos) > MAX_DEVIATION {
             return true;
         }
-        
+
         // Obstacle appeared
         if self.is_blocked() {
             return true;
         }
-        
+
         false
     }
 }
 ```
 
 **Prevention Tips:**
-- Cache paths until invalidated
-- Only recalculate when obstacles change
-- Use cheaper steering for local avoidance
-- Limit pathfinding to 1-2Hz, not every frame
+Cache paths until invalidated. Only recalculate when obstacles change. Use cheaper steering for local avoidance. Limit pathfinding to 1-2Hz instead of every frame.
 
 **Reference:** See Chapter 12: Section 12.3.2 Phase 2 Pathfinding
 
@@ -2225,16 +2117,16 @@ impl Path {
 
 ### 6.5 Solution: Spatial Hash + Caching
 
-The solution to performance pitfalls is combining spatial hashing with smart caching:
+The best performance comes from combining spatial hashing with smart caching:
 
 ```rust
 pub struct OptimizedWorld {
     // Spatial partitioning for queries
     spatial_hash: SpatialHash,
-    
+
     // Cached pathfinding
     path_cache: PathCache,
-    
+
     // Preallocated buffers
     query_buffer: Vec<SoldierIndex>,
     message_buffer: Vec<BattleStateMessage>,
@@ -2248,35 +2140,35 @@ impl OptimizedWorld {
             let pos = self.soldiers[idx.0].position;
             self.spatial_hash.insert(idx, pos);
         }
-        
+
         // 2. Process with spatial queries (O(1) per query)
         self.query_buffer.clear();
         for idx in self.all_soldiers() {
             let soldier = &self.soldiers[idx.0];
-            
+
             // Only check nearby enemies!
             let enemies = self.spatial_hash.query_radius(
-                soldier.position, 
+                soldier.position,
                 soldier.view_distance
             );
-            
+
             for enemy in enemies {
                 if self.has_line_of_sight(idx, enemy) {
                     self.query_buffer.push(enemy);
                 }
             }
-            
+
             // Update AI with visible enemies
             if let Some(behavior) = self.evaluate_threats(idx, &self.query_buffer) {
                 self.message_buffer.push((idx, behavior));
             }
         }
-        
+
         // 3. Batch apply changes
         for (idx, behavior) in &self.message_buffer {
             self.apply_behavior(*idx, behavior.clone());
         }
-        
+
         // 4. Pathfinding only when needed (not every frame)
         if self.tick % 6 == 0 {  // 10Hz
             self.update_paths();
@@ -2286,10 +2178,7 @@ impl OptimizedWorld {
 ```
 
 **Benefits:**
-- O(n) updates instead of O(n²)
-- Constant-time spatial queries
-- Minimal allocations
-- Cached pathfinding
+Updates become O(n) instead of O(n²). Spatial queries run in constant time. Allocations are minimal. Pathfinding uses cached results.
 
 **Reference:** See Chapter 12: Section 12.3 Phase 1-2 Implementation Roadmap
 
@@ -2300,63 +2189,63 @@ impl OptimizedWorld {
 Use this checklist to audit your codebase:
 
 ### State Management
-- [ ] No classes with >30 fields
-- [ ] State changes centralized (not scattered)
-- [ ] No collection modification during iteration
-- [ ] Automatic prerequisite handling
-- [ ] Capability bitfields instead of scattered checks
+- [ ] Classes have no more than 30 fields
+- [ ] State changes are centralized
+- [ ] Collections are not modified during iteration
+- [ ] Prerequisites are handled automatically
+- [ ] Capability bitfields replace scattered checks
 
 ### Architecture
-- [ ] Inheritance hierarchies <3 levels deep
-- [ ] Modified ECS (not pure ECS for <1000 entities)
-- [ ] Simulation separate from rendering
-- [ ] No rendering calls in simulation code
-- [ ] AI doesn't access rendering data
+- [ ] Inheritance hierarchies stay under three levels deep
+- [ ] A modified ECS works better than pure ECS for fewer than 1,000 entities
+- [ ] Simulation remains separate from rendering
+- [ ] Simulation code contains no rendering calls
+- [ ] AI never accesses rendering data
 
 ### Multiplayer
-- [ ] Deterministic RNG from day one
-- [ ] Fixed-point or consistent float arithmetic
-- [ ] Fixed timestep (not frame-rate dependent)
-- [ ] Deterministic iteration order
-- [ ] Message-based state changes
+- [ ] Deterministic RNG is implemented from the start
+- [ ] Fixed-point or consistent float arithmetic is used
+- [ ] A fixed timestep ensures frame-rate independence
+- [ ] Iteration order is deterministic
+- [ ] State changes occur through messages
 
 ### AI
-- [ ] AI uses same LoS as player
-- [ ] AI has limited perception (not omniscient)
-- [ ] AI runs at fixed frequency
+- [ ] AI uses the same line of sight as the player
+- [ ] AI perception is limited, not omniscient
+- [ ] AI runs at a fixed frequency
 - [ ] AI decisions are explainable
-- [ ] AI respects player orders (except survival)
+- [ ] AI respects player orders, except when survival is at stake
 
 ### Modding
-- [ ] All content in external files
-- [ ] Text-based save formats
-- [ ] Hot-reload capability
-- [ ] Consistent API across all content
-- [ ] No hardcoded enums for content types
+- [ ] All content resides in external files
+- [ ] Save formats are text-based
+- [ ] Hot-reload capability is included
+- [ ] The API remains consistent across all content
+- [ ] Content types avoid hardcoded enums
 
 ### Performance
-- [ ] Spatial partitioning for queries
-- [ ] No O(n²) algorithms
-- [ ] Preallocated buffers (no per-frame allocation)
-- [ ] Cached pathfinding
-- [ ] Profiling shows <16ms per frame
+- [ ] Spatial partitioning speeds up queries
+- [ ] No O(n²) algorithms are used
+- [ ] Buffers are preallocated, not created per frame
+- [ ] Pathfinding is cached
+- [ ] Profiling shows each frame takes less than 16ms
 
 ---
 
 ## The Golden Rules
 
-From 20 years of Close Combat clones, these rules consistently prevent problems:
+Twenty years of Close Combat clones reveal these rules as the most reliable way to avoid problems:
 
-1. **Separate concerns**: Simulation ≠ Rendering ≠ AI ≠ Input
-2. **Centralize state changes**: All mutations through messages
-3. **Design for determinism from day one**: Even if single-player now
-4. **Composition over inheritance**: Flat ECS for flexibility
-5. **Data-driven content**: JSON/YAML, not code
-6. **Cache-friendly design**: Contiguous arrays, not linked lists
-7. **Spatial partitioning**: Never O(n²) for queries
-8. **Fixed timestep**: Frame-rate independence is essential
-9. **AI perception limits**: AI sees what player sees
-10. **Hot-reload everything**: Iterate in seconds, not minutes
+1. **Separate concerns**: Keep simulation, rendering, AI, and input distinct.
+2. **Centralize state changes**: Route all mutations through messages.
+3. **Design for determinism from the start**: Even single-player games benefit.
+4. **Prefer composition over inheritance**: Flat ECS structures offer flexibility.
+5. **Make content data-driven**: Use JSON or YAML, not code.
+6. **Optimize for cache efficiency**: Contiguous arrays outperform linked lists.
+7. **Use spatial partitioning**: Queries should never run in O(n²) time.
+8. **Enforce a fixed timestep**: Frame-rate independence is critical.
+9. **Limit AI perception**: AI should see only what the player sees.
+10. **Enable hot-reloading**: Reduce iteration time from minutes to seconds.
 
 ---
 
@@ -2370,11 +2259,3 @@ From 20 years of Close Combat clones, these rules consistently prevent problems:
 - **Chapter 12**: Implementation Guide (pitfalls 2.3, 2.4, 6.2-6.4)
 - **Chapter 14**: AI Systems (pitfalls 4.1-4.5)
 - **Chapter 15**: Multiplayer (pitfalls 3.1-3.5)
-
----
-
-*This guide synthesizes development experience from three Close Combat clone implementations spanning 2005–2024. Each pitfall represents a real problem encountered and solved (or not) in production code.*
-
-**Version:** 1.0  
-**Date:** February 2026  
-**Status:** Practical Reference Guide

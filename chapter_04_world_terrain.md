@@ -2,19 +2,19 @@
 
 ## 4.1 Introduction: The Stage of Combat
 
-In tactical wargames, terrain is not merely scenery—it is the primary gameplay mechanism. The placement of cover, the elevation of hills, the density of forests, and the layout of buildings fundamentally determine how battles unfold. A well-designed terrain system must answer: How do units move through the environment? What provides protection from fire? Who can see whom? How does the player read tactical opportunities?
+In tactical wargames, terrain shapes every battle. Cover placement, hill elevation, forest density, and building layouts decide how engagements play out. A good terrain system must answer key questions: How do units move? What blocks enemy fire? Who spots whom? Where do tactical advantages emerge?
 
-This chapter examines how three Close Combat clones approach these questions, revealing sophisticated approaches to one of gamedev's most challenging domains.
+This chapter compares how three Close Combat clones solve these problems, showing different ways to handle one of game development's toughest challenges.
 
 ## 4.2 Three Philosophies of World Representation
 
-Each clone takes a fundamentally different approach to representing the game world:
+The clones take distinct approaches to building their worlds:
 
 ```pseudocode
 // OPENCOMBAT-SDL: Traditional Tile-Based
 World := {
     tiles: Array[Element]     // 10x10 pixel tiles
-    elevations: Array<int>    // Per-tile height
+    elevations: Array[int]    // Per-tile height
     objects: Array<ObjectList> // Linked lists per tile
     megaTiles: Array[12x12]   // Strategic regions
 }
@@ -40,18 +40,18 @@ World := {
 
 ### 4.2.1 OpenCombat-SDL: The Tiled World
 
-OpenCombat-SDL uses a **hierarchical tile system** with three levels of granularity:
+OpenCombat-SDL builds its world with three layers of tiles:
 
-**Base Tile (10x10 pixels)**: The fundamental unit of terrain storage. Each tile contains:
-- Terrain type reference (Element index)
-- Elevation value (unsigned char, 0-255 meters)
-- Linked list of objects occupying the tile
-- Building association index
+**Base Tile (10x10 pixels)**: The smallest unit stores:
+- Terrain type (Element index)
+- Elevation (0-255 meters)
+- Objects on the tile
+- Building reference
 
-**Mega-Tile (12x12 tiles = 120x120 pixels)**: Strategic regions used for:
-- Victory location placement
-- Tactical objective designation
-- Rendering culling optimization
+**Mega-Tile (12x12 tiles = 120x120 pixels)**: These larger regions handle:
+- Victory point placement
+- Objective markers
+- Rendering optimizations
 
 **World Structure**:
 ```pseudocode
@@ -65,12 +65,12 @@ class Map {
 }
 
 // Index calculation: tile(i,j) = j * nBlocksX + i
-// Parallel arrays provide O(1) access and cache-friendly iteration
+// Parallel arrays enable fast access and cache-friendly iteration
 ```
 
 ### 4.2.2 OpenCombat: Entity-Component with Dual Coordinate Systems
 
-OpenCombat employs a **hybrid approach** combining grid-based terrain with continuous physics:
+OpenCombat blends grid-based terrain with continuous physics:
 
 **Dual Coordinate System**:
 ```pseudocode
@@ -93,22 +93,22 @@ GridPoint.to_world(tileSize) -> WorldPoint {
 }
 ```
 
-**Spatial Grid (GridMap)**: A uniform grid spatial index for fast entity queries:
+**Spatial Grid (GridMap)**: A uniform grid speeds up entity queries:
 ```pseudocode
 class GridMap<T> {
     cellSize: float
     cells: HashMap<CellCoord, Array<T>>
-    
+
     insert(entity: T, position: WorldPoint) {
         cell := position.to_cell(cellSize)
         cells[cell].add(entity)
     }
-    
+
     query_radius(center: WorldPoint, radius: float) -> Array<T> {
         // Calculate affected cells
         minCell := (center - radius).to_cell(cellSize)
         maxCell := (center + radius).to_cell(cellSize)
-        
+
         results := []
         for cell in range(minCell, maxCell) {
             for entity in cells[cell] {
@@ -124,7 +124,7 @@ class GridMap<T> {
 
 ### 4.2.3 CloseCombatFree: QML-Based Declarative Terrain
 
-CloseCombatFree takes a **declarative approach** where the world is defined through QML components:
+CloseCombatFree defines its world through QML components:
 
 **Component Hierarchy**:
 ```pseudocode
@@ -132,24 +132,24 @@ Scenario {
     gameArea: Flickable {
         zoomArea: Item {
             scale: currentZoom
-            
+
             map: Map {
                 backgroundImage: "maps/field.png"
                 hipsometricImage: "maps/field_height.png"
-                
+
                 // Props as child components
                 House { x: 100, y: 200, cover: "great" }
                 Tree { x: 300, y: 150, cover: "average" }
                 Tree { x: 320, y: 160, cover: "average" }
             }
-            
+
             units: Units { ... }
         }
     }
 }
 ```
 
-**Height Map (Hipsometric) System**:
+**Height Map System**:
 ```pseudocode
 // Elevation encoded in RGB values
 // Height = (R + G + B) / 10 meters
@@ -158,19 +158,21 @@ Scenario {
 getElevationAt(worldX, worldY) -> float {
     scaleX := backgroundWidth / hipsometricWidth
     scaleY := backgroundHeight / hipsometricHeight
-    
+
     pixel := hipsometricImage.pixel(
         worldX / scaleX,
         worldY / scaleY
     )
-    
+
     return (pixel.red + pixel.green + pixel.blue) / 10.0
 }
 ```
 
+---
+
 ## 4.3 The Three Pillars of Terrain
 
-All three games model terrain through three primary attributes that govern tactical gameplay:
+All three games model terrain through three core attributes that shape tactical gameplay:
 
 ```mermaid
 flowchart TB
@@ -179,7 +181,7 @@ flowchart TB
         H[Hindrance<br/>Movement cost<br/>Speed multiplier]
         E[Elevation<br/>Line of sight<br/>Height in meters]
     end
-    
+
     C -->|Determines| Survival["Where units survive fire"]
     H -->|Determines| Mobility["How fast units move"]
     E -->|Determines| Visibility["Who can see whom"]
@@ -192,10 +194,10 @@ flowchart TB
 class Element {
     // Cover indexed by stance level
     cover: Array<float>[5]  // Prone, Low, Medium, High, Top
-    
+
     // Example: Stone Wall
     cover = [0.93, 0.93, 0.93, 0.93, 0.0]  // Excellent for all stances
-    
+
     // Example: High Grass
     cover = [0.53, 0.53, 0.53, 0.0, 0.0]   // Good for prone, none standing
 }
@@ -272,7 +274,7 @@ TerrainType.pedestrian_cost() -> int {
     match this {
         ShortGrass => 10    // Base speed
         Dirt => 11          // ~91% speed
-        Mud => 11           // ~91% speed  
+        Mud => 11           // ~91% speed
         Underbrush => 12    // ~83% speed
         Hedge => 20         // 50% speed
         MiddleWoodLogs => 30 // 33% speed
@@ -338,11 +340,13 @@ getElevation(x, y) -> float {
 // 3. Cover effectiveness (higher ground advantage)
 ```
 
+---
+
 ## 4.4 Line of Sight Architectures
 
 ### 4.4.1 OpenCombat-SDL: 3D Bresenham Algorithm
 
-OpenCombat-SDL uses a **3D extension of Bresenham's line algorithm** for visibility:
+OpenCombat-SDL implements a 3D extension of Bresenham's line algorithm for visibility checks:
 
 ```pseudocode
 function CalculateLOS(from: Point3D, to: Point3D, world: World) -> bool {
@@ -350,7 +354,7 @@ function CalculateLOS(from: Point3D, to: Point3D, world: World) -> bool {
     dx := to.x - from.x
     dy := to.y - from.y
     dz := to.z - from.z  // Elevation difference
-    
+
     // Determine major axis
     if abs(dx) >= abs(dy) and abs(dx) >= abs(dz) {
         // X is major axis
@@ -368,25 +372,25 @@ function traceXMajor(from, to, dx, dy, dz, world) -> bool {
     x := from.x
     y := from.y
     z := from.z
-    
+
     x_inc := if dx < 0 then -1 else 1
     y_inc := if dy < 0 then -1 else 1
     z_inc := if dz < 0 then -1 else 1
-    
+
     dx2 := abs(dx) * 2
     dy2 := abs(dy) * 2
     dz2 := abs(dz) * 2
-    
+
     err_y := dy2 - abs(dx)
     err_z := dz2 - abs(dx)
-    
+
     for i from 0 to abs(dx) {
         // Check if current tile blocks LOS
         tileElevation := world.getElevation(x, y)
         if tileElevation > z and world.blocksHeight(x, y) {
             return false  // Blocked!
         }
-        
+
         // Step along line
         if err_y > 0 {
             y := y + y_inc
@@ -400,20 +404,20 @@ function traceXMajor(from, to, dx, dy, dz, world) -> bool {
         err_z := err_z + dz2
         x := x + x_inc
     }
-    
+
     return true  // Clear line of sight
 }
 ```
 
-**Key Design Decisions**:
-- **Binary visibility**: Either visible or hidden (no partial visibility)
-- **Eye height offset**: +2 meters added to shooter elevation
-- **Height modifier**: 1024x scaling for integer precision
-- **Blocking condition**: `tile_elevation > line_height AND tile.BlocksHeight == true`
+Key design choices include:
+- Binary visibility: units are either visible or hidden
+- Eye height offset: adds 2 meters to shooter elevation
+- Height modifier: uses 1024x scaling for integer precision
+- Blocking condition: `tile_elevation > line_height AND tile.BlocksHeight == true`
 
 ### 4.4.2 OpenCombat: Accumulated Opacity System
 
-OpenCombat uses an **accumulated opacity model** for more nuanced visibility:
+OpenCombat's visibility system uses accumulated opacity for more realistic results:
 
 ```pseudocode
 // Core constants
@@ -428,36 +432,36 @@ function calculateVisibility(
     weather: Weather,
     time: TimeOfDay
 ) -> Visibility {
-    
+
     distance := from.distance_to(to)
-    
+
     // Always see immediate vicinity
     if distance <= VISIBILITY_FIRSTS * TILE_SIZE {
         return Visible
     }
-    
+
     // Raycast with opacity sampling
     steps := floor(distance / VISIBILITY_PIXEL_STEPS)
     accumulatedOpacity := 0.0
-    
+
     for i from VISIBILITY_FIRSTS to steps {
         t := i / steps
         point := interpolate(from, to, t)
         grid := point.to_grid()
-        
+
         if tile := map.get_tile(grid) {
             accumulatedOpacity := accumulatedOpacity + tile.opacity
-            
+
             if accumulatedOpacity >= VISIBLE_STARTS_AT {
                 return Hidden
             }
         }
     }
-    
+
     return Visible
 }
 
-// Example terrain opacities
+// Terrain opacity values
 terrainOpacities := {
     ShortGrass: 0.0,
     MiddleGrass: 0.002,
@@ -468,15 +472,16 @@ terrainOpacities := {
 }
 ```
 
-**Behavior-Based Visibility Modifiers**:
+Visibility adjusts based on unit behavior:
+
 ```pseudocode
 visibilityModifiers := {
-    IdleStanding: 0.5,      // Moderately visible
-    IdleProne: -0.9,        // Very hard to spot
+    IdleStanding: 0.5,      // Moderate visibility
+    IdleProne: -0.9,        // Difficult to spot
     Moving: 1.0,            // More visible
-    Running: 2.0,           // Highly visible
-    Sneaking: -0.9,         // Hard to spot
-    Hiding: -0.9            // Very hard to spot
+    Running: 2.0,           // High visibility
+    Sneaking: -0.9,         // Hard to detect
+    Hiding: -0.9            // Very hard to detect
 }
 
 finalVisibilityScore := baseVisibility + behaviorModifier
@@ -489,41 +494,41 @@ if finalVisibilityScore > 0 and accumulatedOpacity < 0.5 {
 
 ### 4.4.3 CloseCombatFree: Dual LOS System
 
-CloseCombatFree employs **two complementary visibility checks**:
+CloseCombatFree combines two visibility checks for comprehensive results:
 
 ```pseudocode
 // System 1: Elevation-Based LOS
 function checkElevationLOS(from: Point, to: Point, map: Map) -> bool {
     distance := from.distance_to(to)
     steps := distance / 10.0  // Check every 10 pixels
-    
+
     originHeight := map.getElevation(from)
     targetHeight := map.getElevation(to)
-    
+
     for i from 0 to steps {
         t := i / steps
         checkPoint := interpolate(from, to, t)
         groundHeight := map.getElevation(checkPoint)
         sightLineHeight := interpolate(originHeight, targetHeight, t)
-        
+
         if groundHeight > sightLineHeight {
             return false  // Terrain blocks view
         }
     }
-    
+
     return true
 }
 
 // System 2: Obstacle-Based LOS
 function checkObstacleLOS(from: Point, to: Point, world: World) -> bool {
     line := Line(from, to)
-    
+
     for prop in world.getProps() {
         if prop.blocksLOS and line.intersects(prop.boundingBox) {
             return false  // Prop blocks view
         }
     }
-    
+
     return true
 }
 
@@ -533,11 +538,13 @@ function isVisible(from: Point, to: Point) -> bool {
 }
 ```
 
+---
+
 ## 4.5 Building and Interior Systems
 
 ### 4.5.1 OpenCombat-SDL: Dual-View Building Architecture
 
-OpenCombat-SDL implements buildings with **two distinct visual representations**:
+OpenCombat-SDL handles buildings with two separate visual layers:
 
 ```pseudocode
 class Building {
@@ -553,7 +560,7 @@ function populateBuildingIndices() {
         // Calculate bounding box in tile coordinates
         minTile := building.position / tileSize
         maxTile := (building.position + building.size) / tileSize
-        
+
         for y from minTile.y to maxTile.y {
             for x from minTile.x to maxTile.x {
                 center := tileCenter(x, y)
@@ -581,15 +588,11 @@ function renderBuilding(building, showInterior) {
 showInterior := debugMode or building.hasOccupants()
 ```
 
-**Gameplay Implications**:
-- Buildings provide complete protection (walls block fire)
-- Line of sight blocked until entry
-- Interior positions provide cover and concealment
-- Choke points at doors and windows
+Buildings offer full protection—walls stop all incoming fire. Soldiers inside gain cover and concealment, while doors and windows create natural choke points. Line of sight remains blocked until someone enters.
 
 ### 4.5.2 OpenCombat: Interior Zones
 
-OpenCombat uses **polygon-based interior zones** defined in TMX maps:
+OpenCombat defines interior spaces using polygon-based zones in TMX maps:
 
 ```pseudocode
 struct InteriorZone {
@@ -602,7 +605,7 @@ struct InteriorZone {
 
 class InteriorManager {
     interiors: Array<InteriorZone>
-    
+
     function isInside(position: WorldPoint) -> Option<InteriorId> {
         for interior in interiors {
             if interior.boundary.contains(position) {
@@ -611,15 +614,15 @@ class InteriorManager {
         }
         return None
     }
-    
+
     function enter(soldier: SoldierId, interior: InteriorId) {
         interior.occupants.add(soldier)
     }
-    
+
     function exit(soldier: SoldierId, interior: InteriorId) {
         interior.occupants.remove(soldier)
     }
-    
+
     function blocksLOS(from: WorldPoint, to: WorldPoint) -> bool {
         for interior in interiors {
             if interior.boundary.intersectsLine(from, to) {
@@ -633,7 +636,7 @@ class InteriorManager {
 
 ### 4.5.3 CloseCombatFree: QML Prop Buildings
 
-CloseCombatFree implements buildings as **interactive QML components**:
+CloseCombatFree treats buildings as interactive QML components:
 
 ```pseudocode
 // HouseBasic_tst.qml
@@ -642,21 +645,21 @@ PropRectangle {
     cover: "great"           // 75% protection
     width: 140
     height: 100
-    
+
     Rectangle {              // Floor
         id: floor
         anchors.fill: parent
         anchors.margins: 5
         color: "#4f1708"
     }
-    
+
     Image {                  // Roof (toggleable)
         id: roof
         visible: topVisible
         source: "HouseBasicRoof1.png"
         anchors.fill: parent
     }
-    
+
     // Toggle visibility when occupied
     function toggleRoof() {
         topVisible = !topVisible
@@ -679,6 +682,8 @@ onUnitExited: {
 }
 ```
 
+---
+
 ## 4.6 Spatial Partitioning for Performance
 
 ### 4.6.1 OpenCombat-SDL: Tile-Linked Object Lists
@@ -687,10 +692,10 @@ onUnitExited: {
 class World {
     // Array of linked list heads (one per tile)
     objects: Array<Object*>  // Size: nBlocksX * nBlocksY
-    
+
     function addObject(obj: Object, tileX: int, tileY: int) {
         index := tileY * nBlocksX + tileX
-        
+
         // Insert at head of tile's list
         obj.nextObject := objects[index]
         if obj.nextObject != null {
@@ -698,29 +703,29 @@ class World {
         }
         objects[index] := obj
     }
-    
+
     function moveObject(obj: Object, from: Point, to: Point) {
         oldTile := from / tileSize
         newTile := to / tileSize
-        
+
         if oldTile == newTile {
             return  // Same tile, no update needed
         }
-        
+
         // Remove from old tile
         removeFromTile(obj, oldTile)
-        
+
         // Add to new tile
         addObject(obj, newTile.x, newTile.y)
     }
-    
+
     function queryObjectsInRadius(center: Point, radius: float) -> Array<Object> {
         results := []
-        
+
         // Calculate tile range
         minTile := (center - radius) / tileSize
         maxTile := (center + radius) / tileSize
-        
+
         for y from minTile.y to maxTile.y {
             for x from minTile.x to maxTile.x {
                 obj := objects[y * nBlocksX + x]
@@ -732,15 +737,15 @@ class World {
                 }
             }
         }
-        
+
         return results
     }
 }
 ```
 
-**Complexity Analysis**:
+**Complexity Analysis**
 - Insertion: O(1)
-- Deletion: O(1)  
+- Deletion: O(1)
 - Point query: O(1)
 - Radius query: O(tiles in radius × average objects per tile)
 
@@ -751,16 +756,16 @@ class SpatialGrid<T> {
     cellSize: float
     cells: HashMap<CellCoord, Array<T>>
     entityCells: HashMap<T, CellCoord>  // Reverse lookup
-    
+
     function insert(entity: T, position: WorldPoint) {
         cell := position.to_cell(cellSize)
-        
+
         // Remove from old cell if present
         if entityCells.contains(entity) {
             oldCell := entityCells[entity]
             cells[oldCell].remove(entity)
         }
-        
+
         // Add to new cell
         if not cells.contains(cell) {
             cells[cell] := []
@@ -768,13 +773,13 @@ class SpatialGrid<T> {
         cells[cell].add(entity)
         entityCells[entity] := cell
     }
-    
+
     function queryRectangle(min: WorldPoint, max: WorldPoint) -> Array<T> {
         results := []
-        
+
         minCell := min.to_cell(cellSize)
         maxCell := max.to_cell(cellSize)
-        
+
         for y from minCell.y to maxCell.y {
             for x from minCell.x to maxCell.x {
                 cell := CellCoord(x, y)
@@ -783,19 +788,19 @@ class SpatialGrid<T> {
                 }
             }
         }
-        
+
         return results
     }
-    
+
     function queryRadius(center: WorldPoint, radius: float) -> Array<T> {
         // Get approximate rectangle
         min := center - Vector2(radius, radius)
         max := center + Vector2(radius, radius)
-        
+
         candidates := queryRectangle(min, max)
-        
+
         // Filter by actual distance
-        return candidates.filter(c => 
+        return candidates.filter(c =>
             distance(c.position, center) <= radius
         )
     }
@@ -809,20 +814,20 @@ class SpatialGrid<T> {
 class Map {
     // Props are child items in QML scene graph
     props: List<Prop>
-    
+
     function queryObjectsAt(x, y) -> Array<Prop> {
         // Use Qt's childAt for point queries
-        return childItems.filter(child => 
+        return childItems.filter(child =>
             child.contains(x, y)
         )
     }
-    
+
     function queryObjectsInRect(rect) -> Array<Prop> {
         return childItems.filter(child =>
             rect.intersects(child.boundingRect)
         )
     }
-    
+
     // For radius queries, must iterate all props
     function queryObjectsInRadius(center, radius) -> Array<Prop> {
         return childItems.filter(child =>
@@ -831,44 +836,44 @@ class Map {
     }
 }
 
-// Performance note: O(n) for radius queries
-// Suitable for smaller maps, may need optimization for large battles
+// Performance note: Radius queries run in O(n) time.
+// This works well for smaller maps but may need optimization for large battles.
 ```
+
+---
 
 ## 4.7 Destructible Terrain Architecture
 
-While none of the clones implement fully destructible terrain, their architectures support it:
+The clones don't implement fully destructible terrain, but their designs leave room for it.
 
 ### 4.7.1 OpenCombat-SDL Approach
 
 ```pseudocode
 class DestructibleTerrainManager {
     damagedTiles: HashMap<TileIndex, DamageLevel>
-    
+
     function applyDamage(position: Point, radius: float, damage: float) {
         affectedTiles := getTilesInRadius(position, radius)
-        
+
         for tile in affectedTiles {
             currentDamage := damagedTiles.get(tile, 0)
             newDamage := currentDamage + damage
             damagedTiles[tile] := newDamage
-            
+
             if newDamage > DESTRUCTION_THRESHOLD {
                 destroyTile(tile)
             } else {
                 updateTileCover(tile, newDamage)
             }
         }
-        
-        // Invalidate LOS caches
+
         invalidateLOSCache()
     }
-    
+
     function updateTileCover(tile, damage) {
         element := getElement(tile)
         damageRatio := damage / DESTRUCTION_THRESHOLD
-        
-        // Reduce cover as damage increases
+
         for i in 0..4 {
             element.cover[i] *= (1.0 - damageRatio * 0.5)
         }
@@ -881,23 +886,21 @@ class DestructibleTerrainManager {
 ```pseudocode
 class DestructibleTerrainSystem {
     terrainModifications: HashMap<GridPoint, TerrainModification>
-    
+
     function modifyTerrain(position: GridPoint, newType: TerrainType) {
         modification := TerrainModification {
             position: position,
             newType: newType,
             timestamp: now()
         }
-        
+
         terrainModifications[position] := modification
-        
-        // Network sync
         broadcast(TerrainChanged {
             position: position,
             newType: newType
         })
     }
-    
+
     function getTerrainAt(position: GridPoint) -> TerrainType {
         if terrainModifications.contains(position) {
             return terrainModifications[position].newType
@@ -915,19 +918,18 @@ Prop {
     id: wall
     cover: "great"
     health: 100
-    
+
     function takeDamage(amount) {
         health := health - amount
         if health <= 0 {
             destroy()
         } else if health < 50 {
-            cover := "average"  // Damaged cover
+            cover := "average"
             sprite.source := "wall_damaged.png"
         }
     }
-    
+
     function destroy() {
-        // Replace with rubble prop
         var rubble = Qt.createComponent("Rubble.qml").createObject(parent)
         rubble.position = position
         wall.destroy()
@@ -935,144 +937,141 @@ Prop {
 }
 ```
 
+---
+
 ## 4.8 Comparative Analysis
 
 ### 4.8.1 Terrain Representation Summary
 
-| Aspect | OpenCombat-SDL | OpenCombat | CloseCombatFree |
-|--------|---------------|------------|-----------------|
-| **World Model** | Hierarchical tiles | Entity-Component + Grid | QML declarative |
-| **Grid Type** | 10x10px tiles | 5px tiles (TMX) | Free-form |
-| **Elevation** | Per-tile integer (0-255m) | Simulated via terrain | Height map (RGB, 0-76.5m) |
-| **Cover System** | Stance-based (5 levels) | Binary + stance | Category (4 levels) |
-| **Hindrance** | Percentage (0-100%) | Cost-based (10-50) | Implicit collision |
-| **Buildings** | Dual-view tiles | Interior zones | Interactive QML props |
-| **LOS Algorithm** | 3D Bresenham | Accumulated opacity | Elevation + obstacle raycast |
-| **Spatial Query** | Tile-linked lists | Uniform grid | Scene graph iteration |
-| **Moddability** | XML data files | TMX + JSON | QML files |
+| Aspect        | OpenCombat-SDL            | OpenCombat              | CloseCombatFree              |
+| ------------- | ------------------------- | ----------------------- | ---------------------------- |
+| **World Model**   | Hierarchical tiles        | Entity-Component + Grid | QML declarative              |
+| **Grid Type**     | 10x10px tiles             | 5px tiles (TMX)         | Free-form                    |
+| **Elevation**     | Per-tile integer (0-255m) | Simulated via terrain   | Height map (RGB, 0-76.5m)    |
+| **Cover System**  | Stance-based (5 levels)   | Binary + stance         | Category (4 levels)          |
+| **Hindrance**     | Percentage (0-100%)       | Cost-based (10-50)      | Implicit collision           |
+| **Buildings**     | Dual-view tiles           | Interior zones          | Interactive QML props        |
+| **LOS Algorithm** | 3D Bresenham              | Accumulated opacity     | Elevation + obstacle raycast |
+| **Spatial Query** | Tile-linked lists         | Uniform grid            | Scene graph iteration        |
+| **Moddability**   | XML data files            | TMX + JSON              | QML files                    |
 
 ### 4.8.2 Line of Sight Comparison
 
 **Scenario: Can Soldier A see Soldier B?**
 
+OpenCombat-SDL uses a binary 3D raycast:
+
 ```pseudocode
-// OpenCombat-SDL: Binary 3D raycast
 visible := LineOfSight.check(
     soldierA.position,
     soldierB.position,
     world
 )
-// Factors: Distance, elevation difference, terrain blocks, building occlusion
-// Result: true/false
+```
 
-// OpenCombat: Accumulated opacity
+This considers distance, elevation difference, terrain blocks, and building occlusion. The result is a simple true/false.
+
+OpenCombat calculates visibility through accumulated opacity:
+
+```pseudocode
 visibility := calculateVisibility(
     soldierA.gridPosition,
     soldierB.gridPosition,
     map,
-    soldierA.behavior,  // Affects modifier
-    soldierB.behavior   // Affects modifier
+    soldierA.behavior,
+    soldierB.behavior
 )
-// Factors: Opacity accumulation, behavior modifiers, stance
-// Result: Visible / Partial / Hidden
-
-// CloseCombatFree: Dual check
-visible := checkElevationLOS(a, b) and checkObstacleLOS(a, b)
-// Factors: Height map profile, prop bounding boxes
-// Result: true/false
 ```
 
-**Most Realistic**: OpenCombat (opacity accumulation models real-world visibility gradients)
-**Most Performant**: OpenCombat-SDL (simple Bresenham on fixed grid)
-**Most Flexible**: CloseCombatFree (QML props can have custom LOS logic per object)
+Behavior modifiers and stance affect the outcome, producing Visible, Partial, or Hidden results.
+
+CloseCombatFree performs a dual check:
+
+```pseudocode
+visible := checkElevationLOS(a, b) and checkObstacleLOS(a, b)
+```
+
+The system evaluates height map profiles and prop bounding boxes to determine visibility.
+
+OpenCombat offers the most realistic approach by modeling real-world visibility gradients. OpenCombat-SDL delivers the best performance with its simple Bresenham algorithm on a fixed grid. CloseCombatFree provides the most flexibility, allowing custom LOS logic for QML props.
 
 ### 4.8.3 Spatial Query Performance
 
-| Operation | OpenCombat-SDL | OpenCombat | CloseCombatFree |
-|-----------|---------------|------------|-----------------|
-| **Point query** (at x,y) | O(1) array index | O(1) grid lookup | O(n) prop iteration |
-| **Radius query** (within r) | O(k × m) k=tiles, m=objects/tile | O(k + m) k=cells, m=entities | O(n) all props |
-| **Line of sight** | O(line length) | O(line length) | O(line length + props) |
-| **Pathfinding** | A* on grid | A* on grid | Direct path |
+| Operation               | OpenCombat-SDL                   | OpenCombat                   | CloseCombatFree        |
+| ----------------------- | -------------------------------- | ---------------------------- | ---------------------- |
+| **Point query** (at x,y)    | O(1) array index                 | O(1) grid lookup             | O(n) prop iteration    |
+| **Radius query** (within r) | O(k × m) k=tiles, m=objects/tile | O(k + m) k=cells, m=entities | O(n) all props         |
+| **Line of sight**           | O(line length)                   | O(line length)               | O(line length + props) |
+| **Pathfinding**             | A* on grid                       | A* on grid                   | Direct path            |
+
+---
 
 ## 4.9 Game Design Implications
 
 ### 4.9.1 Cover Density and Tactical Depth
 
-**Lessons from all three games**:
+Three key lessons emerge from these games:
 
-1. **Meaningful cover density**: Too much = stalemates; too little = slaughter
-   - Sweet spot: 30-40% of map provides meaningful cover
-   
-2. **Cover variety**: Mix of light, medium, and heavy cover
-   - Creates tactical decision points
-   - Enables risk/reward calculations
-   
-3. **Flanking routes**: Cover should enable movement, not just static defense
-   - Multiple paths to objectives
-   - No single "perfect" defensive position
+1. **Cover density matters** - Too much creates stalemates, too little leads to slaughter. The ideal range is 30-40% of the map offering meaningful cover.
+
+2. **Variety enhances tactics** - A mix of light, medium, and heavy cover creates decision points and enables risk/reward calculations.
+
+3. **Movement over static defense** - Cover should facilitate movement rather than just provide defensive positions. Maps need multiple paths to objectives without a single "perfect" defensive spot.
 
 ### 4.9.2 Line of Sight Design Philosophy
 
 **Binary LOS** (OpenCombat-SDL):
-- Simpler for players to understand
-- Creates clear "safe" and "danger" zones
-- Good for introductory tactical gameplay
-- Enables decisive flanking maneuvers
+Players easily understand clear "safe" and "danger" zones. This approach works well for introductory tactical gameplay and enables decisive flanking maneuvers.
 
 **Opacity-Based LOS** (OpenCombat):
-- More realistic visibility gradients
-- Creates zones of uncertainty
-- Rewards careful positioning and patience
-- Discourages rushing across open ground
+Realistic visibility gradients create uncertainty. This system rewards careful positioning and patience while discouraging reckless movement across open ground.
 
 **Height Map LOS** (CloseCombatFree):
-- Natural elevation advantage
-- Visual representation matches gameplay
-- Easy for map designers to create interesting terrain
-- Encourages control of high ground
+Elevation advantages feel natural and match visual representation. Map designers can easily create interesting terrain that encourages control of high ground.
 
 ### 4.9.3 Elevation as Gameplay Driver
 
-All three systems agree: **elevation is crucial for tactical depth**.
+All three systems confirm elevation's importance for tactical depth:
 
-- Provides natural tactical objectives
-- Creates "king of the hill" scenarios
-- Enables realistic spotting mechanics
+- Creates natural objectives
+- Enables "king of the hill" scenarios
+- Provides realistic spotting mechanics
 - Punishes poor positioning
 
-**Design recommendations**:
-- Every map should have 2-3 meaningful elevation changes
-- High ground should provide clear advantages
-- But high ground should also make units more visible
-- Flanking routes around elevated positions
+**Design recommendations:**
+- Include 2-3 meaningful elevation changes per map
+- Ensure high ground offers clear advantages
+- Balance visibility - high positions should be more exposed
+- Design flanking routes around elevated positions
+
+---
 
 ## 4.10 Synthesis: Designing World Systems
 
 ### 4.10.1 Recommended Hybrid Approach
 
-Based on the analysis, an ideal system would combine:
+An ideal system combines these elements:
 
 ```pseudocode
 World := {
     // Grid-based terrain for performance
     terrainGrid: Array<TerrainTile>
     tileSize: 10  // pixels
-    
+
     // Height map for elevation (editable in image editors)
     heightMap: Image
-    
+
     // Entity-component for game objects
     entities: EntityManager
     spatialIndex: UniformGrid<Entity>
-    
+
     // Dual LOS for gameplay depth
     primaryLOS: AccumulatedOpacity
     secondaryLOS: ElevationRaycast
-    
+
     // Building interiors as polygon zones
     interiors: Array<InteriorZone>
-    
+
     // Data-driven configuration
     terrainTypes: JSON
     mapFormat: TMX
@@ -1081,25 +1080,25 @@ World := {
 
 ### 4.10.2 Key Architectural Decisions
 
-1. **Use tile-based terrain** for:
+1. **Tile-based terrain** enables:
    - Fast O(1) lookups
    - Cache-friendly iteration
    - Easy serialization
    - Proven pathfinding algorithms
 
-2. **Use height maps** for:
+2. **Height maps** provide:
    - Intuitive terrain editing
    - Continuous elevation data
    - Natural line of sight
-   - Visual representation
+   - Clear visual representation
 
-3. **Use entity-component** for:
+3. **Entity-component systems** offer:
    - Flexible object definitions
    - Data-driven design
    - Easy modding
    - Composition over inheritance
 
-4. **Use accumulated opacity LOS** for:
+4. **Accumulated opacity LOS** delivers:
    - Realistic visibility gradients
    - Meaningful soft cover
    - Dynamic concealment
@@ -1107,7 +1106,7 @@ World := {
 
 ### 4.10.3 Performance Optimization Strategies
 
-**For large maps (1000x1000 tiles+)**:
+**For large maps (1000x1000 tiles or larger)**:
 
 ```pseudocode
 // 1. Hierarchical spatial indexing
@@ -1139,39 +1138,43 @@ onTerrainChange(tile) {
 
 For maximum moddability:
 
-1. **Use standard formats**: TMX for maps, JSON for data
+1. **Standard formats**: TMX for maps, JSON for data
 2. **Hot-reloadable assets**: Watch files for changes
-3. **Visual editing**: Height maps editable in Photoshop/GIMP
+3. **Visual editing**: Height maps editable in Photoshop or GIMP
 4. **Documentation**: Clear schema for terrain properties
 5. **Examples**: Template maps demonstrating best practices
 
 ## 4.11 Conclusion
 
-The world and terrain systems of the three Close Combat clones reveal different philosophies:
+The world and terrain systems in the three Close Combat clones follow distinct design philosophies.
 
-**OpenCombat-SDL**: Proven tile-based approach with sophisticated stance-based cover and dual-view buildings. Best for traditional tactical gameplay with clear tactical positions and deterministic outcomes.
+**OpenCombat-SDL** uses a proven tile-based approach with stance-based cover and dual-view buildings. It works best for traditional tactical gameplay with clear positions and predictable outcomes.
 
-**OpenCombat**: Modern opacity-based visibility with behavioral modifiers. Best for realistic, nuanced tactical decisions where positioning matters at the margin and soft cover creates uncertainty.
+**OpenCombat** implements opacity-based visibility with behavioral modifiers. This system excels at realistic, nuanced tactical decisions where positioning creates uncertainty through soft cover.
 
-**CloseCombatFree**: Flexible height-map and prop-based system with maximum moddability. Best for rapid content creation and experimentation with new terrain concepts.
+**CloseCombatFree** employs a flexible height-map and prop-based system. Its strength lies in rapid content creation and terrain experimentation.
 
-**Key Insights**:
+Key insights emerge from these approaches:
 
-1. **Cover is king**: All three systems prioritize meaningful protection mechanisms—combat without cover devolves into attrition.
+1. **Cover matters most** – Combat without protection becomes simple attrition.
 
-2. **Line of sight drives gameplay**: The LOS algorithm fundamentally shapes tactical decisions, from cautious advances to bold flanking maneuvers.
+2. **Line of sight shapes play** – The LOS algorithm determines whether players advance cautiously or attempt bold flanking maneuvers.
 
-3. **Elevation creates objectives**: Verticality is essential for interesting tactical maps, providing natural focal points for conflict.
+3. **Elevation creates objectives** – Verticality makes tactical maps interesting by providing natural conflict points.
 
-4. **Moddability requires data-driven design**: Terrain properties should be configurable without code changes, enabling community content.
+4. **Moddability needs data-driven design** – Terrain properties should be configurable without code changes to enable community content.
 
-5. **Performance scales with spatial partitioning**: Efficient world queries require spatial indexing—naive O(n) searches fail at scale.
+5. **Performance depends on spatial partitioning** – Efficient world queries require spatial indexing, as naive O(n) searches fail at scale.
 
-**Recommendation for new projects**:
-- Use **tile-based grid** for performance and proven pathfinding
-- Implement **opacity-based LOS** for realistic visibility gradients  
-- Support **height maps** for easy elevation editing and visual clarity
+**Recommendations for new projects**:
+- Start with a **tile-based grid** for performance and reliable pathfinding
+- Build **opacity-based LOS** for realistic visibility
+- Support **height maps** for easy elevation editing
 - Make terrain properties **fully data-driven** (JSON/YAML/XML)
-- Integrate with **standard map editors** (Tiled) for workflow efficiency
+- Integrate with **standard map editors** like Tiled
 
-The terrain is not just where combat happens—it is the primary mechanism that makes tactical combat interesting.
+Terrain isn't just where combat happens – it makes tactical combat interesting.
+
+---
+
+*Next: [Chapter 5: Unit Hierarchy and Compositional Architecture](chapter_05_unit_hierarchy.md)*

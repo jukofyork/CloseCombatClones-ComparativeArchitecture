@@ -2,32 +2,32 @@
 
 ## 3.1 The State Management Problem
 
-Tactical wargames present a unique challenge: units must simultaneously track dozens of interacting states—posture, activity, orders, morale, health, and environmental factors. A soldier might be prone, crawling, suppressed, reloading, under concealment, and executing a move order all at once.
+Tactical wargames face a distinct challenge. Units must track dozens of interacting states at once—posture, activity, orders, morale, health, and environmental factors. A single soldier might be prone, crawling, suppressed, reloading, concealed, and moving to a new position simultaneously.
 
-The complexity isn't merely the number of states, but their **interactions** and **constraints**:
+The difficulty lies in how these states interact and constrain each other:
 
-- A unit cannot fire while reloading
-- A prone soldier cannot sprint
-- Suppression affects willingness to move
-- Wounded units have reduced capabilities
-- Orders modify available actions
+- Reloading prevents firing
+- Prone soldiers cannot sprint
+- Suppression reduces movement willingness
+- Wounds degrade performance
+- Orders limit available actions
 
-This chapter examines three fundamental patterns for managing this complexity, derived from real-world implementations in the Close Combat clone ecosystem.
+This chapter explores three core patterns for handling this complexity, all drawn from real implementations in the Close Combat clone ecosystem.
 
 ---
 
 ## 3.2 Pattern Taxonomy
 
-State management systems fall into four fundamental categories based on their compositional model:
+State management systems divide into four basic types based on their composition:
 
-| Pattern | Composition Model | Best For | Complexity |
-|---------|------------------|----------|------------|
-| **Bitfield System** | Orthogonal bits | Capability tracking | Low |
-| **State Hierarchy** | Containment tiers | Action sequencing | Medium |
-| **Dual-State** | Parallel streams | Visual/logic separation | Low |
-| **Finite State Machine** | Transitions & guards | Strict state control | High |
+| Pattern              | Composition Model    | Best For                | Complexity |
+| -------------------- | -------------------- | ----------------------- | ---------- |
+| **Bitfield System**      | Orthogonal bits      | Capability tracking     | Low        |
+| **State Hierarchy**      | Containment tiers    | Action sequencing       | Medium     |
+| **Dual-State**           | Parallel streams     | Visual/logic separation | Low        |
+| **Finite State Machine** | Transitions & guards | Strict state control    | High       |
 
-The three implementations we'll analyze represent the first three patterns:
+We'll examine three implementations covering the first three patterns:
 
 - **OpenCombat-SDL**: Bitfield System (64 orthogonal states)
 - **OpenCombat**: State Hierarchy (Phase → Behavior → Gesture)
@@ -39,9 +39,9 @@ The three implementations we'll analyze represent the first three patterns:
 
 ### 3.3.1 Core Philosophy: Orthogonal Composition
 
-The bitfield approach treats states as **independent capabilities** that can coexist without conflict. Like permissions on a filesystem, each bit represents a single capability or condition.
+The bitfield approach treats states as independent capabilities that coexist without conflict. Like filesystem permissions, each bit represents one capability or condition.
 
-**Key Insight**: Not all states are mutually exclusive. Being "prone" doesn't prevent being "reloading" or "suppressed." By encoding states as bits rather than a single value, we embrace this orthogonality.
+**Key Insight**: States don't always exclude each other. A unit can be prone while reloading or suppressed. Encoding states as bits instead of a single value preserves this independence.
 
 ```pseudocode
 // State as a collection of capability flags
@@ -52,12 +52,12 @@ SET_BIT(unit_state, PRONE)
 SET_BIT(unit_state, RELOADING)
 SET_BIT(unit_state, SUPPRESSED)
 
-// Result: unit is prone, reloading, AND suppressed simultaneously
+// Result: unit is prone, reloading, and suppressed at the same time
 ```
 
 ### 3.3.2 Automatic Prerequisite Chaining
 
-The bitfield system's true power emerges when combined with **action requirements**. Instead of hardcoding state transitions, actions declare their prerequisites, and the system automatically chains necessary state changes.
+The bitfield system shines when paired with action requirements. Actions declare their prerequisites, and the system chains necessary state changes automatically.
 
 ```pseudocode
 // Action definition
@@ -70,40 +70,40 @@ define Action {
 }
 
 // When a prone soldier tries to run:
-// 1. Check prerequisites: Needs STANDING, but has PRONE
+// 1. Check prerequisites: Needs STANDING, but unit is PRONE
 // 2. Find action that adds STANDING: "StandUp"
 // 3. Insert StandUp before RunTo
 // 4. StandUp removes PRONE, adds STANDING
-// 5. Now prerequisites met, execute RunTo
+// 5. Prerequisites met, execute RunTo
 ```
 
-This creates **emergent intelligence**—soldiers automatically transition through appropriate intermediate states without explicit scripting.
+This creates natural intelligence—units transition through intermediate states without explicit scripting.
 
 ### 3.3.3 Game Design Implications
 
 **Advantages for Design:**
 
-1. **Natural Capability Expression**: States like "CanFire" or "IsExposed" map directly to design concepts
-2. **Compositional Flexibility**: New behaviors emerge from bit combinations without explicit coding
-3. **Clear Invalidation**: Removing a bit instantly removes associated capabilities
-4. **Data-Driven Actions**: Action definitions can live in external files (JSON, XML)
+1. **Direct Capability Mapping**: States like "CanFire" or "IsExposed" align with design concepts
+2. **Flexible Composition**: New behaviors emerge from bit combinations without extra code
+3. **Instant Invalidation**: Removing a bit immediately disables its capabilities
+4. **External Action Definitions**: Actions can be stored in JSON or XML files
 
 **Design Constraints:**
 
-1. **Hard State Limit**: 64 bits (or whatever width chosen) is the maximum
-2. **No Hierarchy**: Cannot express "Moving is a parent of Walking and Running"
-3. **Mutual Exclusion Manual**: Standing and Prone being mutually exclusive requires external enforcement
-4. **Debugging Challenge**: State 0x0000000000040210 is less readable than "Standing + Reloaded + Defending"
+1. **Fixed State Limit**: Only 64 bits (or the chosen width) are available
+2. **Flat Structure**: No built-in hierarchy—"Moving" can't automatically include "Walking" and "Running"
+3. **Manual Exclusivity**: Standing and prone must be enforced externally
+4. **Debugging Difficulty**: State 0x0000000000040210 is harder to read than "Standing + Reloaded + Defending"
 
 ### 3.3.4 Determinism and Multiplayer
 
-Bitfield systems are **naturally deterministic**—the same bit operations produce the same results across platforms. However:
+Bitfield systems are inherently deterministic—the same operations produce identical results across platforms. Still, some considerations apply:
 
-- **Serialization is trivial**: A single integer transfers completely
-- **Replay-friendly**: State changes are compact and precise
-- **Desync detection**: XOR comparison quickly reveals state mismatches
+- **Simple Serialization**: A single integer transfers all state data
+- **Replay Compatibility**: State changes are compact and precise
+- **Desync Detection**: XOR comparison quickly spots state mismatches
 
-For multiplayer, bitfield systems work best with **server-authoritative** models where the server validates state transitions before broadcasting.
+For multiplayer, bitfield systems work best when the server validates state transitions before broadcasting.
 
 ---
 
@@ -111,13 +111,13 @@ For multiplayer, bitfield systems work best with **server-authoritative** models
 
 ### 3.4.1 Core Philosophy: Temporal Separation
 
-The hierarchical approach organizes states by **timescale and authority**, creating distinct tiers that answer different questions:
+The hierarchical approach sorts states by timescale and authority, creating tiers that handle specific questions:
 
-| Tier | Question Answered | Duration | Update Frequency |
-|------|------------------|----------|------------------|
-| **Phase** | "What phase of the game are we in?" | Minutes to Hours | Event-driven |
-| **Behavior** | "What is the unit trying to accomplish?" | Seconds to Minutes | As needed |
-| **Gesture** | "What is the unit physically doing right now?" | Milliseconds to Seconds | Every frame |
+| Tier     | Question Answered                              | Duration                | Update Frequency |
+| -------- | ---------------------------------------------- | ----------------------- | ---------------- |
+| **Phase**    | "What phase of the game are we in?"            | Minutes to Hours        | Event-driven     |
+| **Behavior** | "What is the unit trying to accomplish?"       | Seconds to Minutes      | As needed        |
+| **Gesture**  | "What is the unit physically doing right now?" | Milliseconds to Seconds | Every frame      |
 
 ```pseudocode
 // Three-tier state representation
@@ -137,7 +137,7 @@ unit_state = {
 
 ### 3.4.2 Tier Relationships and Propagation
 
-The hierarchy isn't merely organizational—it defines **state propagation rules**:
+The hierarchy establishes state propagation rules:
 
 ```pseudocode
 // Behavior propagation determines squad coordination
@@ -148,16 +148,16 @@ enum Propagation {
 }
 
 // When squad leader changes behavior:
-// - If ON_CHANGE: Squad members update once
-// - If REGULARLY: Members receive continuous updates (formation movement)
-// - If NEVER: No impact on squad (individual death)
+// - Squad members update once for ON_CHANGE
+// - Members receive continuous updates for REGULARLY (formation movement)
+// - No impact on squad for NEVER (individual death)
 ```
 
-This creates **emergent squad behavior**—soldiers automatically coordinate based on the nature of their orders.
+Soldiers coordinate automatically based on their orders, creating natural squad behavior.
 
 ### 3.4.3 Temporal State Completion
 
-The Gesture tier introduces **temporal constraints**—gestures complete at specific simulation times:
+The Gesture tier uses temporal constraints—gestures complete at specific simulation times:
 
 ```pseudocode
 // Gesture with completion time
@@ -170,27 +170,27 @@ if current_frame >= gesture.end_frame {
 }
 ```
 
-This enables **deterministic animation**—a reloading soldier will finish at exactly frame 1847, regardless of frame rate or processing speed.
+A reloading soldier finishes at exactly frame 1847, ensuring consistent animation regardless of frame rate or processing speed.
 
 ### 3.4.4 Game Design Implications
 
 **Advantages for Design:**
 
-1. **Clear Mental Model**: Developers reason about one tier at a time
-2. **Natural Timescales**: Appropriate update frequencies per state type
-3. **Explicit Relationships**: Hierarchy makes dependencies obvious
-4. **Precision Timing**: Temporal gestures enable frame-accurate gameplay
+1. Developers can focus on one tier at a time
+2. Each state type updates at an appropriate frequency
+3. The hierarchy clarifies dependencies
+4. Temporal gestures allow frame-accurate gameplay
 
 **Design Constraints:**
 
-1. **Verbosity**: Three enums instead of one state variable
-2. **Synchronization Complexity**: All three tiers must stay consistent
-3. **Learning Curve**: New team members must understand the tier model
-4. **State Overflow**: Unclear which tier gets new states
+1. Three enums replace a single state variable
+2. All three tiers must remain consistent
+3. New team members need to learn the tier model
+4. Some states don't fit neatly into any tier
 
 ### 3.4.5 Determinism and Multiplayer
 
-The hierarchical pattern excels at **deterministic multiplayer**:
+The hierarchical pattern works well for deterministic multiplayer:
 
 ```pseudocode
 // Message-driven state changes
@@ -199,15 +199,15 @@ message SetBehavior {
     behavior: Defend(angle: 45°)
 }
 
-// Server broadcasts → All clients apply same message → Identical states
+// Server broadcasts → All clients apply same message → States match
 ```
 
 **Key Benefits:**
-- **Replay Capability**: Message log recreates exact state sequence
-- **Server Authority**: Clients request, server validates and broadcasts
-- **Desync Recovery**: State snapshots at intervals, message replay to catch up
+- Message logs recreate exact state sequences for replays
+- The server validates and broadcasts client requests
+- State snapshots and message replay help recover from desyncs
 
-This pattern is essential for competitive multiplayer where **frame-perfect synchronization** matters.
+This approach matters most in competitive multiplayer, where synchronization must be frame-perfect.
 
 ---
 
@@ -215,17 +215,17 @@ This pattern is essential for competitive multiplayer where **frame-perfect sync
 
 ### 3.5.1 Core Philosophy: Separation of Concerns
 
-The dual-state approach splits state into two parallel streams:
+The dual-state approach divides state into two parallel streams:
 
-1. **Runtime Status**: The unit's current operational state (QString/string-based)
-2. **Health State**: Visual/condition state managed declaratively
+1. **Runtime Status**: The unit's current operational state, stored as a QString or string
+2. **Health State**: Visual and condition state, managed declaratively
 
 ```pseudocode
 // C++ side: Runtime status
-define class Unit {
-    property unitStatus: String  // "MOVING", "RELOADING", "READY"
-    property healthState: String // "healthy", "damaged", "destroyed"
-}
+class Unit {
+    QString unitStatus;  // "MOVING", "RELOADING", "READY"
+    QString healthState; // "healthy", "damaged", "destroyed"
+};
 
 // QML/Visual side: Declarative states
 states: [
@@ -237,77 +237,75 @@ states: [
 
 ### 3.5.2 Order Queue Integration
 
-The dual-state system tightly couples to an **order queue**—each order maps to a status:
+The system couples tightly with an order queue, where each order maps to a status:
 
 ```pseudocode
 // Order processing
-define function process_queue() {
-    for order in queue {
-        if order.performed then continue
-        
-        match order.type {
-            "Move" => {
-                unitStatus = "MOVING"
-                start_movement(order.target)
-            }
-            "Attack" => {
-                unitStatus = "AIMING"
-                start_aiming(order.target)
-            }
+void process_queue() {
+    for (auto& order : queue) {
+        if (order.performed) continue;
+
+        switch (order.type) {
+            case "Move":
+                unitStatus = "MOVING";
+                start_movement(order.target);
+                break;
+            case "Attack":
+                unitStatus = "AIMING";
+                start_aiming(order.target);
+                break;
         }
-        order.performed = true
-        break  // One order at a time
+        order.performed = true;
+        break;  // Process one order at a time
     }
 }
 
 // When animation completes:
-unitStatus = "READY"
-process_queue()  // Next order
+unitStatus = "READY";
+process_queue();  // Move to next order
 ```
 
 ### 3.5.3 Runtime Extensibility
 
-The string-based runtime status provides **maximum flexibility**:
+String-based runtime status enables flexibility without code changes:
 
 ```pseudocode
-// New status added in data, no code changes
-unitStatus = "OVERWATCH"  // No recompilation needed
-unitStatus = "BERSERK"    // Modder-defined state
-unitStatus = "CONCEALED"  // Custom campaign state
+// New status added in data files
+unitStatus = "OVERWATCH";  // No recompilation needed
+unitStatus = "BERSERK";    // Modder-defined state
+unitStatus = "CONCEALED";  // Custom campaign state
 ```
 
-This makes the dual-state pattern ideal for **moddable games** where designers (not programmers) define new states.
+This makes the pattern well-suited for moddable games, where designers—not programmers—define new states.
 
 ### 3.5.4 Game Design Implications
 
-**Advantages for Design:**
+**Advantages:**
+- New states can be added without recompilation
+- Artists control visuals while designers handle logic
+- Simple mental model with just two state concepts
+- Human-readable statuses like "MOVING" instead of bitflags
 
-1. **Maximum Moddability**: New states without recompilation
-2. **Visual-Logic Separation**: Artists control visuals, designers control logic
-3. **Simple Mental Model**: Just two state concepts to understand
-4. **Human-Readable**: "MOVING" is clearer than 0x00000008
-
-**Design Constraints:**
-
-1. **No Orthogonal Composition**: A unit can only have one status at a time
-2. **No Type Safety**: Typos create runtime errors ("MOVING" vs "MOvING")
-3. **Implicit State Machine**: No explicit transition rules
-4. **Limited Combinations**: Cannot express "Moving + Firing" as a single status
+**Constraints:**
+- Units can only have one status at a time
+- Typos in strings cause runtime errors
+- No explicit transition rules between states
+- Cannot combine states like "Moving + Firing"
 
 ### 3.5.5 Determinism and Multiplayer
 
-The dual-state pattern presents **challenges for multiplayer**:
+The pattern creates multiplayer challenges:
 
-- **String Synchronization**: More bandwidth than integers
-- **No Validation**: Clients can set any status without server authority
-- **Desync Risk**: Without server validation, states can diverge
+- String synchronization uses more bandwidth than integers
+- Clients can set any status without server validation
+- States may diverge without proper synchronization
 
-**Mitigation Strategies:**
-- Status enumeration (still strings, but validated against whitelist)
-- Server authority with status requests rather than direct sets
-- State hashes for periodic desync detection
+**Mitigation approaches:**
+- Validate status strings against a whitelist
+- Require server approval for status changes
+- Use state hashes for desync detection
 
-This pattern is best suited for **single-player** or **cooperative multiplayer** where strict determinism is less critical than modding flexibility.
+This pattern works best for single-player or cooperative games where modding flexibility matters more than strict determinism.
 
 ---
 
@@ -315,53 +313,52 @@ This pattern is best suited for **single-player** or **cooperative multiplayer**
 
 ### 3.6.1 Decision Matrix
 
-| Criteria | Bitfield | Hierarchy | Dual-State |
-|----------|----------|-----------|------------|
-| **Multiplayer Requirements** | Good | Excellent | Challenging |
-| **Modding Support** | Limited | Moderate | Excellent |
-| **Complex State Combinations** | Excellent | Good | Poor |
-| **Team Experience Needed** | Low | High | Low |
-| **Debugging Ease** | Moderate | Good | Excellent |
-| **Determinism** | Excellent | Excellent | Moderate |
+| Criteria                   | Bitfield  | Hierarchy | Dual-State  |
+| -------------------------- | --------- | --------- | ----------- |
+| **Multiplayer Requirements**   | Good      | Excellent | Challenging |
+| **Modding Support**            | Limited   | Moderate  | Excellent   |
+| **Complex State Combinations** | Excellent | Good      | Poor        |
+| **Team Experience Needed**     | Low       | High      | Low         |
+| **Debugging Ease**             | Moderate  | Good      | Excellent   |
+| **Determinism**                | Excellent | Excellent | Moderate    |
 
 ### 3.6.2 Decision Tree
 
-```
+When choosing a pattern, start by asking:
+
 Do you need deterministic multiplayer?
-├── YES → Do you need complex state combinations?
-│         ├── YES → Bitfield System
-│         └── NO  → State Hierarchy
-└── NO  → Is modding a priority?
-          ├── YES → Dual-State System
-          └── NO  → How complex are your states?
-                    ├── Simple → Dual-State
-                    └── Complex → Bitfield
-```
+- If yes, ask: Do you need complex state combinations?
+  - Yes? Use a bitfield system.
+  - No? Use a state hierarchy.
+- If no, ask: Is modding a priority?
+  - Yes? Use a dual-state system.
+  - No? Consider your state complexity:
+    - Simple states? Use dual-state.
+    - Complex states? Use bitfield.
 
 ### 3.6.3 Pattern Combinations
 
-Modern tactical games often combine patterns:
+Most modern tactical games blend multiple patterns. Here's a proven hybrid approach:
 
-**Recommended Hybrid:**
 ```pseudocode
 unit_state: {
     // Hierarchy for high-level flow
     phase: Phase           // Enum
     behavior: Behavior     // Component-based, scriptable
-    
+
     // Bitfield for orthogonal capabilities
     capabilities: Bitfield // CanMove, CanFire, IsProne, etc.
-    
+
     // Gesture with temporal data
     gesture: Gesture       // Enum + completion_time
 }
 ```
 
-This provides:
-- Clear hierarchy for game flow (from State Hierarchy)
-- Orthogonal composition for capabilities (from Bitfield)
-- Temporal precision for actions (from State Hierarchy)
-- Room for modding via scriptable behaviors (from Dual-State)
+This design delivers:
+- Clear hierarchy for game flow
+- Orthogonal composition for unit capabilities
+- Precise timing for actions
+- Modding flexibility through scriptable behaviors
 
 ---
 
@@ -369,50 +366,50 @@ This provides:
 
 ### 3.7.1 Determinism in Tactical Games
 
-Determinism—the property that identical inputs produce identical outputs—is crucial for:
+Determinism ensures identical inputs produce identical outputs. This matters for:
 
-- **Replay systems**: Store inputs, replay simulation
-- **Multiplayer synchronization**: Clients agree on state
-- **Debugging**: Reproduce bugs reliably
+- **Replay systems**: Storing inputs to replay the simulation later
+- **Multiplayer synchronization**: Keeping clients in agreement on game state
+- **Debugging**: Reproducing bugs reliably
 
-**Pattern Impact on Determinism:**
+**How Patterns Affect Determinism:**
 
-| Pattern | Determinism | Considerations |
-|---------|-------------|----------------|
-| Bitfield | High | Fixed-width operations are deterministic |
-| Hierarchy | High | Temporal gestures guarantee timing |
-| Dual-State | Moderate | String comparison order may vary |
+| Pattern    | Determinism | Considerations                         |
+| ---------- | ----------- | -------------------------------------- |
+| Bitfield   | High        | Fixed-width operations avoid surprises |
+| Hierarchy  | High        | Temporal gestures lock down timing     |
+| Dual-State | Moderate    | String comparisons may vary by system  |
 
-**Ensuring Determinism:**
-- Use fixed-point math, not floating-point
-- Frame-based timing, not wall-clock time
-- Seeded random number generators
-- Deterministic ordering (e.g., sort units before iteration)
+**How to Ensure Determinism:**
+- Replace floating-point math with fixed-point
+- Use frame-based timing instead of wall-clock time
+- Seed random number generators
+- Sort units before iteration to guarantee order
 
 ### 3.7.2 Moddability Trade-offs
 
-State management patterns significantly impact modding potential:
+State management patterns shape what modders can do:
 
 **Bitfield Limitations:**
-- Fixed state count (64 bits = 64 states)
-- Adding states requires code changes
-- Enums must stay synchronized with data files
+- Hard limit of 64 states
+- Adding states means changing code
+- Enums must match data files exactly
 
 **Hierarchy Moderation:**
-- New states require enum additions
-- But behaviors can be data-driven components
-- Lua/ scripting can extend without recompilation
+- New states still require enum changes
+- Behaviors can live in data-driven components
+- Scripting languages like Lua allow extensions without recompiling
 
 **Dual-State Strengths:**
-- New statuses defined in data
-- No code changes for new states
+- New statuses defined in data files
+- No code changes needed for new states
 - Modders can create entirely new unit types
 
-**Recommendation**: If modding is a core feature, provide a **string-based overlay** on top of your primary state system for modder-defined states.
+**Recommendation:** If modding is important, add a string-based overlay to your primary state system. This lets modders define their own states.
 
 ### 3.7.3 Save/Load Architecture
 
-Different patterns suggest different serialization strategies:
+Each pattern suggests a different way to handle saves:
 
 **Bitfield Serialization:**
 ```pseudocode
@@ -424,8 +421,8 @@ load_game() {
     unit.state.bits = read_64bit()
 }
 ```
-- **Pros**: Trivial, compact, fast
-- **Cons**: Opaque (hard to debug save files)
+- **Pros:** Simple, compact, fast
+- **Cons:** Opaque—save files are hard to debug
 
 **Hierarchy Serialization:**
 ```pseudocode
@@ -437,8 +434,8 @@ save_game() {
     })
 }
 ```
-- **Pros**: Human-readable, versionable
-- **Cons**: Larger files, more processing
+- **Pros:** Human-readable, versionable
+- **Cons:** Larger files, more processing
 
 **Dual-State Serialization:**
 ```pseudocode
@@ -450,12 +447,12 @@ save_game() {
     })
 }
 ```
-- **Pros**: Human-readable, editable by modders
-- **Cons**: Requires parsing, no validation
+- **Pros:** Human-readable, editable by modders
+- **Cons:** Requires parsing, no built-in validation
 
 ### 3.7.4 State Validation and Cheating Prevention
 
-**The Problem**: In multiplayer, clients cannot be trusted. A hacked client might set "Reloaded" without completing the reload animation.
+**The Problem:** In multiplayer, clients can't be trusted. A hacked client might claim a unit has reloaded without completing the animation.
 
 **Bitfield Validation:**
 ```pseudocode
@@ -470,7 +467,7 @@ server_validate(action, unit_state) {
 **Hierarchy Validation:**
 ```pseudocode
 server_validate(behavior_request, current_state) {
-    // Only certain transitions allowed
+    // Only allow certain transitions
     if current_state.gesture != Idle {
         return INVALID  // Can't change behavior mid-gesture
     }
@@ -486,7 +483,7 @@ server_validate(status_request, current_status) {
         "READY": ["MOVING", "AIMING", "RELOADING"],
         "MOVING": ["READY", "STOPPED"]
     }
-    
+
     if status_request not in valid_transitions[current_status] {
         return INVALID
     }
@@ -494,7 +491,7 @@ server_validate(status_request, current_status) {
 }
 ```
 
-**Recommendation**: Regardless of pattern, implement **server authority**—clients request state changes, the server validates and broadcasts.
+**Recommendation:** No matter which pattern you choose, make the server the authority. Clients request state changes, but the server validates and broadcasts them.
 
 ---
 
@@ -505,17 +502,17 @@ server_validate(status_request, current_status) {
 ```pseudocode
 define State {
     bits: 64-bit unsigned integer
-    
+
     function is_set(state_id: integer): boolean {
         flag = 1 << state_id
         return (bits & flag) != 0
     }
-    
+
     function set(state_id: integer) {
         flag = 1 << state_id
         bits = bits | flag
     }
-    
+
     function clear(state_id: integer) {
         flag = ~(1 << state_id)
         bits = bits & flag
@@ -533,25 +530,24 @@ define Action {
 define StateMachine {
     current_state: State
     action_queue: List<Action>
-    
+
     function queue_action(action: Action) {
-        // Automatic prerequisite resolution
         missing = action.requires & ~current_state.bits
-        
+
         while missing != 0 {
             prerequisite = find_action_adding(missing.first_bit())
             action_queue.prepend(prerequisite)
             missing = missing & ~prerequisite.adds
         }
-        
+
         action_queue.append(action)
     }
-    
+
     function update(delta_time: float) {
         if action_queue.empty() then return
-        
+
         current = action_queue.first()
-        
+
         if current.meets_requirements(current_state) {
             current.execute(current_state)
             action_queue.remove_first()
@@ -563,7 +559,6 @@ define StateMachine {
 ### 3.8.2 State Hierarchy Pattern
 
 ```pseudocode
-// Enumeration definitions
 define Phase {
     Placement,
     Battle,
@@ -571,18 +566,13 @@ define Phase {
 }
 
 define Behavior {
-    // Movement
     MoveTo(path: Path),
     MoveFastTo(path: Path),
     SneakTo(path: Path),
-    
-    // Combat
     Idle(body: Body),
     Defend(angle: Angle),
     Hide(angle: Angle),
     EngageSoldier(target: Unit),
-    
-    // Terminal
     Dead,
     Unconscious
 }
@@ -595,26 +585,24 @@ define Gesture {
 }
 
 define StatePropagation {
-    OnChange,    // Update once when behavior changes
-    Regularly,   // Update every frame
-    Never        // No propagation
+    OnChange,
+    Regularly,
+    Never
 }
 
 define UnitState {
     phase: Phase
     behavior: Behavior
     gesture: Gesture
-    
+
     function update(current_frame: integer) {
-        // Gesture temporal completion
         if gesture.has_end_frame() {
             if current_frame >= gesture.end_frame {
                 gesture = Gesture.Idle
                 on_gesture_complete()
             }
         }
-        
-        // Behavior propagation to squad
+
         if behavior.changed() {
             propagation = behavior.propagation()
             if propagation == OnChange {
@@ -629,24 +617,18 @@ define UnitState {
 
 ```pseudocode
 define Unit {
-    // Runtime status (C++ side)
     unit_status: string = "READY"
-    
-    // Health state (declarative/visual side)
     health_state: string = "healthy"
-    
-    // Order queue
     orders: List<Order>
     current_order: integer = -1
-    
-    // C++: Process next order in queue
+
     function continue_queue() {
         for i in 0..orders.length() {
             order = orders[i]
             if order.performed then continue
-            
+
             current_order = i
-            
+
             match order.type {
                 "Move" => {
                     unit_status = "MOVING"
@@ -661,21 +643,18 @@ define Unit {
                     perform_attack(order.target)
                 }
             }
-            
+
             order.performed = true
-            break  // One order at a time
+            break
         }
     }
-    
-    // C++: Handle hit
+
     function on_hit(attacker: Unit, position: Point) {
         cancel_orders()
         health_state = "damaged"
-        // QML automatically handles visual changes
     }
 }
 
-// QML: Declarative visual states
 define VisualUnit {
     states: [
         State {
@@ -693,7 +672,7 @@ define VisualUnit {
             PropertyChanges { wreck.visible: true }
         }
     ]
-    
+
     transitions: [
         Transition {
             from: "healthy"; to: "damaged"
@@ -709,85 +688,77 @@ define VisualUnit {
 
 ### 3.9.1 Key Insights from Comparative Analysis
 
-1. **No pattern is universal**: Each serves different game design goals
-2. **Orthogonality matters**: Bitfields excel where states naturally combine
-3. **Timescale separation reduces complexity**: Hierarchy pattern organizes thinking
-4. **Moddability requires runtime flexibility**: Strings enable data-driven design
-5. **Determinism is architectural**: Must be designed in, not added later
+1. Different patterns serve different game design goals.
+2. Orthogonal states work best with bitfields.
+3. Hierarchical organization simplifies complex state management by separating timescales.
+4. Modding requires runtime flexibility, which strings and scripts provide.
+5. Determinism must be part of the initial design.
 
 ### 3.9.2 Recommended Architecture for New Projects
 
-Based on the comparative analysis, a **hybrid approach** serves most tactical wargames:
+Most tactical wargames benefit from a hybrid approach:
 
 **Core Principles:**
 
-1. **Use Hierarchy for Timescale Separation**
-   - Phase: Global game flow
-   - Behavior: Tactical goals (data-driven components)
-   - Gesture: Immediate actions with temporal data
+1. **Separate timescales with hierarchy**
+   - Global game flow (Phase)
+   - Tactical goals (Behavior, using data-driven components)
+   - Immediate actions with timing data (Gesture)
 
-2. **Use Bitfield for Orthogonal Capabilities**
+2. **Track orthogonal capabilities with bitfields**
    - CanMove, CanFire, IsSuppressed, IsProne
    - Query with: `(capabilities & REQUIRED) == REQUIRED`
 
-3. **Enable Modding via Scriptable Behaviors**
+3. **Support modding through scriptable behaviors**
    - Behaviors reference scripts: `behavior: { type: "Defend", script: "defensive.lua" }`
-   - Lua scripts handle custom logic without recompilation
+   - Lua scripts handle custom logic without recompiling.
 
-4. **Enforce Server Authority for Multiplayer**
-   - Clients request state changes
-   - Server validates against rules
-   - Server broadcasts authoritative updates
+4. **Maintain server authority in multiplayer**
+   - Clients request state changes.
+   - The server validates against game rules.
+   - The server broadcasts authoritative updates.
 
 ### 3.9.3 Validation Checklist
 
 Before finalizing your state architecture, verify:
 
-- [ ] Can a unit be both prone AND reloading? (Orthogonality check)
-- [ ] Can you serialize and deserialize game state? (Save/load check)
-- [ ] Can two clients stay synchronized? (Multiplayer check)
-- [ ] Can designers add new states without programmers? (Modding check)
-- [ ] Can you reproduce bugs from save files? (Debugging check)
-- [ ] Can you query "what is this unit doing?" easily? (Readability check)
+- [ ] Can a unit reload while prone? (Orthogonality)
+- [ ] Does the game save and load state correctly? (Serialization)
+- [ ] Do clients stay synchronized in multiplayer? (Network consistency)
+- [ ] Can designers add new states without programmer help? (Modding)
+- [ ] Can bugs be reproduced from save files? (Debugging)
+- [ ] Can you easily query a unit's current action? (Readability)
 
 ### 3.9.4 Final Recommendations
 
 **For Competitive Multiplayer Games:**
-- Use State Hierarchy for deterministic, frame-perfect gameplay
-- Add bitfield for capability queries
-- Implement comprehensive server validation
+Use hierarchical states for deterministic, frame-perfect gameplay. Add bitfields for capability checks. Implement strict server validation.
 
 **For Single-Player with Mod Support:**
-- Use Dual-State for maximum flexibility
-- Add bitfield overlay for capability tracking
-- Expose state system to scripting
+Use dual-state for flexibility. Layer bitfields for capability tracking. Expose the state system to scripting.
 
 **For Retro/Minimalist Games:**
-- Use pure Bitfield for simplicity
-- Limit to 32 or 64 states maximum
-- Externalize action definitions to data files
+Use pure bitfields for simplicity. Limit to 32 or 64 states. Define actions in external data files.
 
 ---
 
 ## 3.10 Conclusion
 
-State management is the foundation upon which tactical gameplay is built. The choice between bitfield orthogonality, hierarchical organization, or dual-state separation shapes every other system in your game.
+State management forms the foundation of tactical gameplay. Whether you choose bitfields, hierarchy, or dual-state separation determines how every other system in your game behaves.
 
-The Close Combat clones demonstrate that **there is no single correct answer**—each pattern emerged from different priorities:
+The Close Combat clones show that priorities shape the best approach:
 
-- **OpenCombat-SDL** optimized for performance and emergent behavior through bitfields
-- **OpenCombat** prioritized deterministic multiplayer through hierarchical states
-- **CloseCombatFree** maximized modding potential through dual-state separation
+- **OpenCombat-SDL** used bitfields for performance and emergent behavior.
+- **OpenCombat** relied on hierarchical states for deterministic multiplayer.
+- **CloseCombatFree** favored dual-state separation to maximize modding.
 
-Your choice should be guided by:
-1. **Your primary platform** (single vs. multiplayer)
-2. **Your community goals** (closed vs. moddable)
-3. **Your team expertise** (simple vs. sophisticated)
-4. **Your performance constraints** (cache efficiency vs. flexibility)
+Your choice depends on:
+1. Your target platform (single or multiplayer).
+2. Your community goals (closed or moddable).
+3. Your team's expertise (simple or sophisticated).
+4. Your performance constraints (cache efficiency or flexibility).
 
-Whatever pattern you choose, commit to it fully—a hybrid implemented inconsistently is worse than any single pattern executed well.
-
-**Next**: Chapter 4 examines how these state systems interact with world representation and terrain data structures.
+Commit fully to your chosen pattern. A poorly implemented hybrid causes more problems than a well-executed single approach.
 
 ---
 
@@ -795,42 +766,44 @@ Whatever pattern you choose, commit to it fully—a hybrid implemented inconsist
 
 ### Bitfield System
 ```
-Best for: Orthogonal capabilities, memory efficiency
-Avoid when: >64 states needed, complex transitions required
-Key metric: State combinations = 2^n (n = bit count)
+Best for: Orthogonal capabilities where memory matters
+Avoid when: You need more than 64 states or complex transitions
+Key metric: State combinations equal 2ⁿ (n = bit count)
 ```
 
 ### State Hierarchy
 ```
-Best for: Deterministic multiplayer, clear relationships
-Avoid when: Rapid iteration without recompilation needed
-Key metric: 3 tiers × update frequency = organization
+Best for: Deterministic multiplayer with clear relationships
+Avoid when: You need rapid iteration without recompiling
+Key metric: Three tiers multiplied by update frequency determine organization
 ```
 
 ### Dual-State
 ```
-Best for: Moddability, visual separation, rapid prototyping
-Avoid when: Type safety critical, complex state machines needed
-Key metric: States = unlimited (string-based)
+Best for: Modding, visual separation, and rapid prototyping
+Avoid when: Type safety is critical or you need complex state machines
+Key metric: States can be unlimited (string-based)
 ```
 
-### Finite State Machine (Not Covered)
+### Finite State Machine
 ```
-Best for: Strict state control, complex transition rules
-Avoid when: Many orthogonal states, simple behavior
-Key metric: States × Transitions = complexity
+Best for: Strict state control with complex transition rules
+Avoid when: You have many orthogonal states or simple behavior
+Key metric: Complexity equals states multiplied by transitions
 ```
 
 ---
 
 ## Appendix B: Common State Design Pitfalls
 
-1. **The God State**: Putting everything in one massive enum
-2. **Implicit Transitions**: State changes scattered through code
-3. **Mutual Exclusion Blindness**: Not enforcing Standing vs Prone
-4. **Temporal Ambiguity**: Not tracking when states complete
-5. **Network Naivety**: Assuming clients won't cheat
-6. **Debug Hostility**: States that can't be easily inspected
-7. **Save Incompatibility**: State changes breaking old saves
+1. **The God State** – A single massive enum handling everything
+2. **Implicit Transitions** – State changes scattered across the codebase
+3. **Mutual Exclusion Blindness** – Failing to enforce Standing vs. Prone rules
+4. **Temporal Ambiguity** – Not tracking when states complete
+5. **Network Naivety** – Assuming clients won't cheat
+6. **Debug Hostility** – States that resist inspection
+7. **Save Incompatibility** – State changes breaking old save files
 
-Avoid these by choosing the right pattern and implementing it consistently.
+---
+
+*Next: [Chapter 4: World and Terrain Architecture](chapter_04_world_terrain.md)*
