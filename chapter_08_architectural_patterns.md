@@ -1,3 +1,7 @@
+*Previous: [Chapter 7: Moddability and Extensibility](chapter_07_moddability.md)*
+
+---
+
 # Chapter 8: Architectural Patterns for Tactical Wargames
 
 ## A Definitive Guide to Design Patterns in Close Combat-Style Games
@@ -27,7 +31,7 @@ Tactical wargames need additional patterns for domain-specific challenges:
 | Category    | Purpose                                    | Domain Examples                                 |
 | ----------- | ------------------------------------------ | ----------------------------------------------- |
 | **Simulation**  | Deterministic game state management        | Lockstep, Spatial Partitioning, Double Buffer   |
-| **Modding**     | Runtime extensibility and content creation | Data-Driven, Hot-Reload, Scripting Bridge       |
+| **Modding**     | Runtime extensibility and content creation | Data-Driven, Hot Reload, Scripting Bridge       |
 | **Multiplayer** | Network synchronization and authority      | State Replication, Command Relay, Client-Server |
 
 ### 8.1.3 Pattern Relationship Map
@@ -243,14 +247,18 @@ classDiagram
 #### Variations Across Games
 
 **OpenCombat-SDL: XML-Based Building**
-```cpp
-// Implicit builder through XML parsing
+
+XML Definition:
+```xml
 <Soldier Type="Rifleman">
     <Attributes Aggressiveness="High" Morale="Steady"/>
     <Weapon Type="M1_Garand"/>
     <Equipment Type="Grenade" Count="2"/>
 </Soldier>
+```
 
+Parser Implementation:
+```cpp
 // Parser builds soldier incrementally
 Soldier* ParseSoldierElement(xmlNode* node) {
     auto* soldier = new Soldier();
@@ -361,7 +369,7 @@ classDiagram
     SoldierPrototype --> GreenModifier
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: Template Cloning**
 ```cpp
@@ -428,18 +436,18 @@ Soldier {
 }
 ```
 
-### When to Use Prototype Pattern
+#### When to Use
 - The system should remain independent of how products are created
 - Classes to instantiate are specified at runtime
 - You want to avoid building a hierarchy of factory classes
 - State preservation during cloning is important
 
-### When to Avoid Prototype Pattern
+#### When NOT to Use
 - Objects contain circular references that complicate deep copying
 - Simple subclassing would suffice
 - Object creation differs significantly from cloning
 
-### Related Patterns
+#### Related Patterns
 - **Factory Pattern**: Prototype can serve as an alternative
 - **Memento Pattern**: Useful for preserving state during undo operations
 
@@ -447,13 +455,13 @@ Soldier {
 
 ### 8.2.4 Scenario Loader Pattern
 
-### Intent
+#### Intent
 Encapsulate scenario loading logic to support multiple data formats through a centralized pipeline.
 
-### Problem
+#### Problem
 Military simulations require loading scenarios from various sources—files, databases, or procedural generation. The process involves multiple steps: terrain parsing, unit placement, and objective setup. Consistent error handling and validation are critical, especially for large scenarios that need progress reporting.
 
-### Solution
+#### Solution
 
 ```mermaid
 classDiagram
@@ -495,7 +503,7 @@ classDiagram
     XMLLoader ..> Scenario : creates
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: XML-Based Loading**
 ```cpp
@@ -571,17 +579,17 @@ public:
 };
 ```
 
-### When to Use Scenario Loader Pattern
+#### When to Use
 - Multiple data formats require support
 - The loading process involves complex coordination
 - Progress reporting or interruptible loading is needed
 - Validation logic should remain centralized
 
-### When to Avoid Scenario Loader Pattern
+#### When NOT to Use
 - Only one format is used and loading is simple
 - Performance overhead from abstraction is unacceptable
 
-### Related Patterns
+#### Related Patterns
 - **Factory Pattern**: The loader acts as a specialized factory
 - **Strategy Pattern**: Different loaders implement distinct strategies
 - **Template Method Pattern**: A common loading skeleton with customizable steps
@@ -592,13 +600,13 @@ public:
 
 ### 8.3.1 Aggregate Pattern (Squad Contains Soldiers)
 
-### Intent
+#### Intent
 Compose objects into tree structures to represent part-whole hierarchies, allowing clients to treat individual objects and compositions uniformly.
 
-### Problem
+#### Problem
 Military organization is hierarchical—platoons contain squads, squads contain soldiers. Orders issued to squads must propagate to members, and squad effectiveness depends on individual status. The loss of members should affect squad behavior.
 
-### Solution
+#### Solution
 
 ```mermaid
 classDiagram
@@ -644,7 +652,7 @@ classDiagram
     Soldier --> Squad : belongs to
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: Object Hierarchy**
 ```cpp
@@ -731,18 +739,18 @@ Squad {
 }
 ```
 
-### When to Use Aggregate Pattern
+#### When to Use
 - Part-whole hierarchies exist (squads/soldiers, vehicles/crew)
 - Clients should treat composites and individuals uniformly
 - Hierarchical orders and reporting are needed
 - Aggregation behavior differs from the sum of parts
 
-### When to Avoid Aggregate Pattern
+#### When NOT to Use
 - The hierarchy is very flat (1-2 levels)
 - Components never need uniform treatment
 - Parent-child relationships are purely structural
 
-### Related Patterns
+#### Related Patterns
 - **Iterator Pattern**: Traverses the hierarchy
 - **Visitor Pattern**: Performs operations on hierarchy elements
 - **Chain of Responsibility**: Propagates orders through the hierarchy
@@ -751,13 +759,13 @@ Squad {
 
 ### 8.3.2 Component Pattern (Composition over Inheritance)
 
-### Intent
+#### Intent
 Build complex entities by composing reusable components instead of relying on monolithic inheritance.
 
-### Problem
+#### Problem
 Inheritance hierarchies become rigid and deep. The "diamond problem" complicates multiple inheritance. Creating novel combinations (like a flying tank) is difficult, and adding new capabilities requires modifying base classes.
 
-### Solution
+#### Solution
 
 ```mermaid
 classDiagram
@@ -821,7 +829,7 @@ classDiagram
     Component <|-- AI
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: Limited Composition**
 ```cpp
@@ -896,18 +904,18 @@ Tank {
 }
 ```
 
-### When to Use Component Pattern
+#### When to Use
 - Entities have many optional capabilities
 - Entity types vary widely but share components
 - Runtime composition is needed
 - Deep inheritance hierarchies should be avoided
 
-### When to Avoid Component Pattern
+#### When NOT to Use
 - All entities are homogeneous
 - Component lookup overhead is unacceptable
 - Simple inheritance models fit perfectly
 
-### Related Patterns
+#### Related Patterns
 - **Factory Pattern**: Creates entities with specific component sets
 - **Strategy Pattern**: Components often encapsulate strategies
 - **Observer Pattern**: Components may observe entity events
@@ -916,13 +924,13 @@ Tank {
 
 ### 8.3.3 Facade Pattern (Simplified AI Interface)
 
-### Intent
+#### Intent
 Provide a simplified interface to a complex subsystem, making it easier to use while hiding internal complexity.
 
-### Problem
+#### Problem
 AI systems expose complex interfaces—pathfinding, threat detection, cover evaluation. Game logic shouldn't depend on AI implementation details. Multiple AI systems need a consistent interface, and testing requires mocking complex dependencies.
 
-### Solution
+#### Solution
 
 ```mermaid
 classDiagram
@@ -965,7 +973,7 @@ classDiagram
     AIFacade --> CombatSystem
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: Direct Implementation (No Facade)**
 ```cpp
@@ -1006,10 +1014,6 @@ impl AIController {
         if let Some(cover) = self.cover_system.find_cover(soldier) {
             self.move_to(soldier_idx, cover.position);
             true
-        }
-```
-
-```
         } else {
             false
         }
@@ -1053,13 +1057,13 @@ Soldier {
 }
 ```
 
-### When to Use Facades
+#### When to Use
 Use this pattern when a complex subsystem needs a simpler interface, when layering is desired to decouple from implementation, when multiple similar subsystems need a unified interface, or when testing requires mocking complex dependencies.
 
-### When to Avoid Facades
+#### When NOT to Use
 Avoid this pattern when direct access is simple and sufficient, when performance is critical and the facade adds indirection, or when flexibility matters more than simplicity.
 
-### Related Patterns
+#### Related Patterns
 **Adapter Pattern**: A facade simplifies; an adapter converts interfaces.
 **Mediator Pattern**: Both simplify communication, but a mediator adds behavior.
 **Singleton Pattern**: Facades are often implemented as singletons.
@@ -1068,17 +1072,17 @@ Avoid this pattern when direct access is simple and sufficient, when performance
 
 ### 8.3.4 Proxy Pattern (Network Multiplayer)
 
-### Intent
+#### Intent
 Provide a surrogate or placeholder for another object to control access, particularly across network boundaries.
 
-### Problem
+#### Problem
 Network multiplayer introduces several challenges:
 - Remote object access requirements
 - Latency and packet loss that must remain hidden from game logic
 - Server authority that needs to control client access
 - Bandwidth optimization through update filtering
 
-### Solution
+#### Solution
 
 ```mermaid
 classDiagram
@@ -1120,7 +1124,7 @@ classDiagram
     RemoteSoldierProxy ..> NetworkConnection
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: Single Player (No Proxy)**
 ```cpp
@@ -1191,13 +1195,13 @@ Soldier {
 }
 ```
 
-### When to Use Proxies
+#### When to Use
 Use this pattern for remote object access, when server authority must control state, when bandwidth optimization is required, or when latency hiding becomes necessary.
 
-### When to Avoid Proxies
+#### When NOT to Use
 Avoid proxies in single-player games where they add unnecessary complexity, when real-time synchronization isn't required, or in direct peer-to-peer setups with minimal latency.
 
-### Related Patterns
+#### Related Patterns
 **Decorator Pattern**: Both wrap objects, but decorators add functionality.
 **Observer Pattern**: Proxies often use observers for updates.
 **Command Pattern**: Network commands frequently use proxies.
@@ -1208,10 +1212,10 @@ Avoid proxies in single-player games where they add unnecessary complexity, when
 
 ### 8.4.1 Command Pattern (for Orders)
 
-### Intent
+#### Intent
 Encapsulate requests as objects to enable queuing, logging, undo/redo, and deferred execution.
 
-### Problem
+#### Problem
 Tactical wargames face several command-related challenges:
 - Player orders that need queuing and execution over time
 - Undo/redo functionality requirements
@@ -1219,7 +1223,7 @@ Tactical wargames face several command-related challenges:
 - Network multiplayer command serialization
 - Different order types requiring different handling
 
-### Solution
+#### Solution
 
 ```mermaid
 classDiagram
@@ -1280,7 +1284,7 @@ classDiagram
     CommandHistory --> Command
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: Order Classes as Commands**
 ```cpp
@@ -1412,13 +1416,13 @@ Unit {
 }
 ```
 
-### When to Use Commands
+#### When to Use
 Use this pattern when queuing and deferred execution become necessary, for undo/redo functionality, replay recording, network command serialization, or when different requests need different handling.
 
-### When to Avoid Commands
+#### When NOT to Use
 Avoid commands when simple immediate execution suffices, when memory overhead becomes a concern, or in performance-critical tight loops.
 
-### Related Patterns
+#### Related Patterns
 **Memento Pattern**: For storing state during undo operations.
 **Prototype Pattern**: For copying commands.
 **Chain of Responsibility**: For command routing.
@@ -1427,17 +1431,17 @@ Avoid commands when simple immediate execution suffices, when memory overhead be
 
 ### 8.4.2 State Pattern (Unit States)
 
-### Intent
+#### Intent
 Allow an object to alter its behavior when its internal state changes, making it appear as if the object changed its class.
 
-### Problem
+#### Problem
 Units in tactical wargames have multiple states that present challenges:
 - Idle, moving, firing, reloading, and suppressed states
 - Behavior that varies dramatically by state
 - State transitions that need explicit validation
 - Adding new states without modifying existing code
 
-### Solution
+#### Solution
 
 ```mermaid
 classDiagram
@@ -1498,7 +1502,7 @@ classDiagram
     Unit --> UnitState
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: Bitfield State (Partial Implementation)**
 ```cpp
@@ -1597,13 +1601,13 @@ private:
 };
 ```
 
-### When to Use State Patterns
+#### When to Use
 Use this pattern when object behavior depends on runtime state changes, when states have distinct behaviors, when adding new states without modifying existing code, or when state transitions need explicit control.
 
-### When to Avoid State Patterns
+#### When NOT to Use
 Avoid this pattern with only 2-3 simple states, when state logic is trivial, or when creating many small state classes adds overhead.
 
-### Related Patterns
+#### Related Patterns
 **Singleton Pattern**: State objects are often implemented as singletons.
 **Strategy Pattern**: Similar structure, but state manages transitions.
 **Flyweight Pattern**: When many units share state objects.
@@ -1612,17 +1616,17 @@ Avoid this pattern with only 2-3 simple states, when state logic is trivial, or 
 
 ### 8.4.3 Observer Pattern (Event System)
 
-### Intent
+#### Intent
 Define one-to-many dependencies between objects so that when one object changes state, all dependents receive automatic notification.
 
-### Problem
+#### Problem
 Game development faces several event-related challenges:
 - Game events that need to affect multiple systems (UI, audio, AI, scoring)
 - Direct coupling between systems that creates maintenance problems
 - Dynamic registration and unregistration of event handlers
 - Event filtering based on type or source
 
-### Solution
+#### Solution
 
 ```mermaid
 classDiagram
@@ -1680,7 +1684,7 @@ classDiagram
     EventBus --> Observer
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: Direct Calls (No Observer)**
 ```cpp
@@ -1794,13 +1798,13 @@ Unit {
 }
 ```
 
-### When to Use Observers
+#### When to Use
 Use this pattern when changes to one object need to notify multiple others, when decoupling between event source and handlers becomes necessary, when dynamic handler registration is required, or when one-to-many relationships change dynamically.
 
-### When to Avoid Observers
+#### When NOT to Use
 Avoid observers when a single handler with tight coupling suffices, in performance-critical scenarios where notification overhead matters, or when event order must be strictly controlled.
 
-### Related Patterns
+#### Related Patterns
 **Mediator Pattern**: Observers distribute; mediators centralize.
 **Command Pattern**: Events can be commands.
 **Singleton Pattern**: Event buses are often singletons.
@@ -1809,17 +1813,17 @@ Avoid observers when a single handler with tight coupling suffices, in performan
 
 ### 8.4.4 Strategy Pattern (AI Behaviors)
 
-### Intent
+#### Intent
 Define a family of algorithms, encapsulate each, and make them interchangeable. Strategy lets algorithms vary independently from clients.
 
-### Problem
+#### Problem
 AI development faces several behavioral challenges:
 - Different AI behaviors needed (aggressive, defensive, stealth)
 - AI that should be swappable at runtime (morale changes behavior)
 - Massive switch statements for behavior selection
 - Testing individual AI behaviors in isolation
 
-### Solution
+#### Solution
 
 ```mermaid
 classDiagram
@@ -1872,7 +1876,7 @@ classDiagram
     AIController --> Behavior
 ```
 
-### Variations Across Games
+#### Variations Across Games
 
 **OpenCombat-SDL: Hardcoded Behaviors (Partial Strategy)**
 ```cpp
@@ -1981,20 +1985,11 @@ Soldier {
 }
 ```
 
-### When to Use Strategies
+#### When to Use
 Use this pattern when multiple algorithm variants become necessary, when algorithms need runtime changes, when avoiding conditional statements for behavior selection, or when testing individual behaviors in isolation.
 
-### When to Avoid Strategies
+#### When NOT to Use
 Avoid this pattern when only one algorithm is needed, when behavior differences are minimal, or when the overhead of strategy objects becomes problematic.
-
-- **Use when**: The algorithm needs runtime changes
-- **Use when**: Avoiding large switch statements
-- **Use when**: Testing algorithms in isolation
-
-#### When Not to Use
-- Avoid when only one algorithm exists and it rarely changes
-- Avoid in performance-critical code due to virtual call overhead
-- Avoid when a simple if/else is clearer
 
 #### Related Patterns
 - **State Pattern**: Encapsulates behavior like Strategy, but manages transitions
@@ -2200,13 +2195,13 @@ void CcfQmlBaseUnit::processOrder(QObject* order) {
             this, &CcfQmlBaseUnit::onOrderComplete);
 ```
 
-#### When to Use Template Method
+#### When to Use
 - Algorithm structure remains fixed while individual steps vary
 - Code reuse across similar algorithms is needed
 - Common error handling and cleanup apply to all cases
 - Subclass extensions must be controlled through hook methods
 
-#### When to Avoid Template Method
+#### When NOT to Use
 - Algorithm steps vary too much between cases
 - Flexibility outweighs the need for structure
 - Strategy Pattern provides sufficient customization
@@ -2333,13 +2328,13 @@ impl Server {
 // Not deterministic, not multiplayer
 ```
 
-#### When to Use Deterministic Lockstep
+#### When to Use
 - Multiplayer synchronization is required
 - Replay recording is needed
 - Competitive play demands fairness
 - Debugging requires reproducibility
 
-#### When to Avoid Deterministic Lockstep
+#### When NOT to Use
 - Single-player games where overhead isn't justified
 - Real-time accuracy matters more than determinism
 - Variable timestep is acceptable
@@ -3042,7 +3037,7 @@ Content never changes. Performance is critical and data lookups add overhead. Si
 
 ---
 
-### 8.6.2 Hot-Reload Pattern
+### 8.6.2 Hot Reload Pattern
 
 #### Intent
 Let designers modify game data and scripts at runtime. This eliminates restarts and speeds up iteration.
@@ -3617,7 +3612,7 @@ Avoid this pattern if no modding is planned, if a simple override system suffice
 | Spatial queries             | Spatial Partitioning   | Iterator          | Grid-based indexing             |
 | State-based behavior        | State                  | Strategy          | Three-tier hierarchy            |
 | Simplify complex subsystems | Facade                 | Adapter           | AI controller interface         |
-| Enable modding              | Data-Driven            | Hot-Reload        | JSON with file watcher          |
+| Enable modding              | Data-Driven            | Hot Reload        | JSON with file watcher          |
 | Network object access       | Proxy                  | Observer          | Remote soldier proxy            |
 | Entity composition          | Component              | Aggregate         | Modified ECS                    |
 
@@ -3818,7 +3813,7 @@ flowchart LR
 
 ### 8.8.1 Patterns as Vocabulary
 
-The patterns in this chapter create a shared language for tactical wargame architecture. Saying "we use a Three-Tier State Hierarchy with Command Pattern for orders" tells other developers exactly what to expect.
+The patterns in this chapter create a shared language for tactical wargame architecture. Saying "we use a Three-Tier State Hierarchy (see Section 3.4) with Command Pattern for orders" tells other developers exactly what to expect.
 
 The three Close Combat clones show how patterns adapt to different needs:
 

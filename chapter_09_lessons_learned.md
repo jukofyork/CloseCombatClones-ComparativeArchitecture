@@ -1,3 +1,5 @@
+*Previous: [Chapter 8: Architectural Patterns](chapter_08_architectural_patterns.md)*
+
 # Chapter 9: Lessons Learned: 20 Years of Tactical Wargame Development
 
 ## The Wisdom of Three Implementations
@@ -9,8 +11,6 @@
 The three Close Combat clones in this book—OpenCombat-SDL (2005–2008), CloseCombatFree (2011–2012), and OpenCombat (2020–2024)—form an evolutionary narrative. Each project built on or reacted to its predecessors. This chapter distills their accumulated wisdom into practical guidance for the next generation of tactical wargame developers.
 
 The progression from SDL-based C++ to Qt/QML to Rust systems engineering reveals enduring truths about game architecture. Some problems persist across technology generations; others stem from specific technical choices. Recognizing the difference separates effective architecture from fashionable complication.
-
----
 
 ## 9.1 The 20-Year Journey
 
@@ -74,8 +74,6 @@ OpenCombat synthesizes these lessons. It maintains the modding flexibility Close
 
 The Rust implementation adds compile-time safety, but the architecture itself is language-agnostic. The patterns—message passing, type-safe indices, server-authoritative simulation—would work equally well in modern C++.
 
----
-
 ## 9.2 What OpenCombat-SDL Got Right
 
 Despite its age, OpenCombat-SDL implemented several enduring patterns. These successes show that good architecture outlasts technology trends.
@@ -95,7 +93,7 @@ state_bits |= PRONE | RELOADING | SUPPRESSED;
 bool canFire = (state_bits & RELOADED) && !(state_bits & SUPPRESSED);
 ```
 
-**Why This Still Works:**
+**Why This Still Works** (see [Chapter 3: State Management Patterns in Tactical Wargames](chapter_03_state_management.md)):
 
 1. **Memory Efficiency**: 64 states consume only 8 bytes, critical for cache performance when iterating thousands of units
 2. **Orthogonal Composition**: States combine naturally without handling every permutation
@@ -132,7 +130,7 @@ This approach provides several advantages:
 - **Deterministic Replay**: The same simulation inputs produce identical results regardless of rendering
 - **Testing**: Simulation logic can be tested without display initialization
 
-**Lesson Validated**: OpenCombat maintained this separation using Rust's stricter ownership model. CloseCombatFree merged these boundaries by having QML handle both logic and presentation, which created testing and debugging difficulties.
+**Lesson Validated**: OpenCombat maintained this separation using Rust's stricter ownership model and the [three-tier state hierarchy](chapter_03_state_management.md). CloseCombatFree merged these boundaries by having QML handle both logic and presentation, which created testing and debugging difficulties.
 
 ### 9.2.3 XML Data Files for Configuration
 
@@ -185,9 +183,7 @@ class RunToAction : public Action {
 
 This system allowed automatic prerequisite resolution. For example, a prone soldier ordered to run would automatically stand up before moving, without player micromanagement.
 
-**Evolution**: OpenCombat expanded this to three tiers (Orders → Behaviors → Gestures), but the core idea—separating intent from execution—came from OpenCombat-SDL.
-
----
+**Evolution**: OpenCombat expanded this [Chapter 6: Orders, Behaviors, and AI Architecture](chapter_06_orders_ai.md) to three tiers (Orders → Behaviors → Gestures), but the core idea—separating intent from execution—came from OpenCombat-SDL.
 
 ## 9.3 What OpenCombat-SDL Got Wrong
 
@@ -206,7 +202,7 @@ class Tank : public Vehicle { /* ... */ };
 
 **The Problem:** Inheritance creates rigid taxonomies. When you need a drone that behaves like both a soldier and a vehicle, or a defensive emplacement that functions as terrain but can be destroyed like a unit, deep hierarchies force premature classification.
 
-**The Lesson:** CloseCombatFree and OpenCombat both shifted to composition. CCF used QML component composition, while OpenCombat adopted ECS-style embedded components. Modern C++ with `std::variant` and type erasure provides even more flexibility—options unavailable in 2005.
+**The Lesson:** CloseCombatFree (CCF) and OpenCombat both shifted to composition. CCF used QML component composition, while OpenCombat adopted ECS-style embedded components. Modern C++ with `std::variant` and type erasure provides even more flexibility—options unavailable in 2005.
 
 ### 9.3.2 Hardcoded Behavior Logic
 
@@ -259,11 +255,9 @@ void GameLoop() {
 
 **The Lesson:** OpenCombat addressed this with job systems and parallel pathfinding. Modern CPUs have multiple cores—architecture should use them. Even without full parallelism, decoupling simulation timestep from rendering framerate (as OpenCombat-SDL did) provides a foundation for optimization.
 
----
+## 9.4 What CloseCombatFree (CCF) Got Right
 
-## 9.4 What CloseCombatFree Got Right
-
-CloseCombatFree's declarative approach was ahead of its time. Several of its innovations became industry standards.
+CCF's declarative approach was ahead of its time. Several of its innovations became industry standards.
 
 ### 9.4.1 QML for Declarative Content
 
@@ -297,7 +291,7 @@ Scenario {
 
 ### 9.4.2 Component Composition Over Inheritance
 
-CCF's component system avoided inheritance pitfalls:
+CCF's component system avoided deep inheritance hierarchies:
 
 ```qml
 // Tank composed of components, not inheriting from Vehicle
@@ -342,9 +336,7 @@ This separation allowed:
 - Designers to iterate scenarios without recompiling
 - Programmers to refactor simulation without breaking UI
 
----
-
-## 9.5 What CloseCombatFree Got Wrong
+## 9.5 What CloseCombatFree (CCF) Got Wrong
 
 CCF's innovations came with tradeoffs that later projects had to address.
 
@@ -359,9 +351,9 @@ property int health: 100  // Behind the scenes: QMetaProperty, signals, bindings
 
 **The Problem**: Hundreds of QML entities updating every frame strained the Qt runtime. The garbage collector caused frame hitches. Property bindings created invisible dependencies that were difficult to optimize.
 
-**Measured Impact**: CCF documentation acknowledges "hundreds of units may lag." For squad-level combat (50-200 units), this was acceptable. For larger scales, it became a problem.
+**Measured Impact**: CloseCombatFree (CCF) documentation acknowledges "hundreds of units may lag." For squad-level combat (50-200 units), this was acceptable. For larger scales, it became a problem.
 
-**The Lesson**: OpenCombat's Rust ECS offers similar flexibility with compile-time optimization. Data-oriented design—using arrays of structs instead of structs of arrays—improves cache performance.
+**The Lesson**: OpenCombat's Rust ECS offers similar flexibility to CCF with compile-time optimization. Data-oriented design—using arrays of structs instead of structs of arrays—improves cache performance.
 
 ### 9.5.2 Limited Determinism for Multiplayer
 
@@ -377,7 +369,7 @@ CCF's architecture made deterministic multiplayer difficult:
 - Replay recording (inputs must reconstruct the game)
 - Debugging (bugs must be reproducible)
 
-CCF prioritized flexibility over determinism, making these features hard to implement.
+CloseCombatFree (CCF) prioritized flexibility over determinism, making these features hard to implement.
 
 ### 9.5.3 Qt Dependency
 
@@ -398,15 +390,13 @@ Building on Qt enabled rapid development but created limitations:
 - Web deployment (Qt WebAssembly) wasn't production-ready
 - Console platforms were unsupported
 
-**The Lesson**: OpenCombat minimized dependencies, using ggez for graphics, zmq for networking, and serde for serialization. Each dependency was lightweight and replaceable. Rust's ecosystem enables this modular approach more effectively than C++.
-
----
+**The Lesson**: OpenCombat minimized dependencies compared to CCF, using ggez for graphics, zmq for networking, and serde for serialization. Each dependency was lightweight and replaceable. Rust's ecosystem enables this modular approach more effectively than C++.
 
 ## 9.6 What OpenCombat Got Right
 
 OpenCombat synthesized lessons from earlier projects. Its architecture solves previous limitations while introducing new solutions.
 
-### 9.6.1 ECS for Simulation
+### 9.6.1 [ECS for Simulation](chapter_05_unit_hierarchy.md)
 
 OpenCombat's modified Entity Component System provides flexibility without performance tradeoffs:
 
@@ -509,8 +499,6 @@ Combined with hot reload, this approach enables:
 - Version-controlled content
 - A/B testing of different configurations
 
----
-
 ## 9.7 What OpenCombat Got Wrong
 
 Even well-designed systems have trade-offs. OpenCombat's complexity creates barriers developers should consider.
@@ -581,8 +569,6 @@ QML allowed non-programmers to create game content. Rust requires programming ex
 - Visual behavior tree editors (requires significant tooling)
 - WebAssembly modding (complex but sandboxed)
 
----
-
 ## 9.8 Universal Lessons
 
 Beyond specific implementations, these three projects reveal enduring truths about tactical wargame architecture.
@@ -592,14 +578,14 @@ Beyond specific implementations, these three projects reveal enduring truths abo
 True moddability cannot be added later. The projects show different approaches:
 
 **OpenCombat-SDL**: Hardcoded behaviors with XML data allowed limited modding
-**CloseCombatFree**: Declarative QML enabled extensive modding
+**CloseCombatFree (CCF)**: Declarative QML enabled extensive modding
 **OpenCombat**: Deterministic Rust with JSON offered moderate modding
 
-Set modding goals before coding:
-- Parameter tweaking needs XML or JSON
-- New content requires data-driven definitions
-- New mechanics demand scripting or declarative systems
-- Total conversions need a full mod API with documentation
+- **Set modding goals before coding:**
+  - Parameter tweaking needs XML or JSON
+  - New content requires data-driven definitions
+  - New mechanics demand scripting or declarative systems
+  - Total conversions need a full mod API with documentation
 
 ### 9.8.2 Determinism Works Best When Built In
 
@@ -659,11 +645,9 @@ OpenCombat: Data defines structure, code defines behavior
 
 The trend is clear—separate frequently changing content from stable engine code.
 
----
-
 ## 9.9 Advice for New Projects
 
-### The 10 Commandments of Tactical Wargame Development
+### The Ten Commandments of Tactical Wargame Development
 
 **1. Separate intent from execution**
 
@@ -767,10 +751,8 @@ fn test_determinism() {
 | -------------------------- | --------------------------------------------------------- |
 | First tactical game        | OpenCombat-SDL patterns (simple, intuitive)               |
 | Commercial multiplayer     | OpenCombat patterns (deterministic, server-authoritative) |
-| Community modding platform | CloseCombatFree patterns (declarative, flexible)          |
+| Community modding platform | CloseCombatFree (CCF) patterns (declarative, flexible)    |
 | AAA production             | Synthesis of all three                                    |
-
----
 
 ## 9.10 Conclusion: The Wisdom of Iteration
 
@@ -798,4 +780,4 @@ Build thoughtfully. Iterate fearlessly. Learn continuously.
 
 ---
 
-*Next: [Chapter 10: Architectural Recommendations for Tactical Wargames](chapter_10_recommendations.md)*
+*Next: [Chapter 10: Recommendations for New Implementations](chapter_10_recommendations.md)*

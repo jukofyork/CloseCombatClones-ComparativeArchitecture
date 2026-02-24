@@ -14,16 +14,16 @@ Pick the path that fits your role.
 *Design patterns, player experience, and design-technology trade-offs*
 
 **Essential Chapters** (6-8 hours):
-1. **Preface** - Why these games matter
-2. **Introduction** - The Close Combat formula and what this book covers
-3. **Chapter 1: Executive Summary** - Key design decisions at a glance
-4. **Chapter 2: Architectural Philosophy** - How architecture shapes player experience
-5. **Chapter 6: Order & AI System Design** - Command abstraction and AI autonomy
-6. **Chapter 9: Lessons Learned** - What worked and what didn't
-7. **Chapter 11: Universal Patterns** - The pattern catalog (focus on problem statements)
+1. **[Preface](preface.md)** - Why these games matter
+2. **[Introduction](introduction.md)** - The Close Combat formula and what this book covers
+3. **[Chapter 1: Executive Summary](chapter_01_executive_summary.md)** - Key design decisions at a glance
+4. **[Chapter 2: Architectural Philosophy](chapter_02_architectural_philosophy.md)** - How architecture shapes player experience
+5. **[Chapter 6: Order & AI System Design](chapter_06_orders_ai.md)** - Command abstraction and AI autonomy
+6. **[Chapter 9: Lessons Learned](chapter_09_lessons_learned.md)** - What worked and what didn't
+7. **[Chapter 11: Universal Patterns](chapter_11_universal_patterns.md)** - The pattern catalog (focus on problem statements)
 
 **Key Insights for Designers**:
-- The three-layer command system (Order → Behavior → Gesture) clarifies player intent.
+- The three-layer command system (Order → Behavior → Gesture) clarifies player intent—this is distinct from the state hierarchy mentioned below.
 - Morale systems create narrative but need careful tuning to avoid frustration.
 - Moddability must be designed upfront; retrofitting rarely works.
 
@@ -31,23 +31,24 @@ Pick the path that fits your role.
 *Implementation details, algorithms, and code architecture*
 
 **Essential Chapters** (15-20 hours):
-1. **Preface** - Context and acknowledgments
-2. **Introduction** - Conventions and terminology
-3. **Chapter 1: Executive Summary** - The seven universal architectural decisions
-4. **Chapter 2: Architectural Philosophy** - OOP vs. Systems vs. Declarative approaches
-5. **Chapter 3: State Management** - Bitfields, hierarchies, and dual-state systems
-6. **Chapter 4: World & Terrain** - Spatial partitioning, line of sight, and cover systems
-7. **Chapter 5: Unit Hierarchy** - Entity composition models (ECS, inheritance, components)
-8. **Chapter 6: Order & AI** - Command systems and AI architecture
-9. **Chapter 7: Moddability** - Data-driven design and scripting
-10. **Chapter 8: Architectural Patterns** - Classic and modern patterns in action
-11. **Chapter 11: Universal Patterns** - Complete pattern catalog with implementations
-12. **Chapter 12: Implementation Guide** - Practical blueprints and ADR templates
-13. **Appendices A-C** - Detailed technical reference
+1. **[Preface](preface.md)** - Context and acknowledgments
+2. **[Introduction](introduction.md)** - Conventions and terminology
+3. **[Chapter 1: Executive Summary](chapter_01_executive_summary.md)** - The seven universal architectural decisions
+4. **[Chapter 2: Architectural Philosophy](chapter_02_architectural_philosophy.md)** - OOP vs. Systems vs. Declarative approaches
+5. **[Chapter 3: State Management](chapter_03_state_management.md)** - Bitfields, hierarchies, and dual-state systems
+6. **[Chapter 4: World & Terrain](chapter_04_world_terrain.md)** - Spatial partitioning, line of sight, and cover systems
+7. **[Chapter 5: Unit Hierarchy](chapter_05_unit_hierarchy.md)** - Entity composition models (ECS, inheritance, components)
+8. **[Chapter 6: Order & AI System Design](chapter_06_orders_ai.md)** - Command systems and AI architecture
+9. **[Chapter 7: Moddability](chapter_07_moddability.md)** - Data-driven design and scripting
+10. **[Chapter 8: Architectural Patterns](chapter_08_architectural_patterns.md)** - Classic and modern patterns in action
+11. **[Chapter 15: Multiplayer Architecture](chapter_15_multiplayer.md)** - Deterministic simulation and networking
+12. **[Chapter 11: Universal Patterns](chapter_11_universal_patterns.md)** - Complete pattern catalog with implementations
+13. **[Chapter 12: Implementation Guide](chapter_12_implementation_guide.md)** - Practical blueprints and ADR templates
+14. **[Appendix A: State and World Systems](appendix_a_state_world_systems.md)**, **[Appendix B: Unit, Vehicle, and Squad Attribute Systems](appendix_b_unit_attribute_systems.md)**, **[Appendix C: File Formats and Data Hierarchy](appendix_c_file_formats.md)** - Detailed technical reference
 
 **Key Technical Takeaways**:
 - OpenCombat's modified ECS balances type safety and performance.
-- A three-tier state hierarchy (Phase → Behavior → Gesture) cleanly separates timescales.
+- A three-tier state hierarchy (Phase → Behavior → Gesture) cleanly separates timescales—distinct from the command system, though both share the Behavior→Gesture levels.
 - Deterministic simulation requires message-driven state updates and fixed timesteps.
 - Spatial partitioning becomes essential with 100+ units.
 
@@ -55,12 +56,12 @@ Pick the path that fits your role.
 *Extensibility, file formats, and content creation*
 
 **Essential Chapters** (4-6 hours):
-1. **Introduction** - Coverage and conventions
-2. **Chapter 1: Executive Summary** - Content definition strategies compared
-3. **Chapter 7: Moddability & Data-Driven Design** - Extensibility deep dive
-4. **Chapter 9: Lessons Learned** - Modding successes and failures
-5. **Chapter 10: Recommendations** - Designing for moddability
-6. **Appendix C: File Formats** - Complete format specifications
+1. **[Introduction](introduction.md)** - Coverage and conventions
+2. **[Chapter 1: Executive Summary](chapter_01_executive_summary.md)** - Content definition strategies compared
+3. **[Chapter 7: Moddability](chapter_07_moddability.md)** - Extensibility deep dive
+4. **[Chapter 9: Lessons Learned](chapter_09_lessons_learned.md)** - Modding successes and failures
+5. **[Chapter 10: Recommendations](chapter_10_recommendations.md)** - Designing for moddability
+6. **[Appendix C: File Formats](appendix_c_file_formats.md)** - Complete format specifications
 
 **Key Modding Insights**:
 - CloseCombatFree's QML approach offers flexibility but requires learning Qt.
@@ -72,102 +73,104 @@ Pick the path that fits your role.
 *Architectural evolution, pattern theory, and comparative analysis*
 
 **Essential Chapters** (20+ hours):
-1. **Preface** - Context and study significance
-2. **Introduction** - Methodology and scope
+1. **[Preface](preface.md)** - Context and study significance
+2. **[Introduction](introduction.md)** - Methodology and scope
 3. **All Chapters 1-10** - Complete comparative analysis
-4. **Chapter 11: Universal Patterns** - Pattern language and relationships
-5. **Chapter 12: Implementation Guide** - Decision frameworks
+4. **[Chapter 11: Universal Patterns](chapter_11_universal_patterns.md)** - Pattern language and relationships
+5. **[Chapter 12: Implementation Guide](chapter_12_implementation_guide.md)** - Decision frameworks
 6. **All Appendices** - Technical reference material
 
 **Research Focus Areas**:
-- Chapter 2: Paradigm evolution from OOP to declarative to systems-oriented.
-- Chapters 3-5: State representation evolution.
-- Chapter 9: Longitudinal analysis of design decisions.
-- Chapter 11: Pattern relationships and dependency graphs.
+- [Chapter 2](chapter_02_architectural_philosophy.md): Paradigm evolution from OOP to declarative to systems-oriented.
+- [Chapter 3: State Management](chapter_03_state_management.md), [Chapter 4: World & Terrain](chapter_04_world_terrain.md), [Chapter 5: Unit Hierarchy](chapter_05_unit_hierarchy.md): State representation evolution.
+- [Chapter 9](chapter_09_lessons_learned.md): Longitudinal analysis of design decisions.
+- [Chapter 11](chapter_11_universal_patterns.md): Pattern relationships and dependency graphs.
 
 ---
 
 ## Chapter Summaries
 
-### Part I: Overview and Philosophy
+> **Note**: The [Preface](preface.md) and [Introduction](introduction.md) are front matter that provide essential context and should be read before beginning Part I.
 
-**Chapter 1: Executive Summary**
+## Part I: Overview and Philosophy
+
+**[Chapter 1: Executive Summary](chapter_01_executive_summary.md)**
 *30 pages | 1-2 hour read*
 Seven universal architectural decisions for tactical wargames, with a comparative analysis of each project's approach. Decision matrices and quick-reference tables included.
 
-**Chapter 2: Architectural Philosophy Comparison**
+**[Chapter 2: Architectural Philosophy](chapter_02_architectural_philosophy.md)**
 *40 pages | 2-3 hour read*
 Three paradigms compared: OpenCombat-SDL's classical OOP, OpenCombat's systems-oriented approach, and CloseCombatFree's declarative architecture. Communication patterns and state synchronization covered.
 
-### Part II: Core Systems
+## Part II: Core Systems
 
-**Chapter 3: State Management Deep Dive**
+**[Chapter 3: State Management](chapter_03_state_management.md)**
 *45 pages | 2-3 hour read*
 State representation analyzed: 64-bit bitfields (OpenCombat-SDL), three-tier hierarchy (OpenCombat), and dual-state system (CloseCombatFree). Code examples and performance analysis included.
 
-**Chapter 4: World & Terrain Design Patterns**
+**[Chapter 4: World & Terrain](chapter_04_world_terrain.md)**
 *50 pages | 2-3 hour read*
 The three pillars of tactical terrain: cover, hindrance, and elevation. Spatial partitioning, line-of-sight algorithms, and terrain interaction systems examined.
 
-**Chapter 5: Unit Hierarchy & Object Models**
+**[Chapter 5: Unit Hierarchy](chapter_05_unit_hierarchy.md)**
 *45 pages | 2-3 hour read*
 Entity composition strategies: deep inheritance (OpenCombat-SDL), modified ECS (OpenCombat), and component composition (CloseCombatFree). Trade-offs and recommendations provided.
 
-**Chapter 6: Order & AI System Design**
+**[Chapter 6: Order & AI System Design](chapter_06_orders_ai.md)**
 *55 pages | 3-4 hour read*
 Command abstraction from single-layer to three-layer systems. AI autonomy patterns: scripted, state-based, and perception-driven. Decision trees and behavior evaluation included.
 
-### Part III: Extensibility and Patterns
+## Part III: Extensibility and Patterns
 
-**Chapter 7: Moddability & Data-Driven Design**
+**[Chapter 7: Moddability](chapter_07_moddability.md)**
 *50 pages | 2-3 hour read*
 The modding spectrum from data-only to full scripting. XML, JSON, and QML content definition. Designing APIs for community content.
 
-**Chapter 8: Modern GameDev Pattern Adoption**
+**[Chapter 8: Architectural Patterns](chapter_08_architectural_patterns.md)**
 *35 pages | 1-2 hour read*
 Classic patterns (Command, Observer, State, Factory) and modern patterns (ECS, Event Sourcing, Data-Oriented Design) in tactical wargames.
 
-**Chapter 9: Strengths, Weaknesses & Lessons Learned**
+**[Chapter 9: Lessons Learned](chapter_09_lessons_learned.md)**
 *40 pages | 2 hour read*
 Detailed analysis of each project's successes and failures. Comparative feature matrix. Universal lessons and common pitfalls.
 
-**Chapter 10: Recommendations for New Implementations**
+**[Chapter 10: Recommendations](chapter_10_recommendations.md)**
 *45 pages | 2-3 hour read*
 Technology stack recommendations. Architecture blueprints for state management, entity systems, AI, and modding. Implementation roadmap.
 
-### Part IV: Pattern Catalog and Implementation
+## Part IV: Pattern Catalog and Implementation
 
-**Chapter 11: The Close Combat Pattern Language**
+**[Chapter 11: Universal Patterns](chapter_11_universal_patterns.md)**
 *80 pages | 4-5 hour read*
 Catalog of 17 design patterns in five categories. Each pattern includes problem statement, solution, project variations, and decision framework.
 
-**Chapter 12: Implementation Guide**
+**[Chapter 12: Implementation Guide](chapter_12_implementation_guide.md)**
 *90 pages | 4-5 hour read*
 Practical blueprints for building a Close Combat clone. Architecture Decision Record templates, system implementation guides, and code examples.
 
-**Chapter 13: Case Studies**
+**[Chapter 13: Case Studies](chapter_13_case_studies.md)**
 *60 pages | 3-4 hour read*
 Detailed walkthroughs: implementing movement systems, designing morale mechanics, building modding APIs.
 
-**Chapter 14: AI Systems**
+**[Chapter 14: AI Systems](chapter_14_ai_systems.md)**
 *75 pages | 4-5 hour read*
 Tactical AI analysis: perception systems, decision-making architectures, behavior trees, and emergent behavior design.
 
-**Chapter 15: Multiplayer Architecture**
+**[Chapter 15: Multiplayer Architecture](chapter_15_multiplayer.md)**
 *65 pages | 3-4 hour read*
 Deterministic simulation, state synchronization, networking patterns, and anti-cheat considerations for tactical wargames.
 
-### Part V: Technical Appendices
+## Part V: Technical Appendices
 
-**Appendix A: State and World Systems**
+**[Appendix A: State and World Systems](appendix_a_state_world_systems.md)**
 *40 pages*
 Technical reference for state management. Bitfield architecture details, three-tier hierarchy specification, dual-state system analysis.
 
-**Appendix B: Unit, Vehicle, and Squad Attribute Systems**
+**[Appendix B: Unit, Vehicle, and Squad Attribute Systems](appendix_b_unit_attribute_systems.md)**
 *55 pages*
 Entity system architectures in detail. Attribute inheritance, component composition, and type-safe indexing patterns.
 
-**Appendix C: File Formats and Data Hierarchy**
+**[Appendix C: File Formats and Data Hierarchy](appendix_c_file_formats.md)**
 *35 pages*
 Complete file format specifications: XML schemas (OpenCombat-SDL), JSON structures (OpenCombat), QML definitions (CloseCombatFree).
 
@@ -175,7 +178,7 @@ Complete file format specifications: XML schemas (OpenCombat-SDL), JSON structur
 
 ## Pattern Index Location
 
-The 17 universal patterns appear in **Chapter 11** and are cross-referenced throughout the book.
+The 17 universal patterns appear in **[Chapter 11](chapter_11_universal_patterns.md)** and are cross-referenced throughout the book.
 
 ### Entity Patterns
 1. **Soldier/Squad Aggregate Pattern** (Ch. 11, Sec. 11.3) - Hierarchical unit organization
@@ -205,10 +208,10 @@ The 17 universal patterns appear in **Chapter 11** and are cross-referenced thro
 17. **Hot Reload Pattern** (Ch. 11, Sec. 11.7) - Runtime content modification
 
 **Quick Pattern Lookup**:
-- Pattern definitions: Chapter 11
-- Pattern implementations: Chapters 3-7 (each system chapter)
-- Pattern relationships: Chapter 11, Section 11.9
-- Pattern selection guidance: Chapter 11, Section 11.8
+- Pattern definitions: [Chapter 11](chapter_11_universal_patterns.md)
+- Pattern implementations: [Chapter 3: State Management](chapter_03_state_management.md), [Chapter 4: World & Terrain](chapter_04_world_terrain.md), [Chapter 5: Unit Hierarchy](chapter_05_unit_hierarchy.md), [Chapter 6: Order & AI System Design](chapter_06_orders_ai.md), [Chapter 7: Moddability](chapter_07_moddability.md) (each system chapter)
+- Pattern relationships: [Chapter 11, Section 11.9](chapter_11_universal_patterns.md)
+- Pattern selection guidance: [Chapter 11, Section 11.8](chapter_11_universal_patterns.md)
 
 ---
 
@@ -295,7 +298,7 @@ Use these frameworks to choose between architectural options.
 | Local multiplayer   | Deterministic recommended            |
 | Network multiplayer | Deterministic + server-authoritative |
 
-See Chapter 11, Section 11.8 for the complete decision framework covering all pattern variations.
+See [Chapter 11, Section 11.8](chapter_11_universal_patterns.md) for the complete decision framework covering all pattern variations.
 
 ---
 
@@ -317,10 +320,20 @@ A: All three are inactive, but their code remains available. OpenCombat is the m
 A: Check each project's license. This book focuses on architectural patterns, not code reuse.
 
 **Q: What's the best architecture for a new project in 2026?**
-A: Chapter 12 recommends a modified ECS, three-tier state hierarchy, deterministic simulation, and JSON data with Lua scripting.
+A: [Chapter 12](chapter_12_implementation_guide.md) recommends a modified ECS, three-tier state hierarchy, deterministic simulation, and JSON data with Lua scripting.
 
 **Q: How do I contribute to this analysis?**
 A: This is a published book, but the research continues. Check the repository for addenda or errata.
+
+---
+
+## Supporting Documentation
+
+Additional reference materials complement this book:
+
+- **[README.md](README.md)** - Project overview, repository structure, and contribution guidelines
+- **[decision_flowcharts.md](decision_flowcharts.md)** - Visual decision trees for architectural choices
+- **[common_pitfalls.md](common_pitfalls.md)** - Common mistakes and how to avoid them
 
 ---
 
@@ -343,12 +356,12 @@ A: This is a published book, but the research continues. Check the repository fo
 
 ## Final Recommendations
 
-1. Start with the Preface and Introduction to set the context.
-2. Read Chapter 1 (Executive Summary) for key insights.
+1. Start with the [Preface](preface.md) and [Introduction](introduction.md) to set the context.
+2. Read [Chapter 1 (Executive Summary)](chapter_01_executive_summary.md) for key insights.
 3. Choose your reading path based on your role.
-4. Keep Chapter 11 handy as a pattern reference.
+4. Keep [Chapter 11](chapter_11_universal_patterns.md) handy as a pattern reference.
 5. Use the chapter summaries for quick lookups.
-6. Refer to Chapter 12 when you're ready to implement.
+6. Refer to [Chapter 12](chapter_12_implementation_guide.md) when you're ready to implement.
 
 This book works as both a cover-to-cover read and a reference. Focus on what's relevant now, and return to other sections as your project evolves.
 

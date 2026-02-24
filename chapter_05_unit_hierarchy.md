@@ -1,3 +1,7 @@
+*Previous: [Chapter 4: World Terrain Systems](chapter_04_world_terrain.md)*
+
+---
+
 # Chapter 5: Unit Hierarchy and Compositional Architecture
 
 ## 5.1 Introduction: The Evolution of Entity Design
@@ -178,7 +182,7 @@ The tank contains Soldier components instead of inheriting crew capability.
 #### Capabilities Through Composition
 
 ```qml
-// Tank.qml
+// units/Tank.qml
 function canMove() {
     // Query children for Driver role
     for (var i = 0; i < children.length; i++) {
@@ -254,8 +258,8 @@ pub struct SoldierIndex(pub usize);
 pub struct VehicleIndex(pub usize);
 
 pub struct Soldier {
-    uuid: SoldierIndex,
-    squad_uuid: SquadUuid,  // Index reference, not pointer
+    index: SoldierIndex,      // Index into soldiers array
+    squad_uuid: SquadUuid,    // Squad identifier (UUID)
 }
 ```
 
@@ -268,11 +272,11 @@ pub struct Soldier {
 #### Squad as Lightweight Aggregate
 
 ```rust
-pub struct SquadComposition(
-    pub SoldierIndex,      // Leader
-    pub SquadType,
-    pub Vec<SoldierIndex>  // Members (indices, not refs)
-);
+pub struct SquadComposition {
+    pub leader: SoldierIndex,      // Squad leader
+    pub squad_type: SquadType,
+    pub members: Vec<SoldierIndex>  // Members (indices, not refs)
+}
 
 // Stored in BattleState
 pub struct BattleState {
@@ -629,14 +633,14 @@ void Squad::Update() {
 ```rust
 fn tick_update_squad_leaders(state: &mut BattleState) {
     for (squad_uuid, composition) in &mut state.squads {
-        let leader = &state.soldiers[composition.0.0];
+        let leader = &state.soldiers[composition.leader.0];
 
         if !leader.alive || leader.unconscious {
             // Promote next eligible
-            for member_idx in &composition.2 {
+            for member_idx in &composition.members {
                 let member = &state.soldiers[member_idx.0];
                 if member.alive && !member.unconscious {
-                    composition.0 = *member_idx;
+                    composition.leader = *member_idx;
                     break;
                 }
             }

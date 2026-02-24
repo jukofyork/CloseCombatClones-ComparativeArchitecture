@@ -1,3 +1,7 @@
+*Previous: [Chapter 11: Universal Patterns](chapter_11_universal_patterns.md)*
+
+---
+
 # Chapter 12: Implementation Guide
 
 ## A Practical Blueprint for Building a Close Combat Clone Today
@@ -1241,7 +1245,7 @@ class Selector extends BehaviorNode {
 
 Building a Close Combat clone takes years. This roadmap divides the work into five phases, each with clear deliverables. While phases are sequential, teams can parallelize work within them.
 
-| Phase   | Duration   | Focus             | Deliverable                        |
+| Phase  | Duration   | Focus             | Deliverable                        |
 | ------- | ---------- | ----------------- | ---------------------------------- |
 | **Phase 1** | 3-4 months | Core Simulation   | Units move, basic state system     |
 | **Phase 2** | 2-3 months | Orders & Movement | Squad commands, pathfinding        |

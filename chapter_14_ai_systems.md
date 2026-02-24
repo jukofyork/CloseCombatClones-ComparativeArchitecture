@@ -1,6 +1,11 @@
+*Previous: [Chapter 13: Case Studies in Tactical Wargame Development](chapter_13_case_studies.md)*
+
 # Chapter 14: AI Systems in Tactical Wargames
 
 ## 14.1 The AI Landscape in Tactical Wargames
+
+**Related Chapters**: [Chapter 6: Orders and AI](chapter_06_orders_ai.md), [Chapter 12: Implementation Guide](chapter_12_implementation_guide.md)
+**Related Resources**: [Common Pitfalls](common_pitfalls.md), [Appendix A: State/World Systems](appendix_a_state_world_systems.md), [Appendix B: Unit Attribute Systems](appendix_b_unit_attribute_systems.md)
 
 ### 14.1.1 Introduction: Why AI Matters
 
@@ -8,8 +13,8 @@ Artificial Intelligence shapes player experience in tactical wargames. While fir
 
 The three Close Combat clones in this book demonstrate different approaches to AI sophistication:
 
-| Project         | AI Approach                | Autonomy Level      | Key Innovation                        |
-| --------------- | -------------------------- | ------------------- | ------------------------------------- |
+| Project             | AI Approach                | Autonomy Level      | Key Innovation                        |
+|---------------------|----------------------------|---------------------|---------------------------------------|
 | **OpenCombat-SDL**  | No autonomous AI           | Pure obedience      | Automatic prerequisite handling       |
 | **OpenCombat**      | Reactive self-preservation | Tactical initiative | "Feeling" system for emotional states |
 | **CloseCombatFree** | State-based triggers       | Minimal autonomy    | Visual feedback integration           |
@@ -18,28 +23,28 @@ The three Close Combat clones in this book demonstrate different approaches to A
 
 Tactical wargames require multiple AI systems operating at different scales:
 
-#### **System AI (Milliseconds)**
+#### System AI (Milliseconds)
 Handles low-level behaviors:
 - Animation state machines
 - Physics interactions
 - Collision responses
 - Weapon cycling and reloading
 
-#### **Unit AI (Seconds)**
+#### Unit AI (Seconds)
 Controls individual soldiers or vehicles:
 - Target selection and engagement
 - Cover seeking and position evaluation
 - Threat response (return fire, suppression)
 - Self-preservation behaviors
 
-#### **Tactical AI (Minutes)**
+#### Tactical AI (Minutes)
 Coordinates small groups (squads, fire teams):
 - Formation maintenance
 - Fire and maneuver tactics
 - Suppression and flanking
 - Casualty response and reorganization
 
-#### **Strategic AI (Hours)**
+#### Strategic AI (Hours)
 Manages high-level battle planning:
 - Objective prioritization
 - Resource allocation
@@ -95,28 +100,28 @@ flowchart TB
 
 Effective tactical AI balances four requirements:
 
-#### **Believability**
+#### Believability
 AI behavior must align with player expectations:
 - Units use cover appropriately
 - Suppression affects behavior
 - Soldiers show self-preservation instincts
 - Tactical mistakes appear human
 
-#### **Fairness**
+#### Fairness
 AI should not frustrate players with unfair advantages:
 - Information access is limited by fog of war
 - Accuracy follows the same rules as player units
 - Reaction times remain realistic
 - Resources are constrained
 
-#### **Performance**
+#### Performance
 AI calculations must not slow real-time simulation:
 - Pathfinding completes within frame budgets
 - Target evaluation uses efficient algorithms
 - Decision trees minimize branching
 - Spatial queries use acceleration structures
 
-#### **Determinism**
+#### Determinism
 For multiplayer and replay systems, AI must be predictable:
 - Same inputs produce same outputs
 - Random decisions use seeded generators
@@ -220,8 +225,9 @@ if (unitStatus == "AMBUSHING") {
 - **Visual Feedback**: Order markers with color coding
 
 **Available States**:
+
 | State     | AI Behavior              | Trigger        |
-| --------- | ------------------------ | -------------- |
+|-----------|--------------------------|----------------|
 | READY     | None                     | Default        |
 | DEFENDING | Fire at enemies in arc   | Player command |
 | AMBUSHING | Fire when enemy detected | Player command |
@@ -255,13 +261,15 @@ fn tick_soldiers(&mut self) {
         }
 
         // Check if under fire
-        if soldier.under_fire == Feeling::Danger {
-            // Find cover
-            if let Some(cover_pos) = self.find_cover(soldier) {
-                self.change_behavior(
-                    soldier_idx,
-                    Behavior::Hide(cover_pos.direction)
-                );
+        if let Feeling::UnderFire(intensity) = soldier.under_fire {
+            if intensity >= UNDER_FIRE_DANGER {
+                // Find cover
+                if let Some(cover_pos) = self.find_cover(soldier) {
+                    self.change_behavior(
+                        soldier_idx,
+                        Behavior::Hide(cover_pos.direction)
+                    );
+                }
             }
         }
     }
@@ -278,6 +286,7 @@ fn tick_soldiers(&mut self) {
 
 **The Feeling System**:
 ```rust
+// Note: This Feeling enum is repeated in Section 14.3.3 for reader convenience
 enum Feeling {
     UnderFire(intensity: u32),  // 0-200 scale
 }
@@ -355,7 +364,7 @@ flowchart TB
 **AI Behaviors**:
 
 | Situation           | Response                           | Priority               |
-| ------------------- | ---------------------------------- | ---------------------- |
+|---------------------|------------------------------------|------------------------|
 | Under heavy fire    | Seek cover or return fire          | 100 (Survival)         |
 | Enemy spotted       | Engage if in range                 | 50 (Combat)            |
 | Squad leader killed | Promote new leader                 | 75 (Cohesion)          |
@@ -364,8 +373,8 @@ flowchart TB
 
 ### 14.2.4 Comparative Summary
 
-| Aspect            | OpenCombat-SDL       | CloseCombatFree | OpenCombat           |
-| ----------------- | -------------------- | --------------- | -------------------- |
+| Aspect                | OpenCombat-SDL       | CloseCombatFree | OpenCombat           |
+|-----------------------|----------------------|-----------------|----------------------|
 | **AI Philosophy**     | Pure obedience       | State triggers  | Reactive + proactive |
 | **Autonomy Level**    | None                 | Minimal         | Tactical             |
 | **Decision System**   | Player commands only | State-based     | Threat evaluation    |
@@ -383,28 +392,28 @@ flowchart TB
 
 In tactical wargames, AI perception defines the boundary between fair challenge and frustrating omniscience. The system determines what information AI-controlled units can access.
 
-#### **Visual Perception**
+#### Visual Perception
 AI can "see":
 - Enemy units within line of sight
 - Terrain features and obstacles
 - Weapon effects (muzzle flashes, tracers)
 - Movement and posture changes
 
-#### **Auditory Perception**
+#### Auditory Perception
 AI can "hear":
 - Gunfire and explosions (direction and distance)
 - Vehicle engines
 - Footsteps (close range)
 - Shouted orders and radio chatter
 
-#### **Tactile/Environmental Perception**
+#### Tactile/Environmental Perception
 AI can "feel":
 - Nearby explosions (concussion)
 - Bullet impacts (suppression)
 - Ground vibrations (vehicle movement)
 - Temperature (fire, smoke)
 
-#### **Knowledge-Based Perception**
+#### Knowledge-Based Perception
 AI "knows":
 - Last known enemy positions
 - Squad member locations
@@ -454,6 +463,7 @@ bool CcfEngineHelpers::isObstacleInLOS(QList<QObject *> items, qreal x1, qreal y
 OpenCombat's Feeling system abstracts sensory input into emotional states that drive behavior.
 
 ```rust
+// Note: This Feeling enum definition repeats the one in Section 14.2.3 for reader convenience
 enum Feeling {
     UnderFire(intensity: u32),  // 0-200 scale
 }
@@ -468,7 +478,7 @@ struct Soldier {
 **Sensory Input Sources**:
 
 | Source              | Effect on Feeling | Range            |
-| ------------------- | ----------------- | ---------------- |
+|---------------------|-------------------|------------------|
 | Explosion < 5m      | +150 intensity    | Immediate danger |
 | Explosion 5-10m     | +100 intensity    | Nearby threat    |
 | Explosion > 10m     | +50 intensity     | Distant threat   |
@@ -513,7 +523,9 @@ flowchart TB
     subgraph MODEL2["MODEL 2: Communication Range Limited (Realistic)"]
         A2[Soldier A<br>Sees] <-.->|Within 50m| B2[Soldier B<br>Range]
         B2 <-.->|Within 50m| C2[Soldier C<br>Knows]
-        note["Only share within range"]
+        note right of B2
+            Only share within range
+        end note
     end
 
     subgraph MODEL3["MODEL 3: Chain of Command (Hierarchical)"]
@@ -614,8 +626,8 @@ impl FogOfWar {
 
 Modern game AI uses several architectural patterns for decision-making, each suited to different tactical needs:
 
-| Architecture          | Best For                            | Complexity | Emergence |
-| --------------------- | ----------------------------------- | ---------- | --------- |
+| Architecture              | Best For                            | Complexity | Emergence |
+|---------------------------|-------------------------------------|------------|-----------|
 | **Behavior Trees**        | Reactive behaviors, clear structure | Medium     | Low       |
 | **GOAP**                  | Multi-step planning, complex goals  | High       | High      |
 | **Utility AI**            | Fuzzy decisions, scoring actions    | Medium     | Medium    |
@@ -1252,7 +1264,7 @@ class FormationManager
 **Formation Characteristics**:
 
 | Formation | Best For                   | Vulnerability     | Speed  |
-| --------- | -------------------------- | ----------------- | ------ |
+|-----------|----------------------------|-------------------|--------|
 | Column    | Roads, narrow paths        | Flank attacks     | Fast   |
 | Line      | Assault, maximum firepower | Enfilade fire     | Slow   |
 | Wedge     | Open terrain, all-around   | Concentrated fire | Medium |
@@ -1465,7 +1477,7 @@ class StrategicAI
 **Strategic Considerations**:
 
 | Factor             | Weight | Evaluation                                |
-| ------------------ | ------ | ----------------------------------------- |
+|--------------------|--------|-------------------------------------------|
 | Force Ratio        | 1.0    | Friendly vs enemy strength                |
 | Position Advantage | 0.8    | Cover, elevation, terrain                 |
 | Morale             | 0.7    | Unit condition and experience             |
@@ -1726,7 +1738,7 @@ class DeterminismTest
 AI difficulty adjusts across several independent dimensions:
 
 | Dimension           | Easy AI     | Normal AI  | Hard AI    |
-| ------------------- | ----------- | ---------- | ---------- |
+|---------------------|-------------|------------|------------|
 | **Accuracy**            | -30%        | 0%         | +15%       |
 | **Reaction Time**       | 1.5s        | 0.8s       | 0.3s       |
 | **Information**         | Limited FoV | Normal FoV | +25% range |
@@ -1804,6 +1816,7 @@ class DynamicDifficultyAdjuster
     playerPerformanceHistory: List<float>  // Recent mission scores
 
     function UpdateDifficulty(currentDifficulty)
+        // Python-style slice: gets last 5 elements from performance history
         avgPerformance = Average(playerPerformanceHistory[-5:])
 
         if avgPerformance < 0.3  // Player struggling
@@ -1908,7 +1921,7 @@ flowchart TB
 **Technology Stack Recommendations**:
 
 | Component       | Recommended    | Alternatives     |
-| --------------- | -------------- | ---------------- |
+|-----------------|----------------|------------------|
 | Core AI         | Behavior Trees | GOAP, Utility    |
 | Pathfinding     | A* + JPS       | Theta*, RRT      |
 | Spatial Queries | Uniform Grid   | Quadtree, R-tree |

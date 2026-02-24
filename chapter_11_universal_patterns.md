@@ -1,4 +1,8 @@
-# Chapter 11: The Close Combat Pattern Language
+*Previous: [Chapter 10: Recommendations](chapter_10_recommendations.md)*
+
+---
+
+# Chapter 11: Universal Patterns
 
 ## A Catalog of Universal Design Patterns for Tactical Wargames
 
@@ -30,15 +34,16 @@ A **Decision Framework** at the end helps choose between variations based on pro
 
 The patterns fall into five categories:
 
-| Category            | Patterns                                                    | Purpose                          |
-| ------------------- | ----------------------------------------------------------- | -------------------------------- |
-| **Entity Patterns**     | Soldier/Squad Aggregate, Weapon Team, Component Composition | Unit structure and relationships |
-| **State Patterns**      | State Hierarchy, Order Queue, Stance System, Morale Cascade | Unit behavior modeling           |
-| **Command Patterns**    | Command Abstraction, Formation Control, Prerequisite Chain  | Player intent to action flow     |
-| **Perception Patterns** | Line of Sight, Threat Assessment, Cover Evaluation          | Unit perception of the world     |
-| **System Patterns**     | Spatial Partitioning, Message Bus, Deterministic Simulation | Infrastructure                   |
+| Category | Patterns | Purpose |
+|----------|----------|---------|
+| **Entity Patterns** | Soldier/Squad Aggregate, Weapon Team, Component Composition | Unit structure and relationships |
+| **State Patterns** | State Hierarchy, Order Queue, Stance System, Morale Cascade | Unit behavior modeling |
+| **Command Patterns** | Command Abstraction, Formation Control, Prerequisite Chain | Player intent to action flow |
+| **Perception Patterns** | Line of Sight, Threat Assessment, Cover Evaluation | Unit perception of the world |
+| **System Patterns** | Spatial Partitioning, Message Bus, Deterministic Simulation | Infrastructure |
 
 ---
+
 
 ## 11.3 Entity Patterns
 
@@ -541,9 +546,9 @@ sequenceDiagram
     Player->>Unit: CancelAll()
     Unit->>OrderQueue: Clear()
     Unit->>CurrentOrder: Stop()
-```
 
     classDef default fill:#f0f0f0,stroke:#333,stroke-width:1px,color:#000
+```
 
 **Key Elements:**
 1. **FIFO queue**: Orders processed in sequence
@@ -595,7 +600,7 @@ void continueQueue();  // Called on completion
 **When to Use:** Real-time games where planning matters
 
 #### Related Patterns
-- **Command Pattern**: Orders are commands
+- **Command Abstraction Pattern**: Orders are commands
 - **State Hierarchy Pattern**: Orders map to behaviors
 
 ---
@@ -1269,8 +1274,6 @@ bool isVisible(Point from, Point to) {
 
 #### Consequences
 
-Visibility systems create realistic tactical play but come with tradeoffs.
-
 **Benefits:**
 - Elevation becomes tactically important
 - Cover systems integrate naturally
@@ -1379,8 +1382,6 @@ fn evaluate_threats(soldier, world) -> Option<Behavior> {
 ```
 
 #### Consequences
-
-Autonomous threat response creates more realistic combat but introduces new challenges.
 
 **Benefits:**
 - Reduces micromanagement
@@ -1498,8 +1499,6 @@ Prop {
 ```
 
 #### Consequences
-
-Cover systems make terrain matter but add complexity.
 
 **Benefits:**
 - Creates meaningful tactical choices
@@ -1721,7 +1720,7 @@ signals:
 Use this pattern in complex games with many interacting systems.
 
 #### Related Patterns
-- **Command Pattern**: Messages often represent commands
+- **Command Abstraction Pattern**: Messages often represent commands
 - **Event Sourcing Pattern**: Log messages for replay
 
 ---
@@ -1829,7 +1828,7 @@ Use this pattern for multiplayer games or when replay features are needed.
 
 #### Related Patterns
 - **Message Bus Pattern**: Messages enable determinism
-- **Command Pattern**: Commands can be logged for replay
+- **Command Abstraction Pattern**: Commands can be logged for replay
 
 ---
 
@@ -1906,6 +1905,7 @@ flowchart TB
 **OpenCombat**: Supports runtime config changes
 ```rust
 // Some config values can change
+// Using Rust enum variant syntax (not C++ style)
 ChangeConfigMessage::VisibilityModifier(new_value)
 // But not full hot reload
 ```
@@ -1949,44 +1949,44 @@ Close Combat clones show how patterns can take different forms. This framework h
 
 #### Simulation Depth vs. Moddability
 
-| Your Priority       | Choose                   | Example                              |
-| ------------------- | ------------------------ | ------------------------------------ |
-| **Deep Simulation**     | OpenCombat-SDL approach  | Bitfield states, hardcoded behaviors |
-| **Balance**             | OpenCombat approach      | Deterministic simulation, JSON data  |
-| **Maximum Moddability** | CloseCombatFree approach | QML content, full scripting          |
+| Your Priority | Choose | Example |
+|---------------|--------|---------|
+| **Deep Simulation** | OpenCombat-SDL approach | Bitfield states, hardcoded behaviors |
+| **Balance** | OpenCombat approach | Deterministic simulation, JSON data |
+| **Maximum Moddability** | CloseCombatFree approach | QML content, full scripting |
 
 Ask yourself: Can you recompile quickly? If yes, deeper simulation works. If not, prioritize moddability.
 
 #### Single-Player vs. Multiplayer Determinism
 
-| Requirement         | Pattern Choice                        |
-| ------------------- | ------------------------------------- |
-| **Single-player only**  | Any approach works                    |
-| **Local multiplayer**   | Deterministic simulation recommended  |
-| **Network multiplayer** | Deterministic simulation required     |
-| **Replay recording**    | Message bus with determinism required |
+| Requirement | Pattern Choice |
+|-------------|----------------|
+| **Single-player only** | Any approach works |
+| **Local multiplayer** | Deterministic simulation recommended |
+| **Network multiplayer** | Deterministic simulation required |
+| **Replay recording** | Message bus with determinism required |
 
 Determine whether all players need identical game states. If they do, implement deterministic simulation from the start.
 
 #### Procedural vs. Designer-Authored Content
 
-| Content Approach  | Architecture                            |
-| ----------------- | --------------------------------------- |
-| **Fully procedural**  | Seed-based generation, no content files |
-| **Mixed**             | JSON/YAML data with procedural elements |
-| **Designer-authored** | Full data-driven, hot reload            |
-| **Community modded**  | Scripting support (Lua), mod manager    |
+| Content Approach | Architecture |
+|------------------|--------------|
+| **Fully procedural** | Seed-based generation, no content files |
+| **Mixed** | JSON/YAML data with procedural elements |
+| **Designer-authored** | Full data-driven, hot reload |
+| **Community modded** | Scripting support (Lua), mod manager |
 
 Consider who creates content. Developers only? Keep it simple. Community involvement? Build full modding support.
 
 #### Runtime Flexibility vs. Performance
 
-| Performance Need       | Pattern Selection                      |
-| ---------------------- | -------------------------------------- |
-| **Maximum performance**    | C++17/20, custom allocators, DOD       |
-| **Good performance**       | Modified ECS, spatial hashing          |
+| Performance Need | Pattern Selection |
+|------------------|-------------------|
+| **Maximum performance** | C++17/20, custom allocators, DOD |
+| **Good performance** | Modified ECS, spatial hashing |
 | **Acceptable performance** | Scripting for logic, C++ for hot paths |
-| **Modding > Performance**  | QML/Lua, hot reload                    |
+| **Modding > Performance** | QML/Lua, hot reload |
 
 Match your approach to your target platform and entity count. Mobile or low-end hardware needs performance. Desktop or high-end systems can handle more flexibility.
 
@@ -2002,8 +2002,8 @@ Analysis of all three projects suggests this approach:
 - **State Management**: Three-tier hierarchy
 - **Commands**: Order queue with prerequisite chaining
 - **Perception**: Opacity-based LOS
-- **AI**: Reactive with behavior trees
-- **Multiplayer**: Deterministic lockstep
+- **AI**: [Reactive with behavior trees](#pattern-12-threat-assessment-pattern)
+- **Multiplayer**: [Deterministic lockstep](#pattern-16-deterministic-simulation-pattern)
 
 **Modding Support**:
 - **Data**: JSON/YAML for definitions
@@ -2100,7 +2100,7 @@ flowchart TB
    - Allows rapid iteration
    - Example: CloseCombatFree
 
-5. **Message Bus + Deterministic Simulation + Command Pattern**
+5. **Message Bus + Deterministic Simulation + Command Abstraction Pattern**
    - Enables replay and multiplayer
    - Maintains clean architecture
    - Example: OpenCombat
@@ -2134,3 +2134,4 @@ The Close Combat series set a high standard for tactical wargaming. These patter
 ---
 
 *Next: [Chapter 12: Implementation Guide](chapter_12_implementation_guide.md)*
+

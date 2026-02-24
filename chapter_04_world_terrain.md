@@ -11,28 +11,28 @@ This chapter compares how three Close Combat clones solve these problems, showin
 The clones take distinct approaches to building their worlds:
 
 ```pseudocode
-// OPENCOMBAT-SDL: Traditional Tile-Based
+// OpenCombat-SDL: Traditional Tile-Based
 World := {
-    tiles: Array[Element]     // 10x10 pixel tiles
-    elevations: Array[int]    // Per-tile height
+    tiles: Array<Element>     // 10x10 pixel tiles
+    elevations: Array<int>    // Per-tile height
     objects: Array<ObjectList> // Linked lists per tile
-    megaTiles: Array[12x12]   // Strategic regions
+    megaTiles: Array<12x12>   // Strategic regions
 }
 
-// OPENCOMMONBAT: Entity-Component with Spatial Indexing
+// OpenCombat: Entity-Component with Spatial Indexing
 World := {
     entities: HashMap<EntityId, Entity>
     spatialGrid: GridMap<EntityId>  // Uniform grid indexing
-    terrain: Array[TerrainTile]     // Tile-based lookup
+    terrain: Array<TerrainTile>     // Tile-based lookup
     interiors: Array<InteriorZone>  // Polygon regions
 }
 
-// CLOSECOMBATFREE: QML-Based Declarative World
+// CloseCombatFree: QML-Based Declarative World
 World := {
     scenario: QML_Scenario      // Root container
     map: QML_Map {              // Terrain layer
         backgroundImage: Image
-        hipsometricImage: Image // Height map
+        hypsometricImage: Image // Height map
         props: List<Prop>       // Interactive elements
     }
 }
@@ -60,7 +60,7 @@ class Map {
     elements: Array<ushort>           // Terrain type per tile
     elevations: Array<uchar>          // Height per tile
     objects: Array<Object*>           // Linked list heads
-    buildingIndices: Array<ushort>    // Building references
+    buildingIndices: Array<ushort>     // Building references
     buildings: Array<Building*>
 }
 
@@ -78,14 +78,14 @@ WorldPoint := { x: float, y: float }     // Continuous physics space
 GridPoint := { x: int, y: int }          // Discrete terrain grid
 
 // Conversion: O(1) operation
-WorldPoint.to_grid(tileSize) -> GridPoint {
+WorldPoint.toGrid(tileSize) -> GridPoint {
     return GridPoint(
         x: floor(this.x / tileSize),
         y: floor(this.y / tileSize)
     )
 }
 
-GridPoint.to_world(tileSize) -> WorldPoint {
+GridPoint.toWorld(tileSize) -> WorldPoint {
     return WorldPoint(
         x: this.x * tileSize + (tileSize / 2),
         y: this.y * tileSize + (tileSize / 2)
@@ -100,14 +100,14 @@ class GridMap<T> {
     cells: HashMap<CellCoord, Array<T>>
 
     insert(entity: T, position: WorldPoint) {
-        cell := position.to_cell(cellSize)
+        cell := position.toCell(cellSize)
         cells[cell].add(entity)
     }
 
-    query_radius(center: WorldPoint, radius: float) -> Array<T> {
+    queryRadius(center: WorldPoint, radius: float) -> Array<T> {
         // Calculate affected cells
-        minCell := (center - radius).to_cell(cellSize)
-        maxCell := (center + radius).to_cell(cellSize)
+        minCell := (center - radius).toCell(cellSize)
+        maxCell := (center + radius).toCell(cellSize)
 
         results := []
         for cell in range(minCell, maxCell) {
@@ -135,7 +135,7 @@ Scenario {
 
             map: Map {
                 backgroundImage: "maps/field.png"
-                hipsometricImage: "maps/field_height.png"
+                hypsometricImage: "maps/field_height.png"
 
                 // Props as child components
                 House { x: 100, y: 200, cover: "great" }
@@ -156,10 +156,10 @@ Scenario {
 // Range: 0 (black) to 76.5 meters (white)
 
 getElevationAt(worldX, worldY) -> float {
-    scaleX := backgroundWidth / hipsometricWidth
-    scaleY := backgroundHeight / hipsometricHeight
+    scaleX := backgroundWidth / hypsometricWidth
+    scaleY := backgroundHeight / hypsometricHeight
 
-    pixel := hipsometricImage.pixel(
+    pixel := hypsometricImage.pixel(
         worldX / scaleX,
         worldY / scaleY
     )
@@ -282,7 +282,7 @@ TerrainType.pedestrian_cost() -> int {
     match this {
         ShortGrass => 10    // Base speed
         Dirt => 11          // ~91% speed
-        Mud => 11           // ~91% speed
+        Mud => 12           // ~83% speed
         Underbrush => 12    // ~83% speed
         Hedge => 20         // 50% speed
         MiddleWoodLogs => 30 // 33% speed
@@ -334,7 +334,7 @@ TerrainType.visibility_bonus() -> int {
 }
 ```
 
-**CloseCombatFree: Height Map (Hipsometric)**
+**CloseCombatFree: Height Map (Hypsometric)**
 ```pseudocode
 // Continuous height from RGB image
 getElevation(x, y) -> float {
@@ -357,7 +357,7 @@ getElevation(x, y) -> float {
 OpenCombat-SDL implements a 3D extension of Bresenham's line algorithm for visibility checks:
 
 ```pseudocode
-function CalculateLOS(from: Point3D, to: Point3D, world: World) -> bool {
+function calculateLOS(from: Point3D, to: Point3D, world: World) -> bool {
     // Calculate deltas
     dx := to.x - from.x
     dy := to.y - from.y
@@ -441,7 +441,7 @@ function calculateVisibility(
     time: TimeOfDay
 ) -> Visibility {
 
-    distance := from.distance_to(to)
+    distance := from.distanceTo(to)
 
     // Always see immediate vicinity
     if distance <= VISIBILITY_FIRSTS * TILE_SIZE {
@@ -455,7 +455,7 @@ function calculateVisibility(
     for i from VISIBILITY_FIRSTS to steps {
         t := i / steps
         point := interpolate(from, to, t)
-        grid := point.to_grid()
+        grid := point.toGrid()
 
         if tile := map.get_tile(grid) {
             accumulatedOpacity := accumulatedOpacity + tile.opacity
@@ -507,7 +507,7 @@ CloseCombatFree combines two visibility checks for comprehensive results:
 ```pseudocode
 // System 1: Elevation-Based LOS
 function checkElevationLOS(from: Point, to: Point, map: Map) -> bool {
-    distance := from.distance_to(to)
+    distance := from.distanceTo(to)
     steps := distance / 10.0  // Check every 10 pixels
 
     originHeight := map.getElevation(from)
@@ -600,7 +600,7 @@ Buildings offer full protection—walls stop all incoming fire. Soldiers inside 
 
 ### 4.5.2 OpenCombat: Interior Zones
 
-OpenCombat defines interior spaces using polygon-based zones in TMX maps:
+OpenCombat defines interior spaces using polygon-based zones in TMX maps ([Appendix C](appendix_c_file_formats.md) for file format details):
 
 ```pseudocode
 struct InteriorZone {
@@ -766,7 +766,7 @@ class SpatialGrid<T> {
     entityCells: HashMap<T, CellCoord>  // Reverse lookup
 
     function insert(entity: T, position: WorldPoint) {
-        cell := position.to_cell(cellSize)
+        cell := position.toCell(cellSize)
 
         // Remove from old cell if present
         if entityCells.contains(entity) {
@@ -785,8 +785,8 @@ class SpatialGrid<T> {
     function queryRectangle(min: WorldPoint, max: WorldPoint) -> Array<T> {
         results := []
 
-        minCell := min.to_cell(cellSize)
-        maxCell := max.to_cell(cellSize)
+        minCell := min.toCell(cellSize)
+        maxCell := max.toCell(cellSize)
 
         for y from minCell.y to maxCell.y {
             for x from minCell.x to maxCell.x {
@@ -951,17 +951,17 @@ Prop {
 
 ### 4.8.1 Terrain Representation Summary
 
-| Aspect        | OpenCombat-SDL            | OpenCombat              | CloseCombatFree              |
-| ------------- | ------------------------- | ----------------------- | ---------------------------- |
-| **World Model**   | Hierarchical tiles        | Entity-Component + Grid | QML declarative              |
-| **Grid Type**     | 10x10px tiles             | 5px tiles (TMX)         | Free-form                    |
-| **Elevation**     | Per-tile integer (0-255m) | Simulated via terrain   | Height map (RGB, 0-76.5m)    |
-| **Cover System**  | Stance-based (5 levels)   | Binary + stance         | Category (4 levels)          |
-| **Hindrance**     | Percentage (0-100%)       | Cost-based (10-50)      | Implicit collision           |
-| **Buildings**     | Dual-view tiles           | Interior zones          | Interactive QML props        |
-| **LOS Algorithm** | 3D Bresenham              | Accumulated opacity     | Elevation + obstacle raycast |
-| **Spatial Query** | Tile-linked lists         | Uniform grid            | Scene graph iteration        |
-| **Moddability**   | XML data files            | TMX + JSON              | QML files                    |
+| Aspect          | OpenCombat-SDL            | OpenCombat              | CloseCombatFree              |
+| --------------- | ------------------------- | ----------------------- | ---------------------------- |
+| **World Model** | Hierarchical tiles        | Entity-Component + Grid | QML declarative              |
+| **Grid Type**   | 10x10px tiles             | 5px tiles (TMX)         | Free-form                    |
+| **Elevation**   | Per-tile integer (0-255m) | Simulated via terrain   | Height map (RGB, 0-76.5m)    |
+| **Cover System**| Stance-based (5 levels)   | Binary + stance         | Category (4 levels)          |
+| **Hindrance**   | Percentage (0-100%)       | Cost-based (10-50)      | Implicit collision           |
+| **Buildings**   | Dual-view tiles           | Interior zones          | Interactive QML props        |
+| **LOS Algorithm**| 3D Bresenham             | Accumulated opacity     | Elevation + obstacle raycast |
+| **Spatial Query**| Tile-linked lists        | Uniform grid            | Scene graph iteration        |
+| **Moddability** | XML data files            | TMX + JSON              | QML files                    |
 
 ### 4.8.2 Line of Sight Comparison
 
@@ -1001,16 +1001,16 @@ visible := checkElevationLOS(a, b) and checkObstacleLOS(a, b)
 
 The system evaluates height map profiles and prop bounding boxes to determine visibility.
 
-OpenCombat offers the most realistic approach by modeling real-world visibility gradients. OpenCombat-SDL delivers the best performance with its simple Bresenham algorithm on a fixed grid. CloseCombatFree provides the most flexibility, allowing custom LOS logic for QML props.
+OpenCombat-SDL delivers the best performance with its simple Bresenham algorithm on a fixed grid. OpenCombat offers realistic visibility gradients through accumulated opacity modeling. CloseCombatFree provides the most flexibility, allowing custom LOS logic for QML props.
 
 ### 4.8.3 Spatial Query Performance
 
-| Operation               | OpenCombat-SDL                   | OpenCombat                   | CloseCombatFree        |
-| ----------------------- | -------------------------------- | ---------------------------- | ---------------------- |
-| **Point query** (at x,y)    | O(1) array index                 | O(1) grid lookup             | O(n) prop iteration    |
-| **Radius query** (within r) | O(k × m) k=tiles, m=objects/tile | O(k + m) k=cells, m=entities | O(n) all props         |
-| **Line of sight**           | O(line length)                   | O(line length)               | O(line length + props) |
-| **Pathfinding**             | A* on grid                       | A* on grid                   | Direct path            |
+| Operation                  | OpenCombat-SDL                   | OpenCombat                   | CloseCombatFree        |
+| -------------------------- | -------------------------------- | ---------------------------- | ---------------------- |
+| **Point query** (at x,y)   | O(1) array index                 | O(1) grid lookup             | O(n) prop iteration    |
+| **Radius query** (within r)| O(k × m) k=tiles, m=objects/tile | O(k + m) k=cells, m=entities | O(n) all props         |
+| **Line of sight**          | O(line length)                   | O(line length)               | O(line length + props) |
+| **Pathfinding**            | A* on grid                       | A* on grid                   | Direct path            |
 
 ---
 
@@ -1185,4 +1185,4 @@ Terrain isn't just where combat happens – it makes tactical combat interesting
 
 ---
 
-*Next: [Chapter 5: Unit Hierarchy and Compositional Architecture](chapter_05_unit_hierarchy.md)*
+*Previous: [Chapter 3: State Management](chapter_03_state_management.md) | Next: [Chapter 5: Unit Hierarchy and Compositional Architecture](chapter_05_unit_hierarchy.md)*

@@ -10,6 +10,7 @@ These flowcharts help architects navigate critical decisions covered in this boo
 
 ---
 
+
 ## Flowchart 1: Choosing Your State Management System
 
 **Key Question:** How should you represent unit actions at any moment?
@@ -47,24 +48,27 @@ flowchart TD
 ### Decision Criteria at Each Node
 
 **Q1: Multiplayer Determinism Required?**
+
 - **YES:** Competitive multiplayer, replay recording, or synchronized co-op
 - **NO:** Single-player only or asynchronous multiplayer
 - Determinism requires type-safe, reproducible state representation. String-based states risk platform-dependent hashing.
 
 **Q2: Maximum Moddability Required?**
+
 - **YES:** Community-driven content, runtime unit creation, or designer-authored behaviors
 - **NO:** Curated content only or fixed mechanics
 - String-based states allow modders to add new states without recompilation. Type-safe enums require code changes.
 
 **Q3: Automatic Prerequisite Chaining Required?**
+
 - **YES:** Complex action sequences (stand up before running, reload before firing)
 - **NO:** Simple actions or player handles all transitions manually
 - Bitfield prerequisite chains enable intelligent automation. Hierarchical states alone don't capture capability composition.
 
 ### Recommendation Details
 
-| Approach        | Best For                      | Pros                                          | Cons                                          |
-| --------------- | ----------------------------- | --------------------------------------------- | --------------------------------------------- |
+| Approach          | Best For                      | Pros                                          | Cons                                          |
+| ----------------- | ----------------------------- | --------------------------------------------- | --------------------------------------------- |
 | **State Hierarchy** | Multiplayer, complex AI       | Type-safe, deterministic, clear relationships | Verbose, requires code changes for new states |
 | **Dual-State**      | Heavy modding focus           | Runtime flexibility, visual separation        | No type safety, harder to debug               |
 | **Bitfield**        | Single-player, simple systems | O(1) queries, automatic prerequisites         | 64-state limit, no hierarchy                  |
@@ -105,33 +109,36 @@ flowchart TD
     Q4 -->|Small team,<br>rapid prototyping| OOP
     Q4 -->|Medium+ team,<br>long-term project| ECS
 
-    OOP -.->|See| Ch2
+    OOP -.->|See| Ch2[Chapter 2:<br>Entity Systems]
     Component -.->|See| Ch6[Chapter 6:<br>Moddability]
     ECS -.->|See| Ch12[Chapter 12:<br>Implementation]
-    PureECS -.->|See| Ch12
+    PureECS -.->|See| Ch12[Chapter 12:<br>Implementation]
 ```
 
 ### Decision Criteria
 
 **Simulation Depth Priority**
+
 Choose OOP when modeling clear "IS-A" relationships.
 Best for traditional unit types (infantry, vehicles) with stable hierarchies.
 Trade-off: Rigid structure, diamond inheritance issues.
 
 **Moddability Priority**
+
 Choose Component Composition when modders need runtime flexibility.
 Best for games where players create custom units with unexpected combinations.
 Trade-off: More complex interactions between components.
 
 **Performance + Flexibility Priority**
+
 Choose ECS for cache efficiency and parallel processing.
 Best for large-scale battles (500+ units), type safety requirements.
 Trade-off: Steeper learning curve, more boilerplate.
 
 ### Entity Model Comparison
 
-| Model        | Cache Efficiency | Flexibility | Type Safety | Learning Curve |
-| ------------ | ---------------- | ----------- | ----------- | -------------- |
+| Model            | Cache Efficiency | Flexibility | Type Safety | Learning Curve |
+| ---------------- | ---------------- | ----------- | ----------- | -------------- |
 | **OOP**          | Low (scattered)  | Low         | High        | Low            |
 | **Component**    | Medium           | Very High   | Low         | Medium         |
 | **ECS**          | High             | High        | High        | High           |
@@ -173,7 +180,7 @@ flowchart TD
     Q3 -->|YES| Hybrid
     Q3 -->|NO| BehaviorTree
 
-    StateMachine -.->|See| Ch4[Chapter 4:<br>Command Systems]
+    StateMachine -.->|See| Ch3[Chapter 3:<br>State Machines]
     GOAP -.->|See| Ch5[Chapter 5:<br>World Simulation]
     BehaviorTree -.->|See| Ch12
     Hybrid -.->|See| Ch10
@@ -182,29 +189,33 @@ flowchart TD
 ### Decision Criteria
 
 **Simple/Obedient Units**
+
 State Machines work best when units follow explicit orders without interpretation.
 Best for scripted scenarios, puzzle-like encounters, tutorial units.
 Example: "If ordered to move, move. If sees enemy, engage."
 
 **Complex Tactical Reasoning**
+
 GOAP works best when units must plan multi-step strategies.
 Best for squad-level tactics, autonomous decision-making.
 Example: "Ambush requires: find cover → wait → engage when enemy in range."
 
 **Reactive Behaviors**
+
 Behavior Trees work best when units must respond to changing threats.
 Best for survival-first AI, cover-seeking, suppression response.
 Example: "If under fire → seek cover. If no cover → return fire."
 
 **Designer-Authored Behaviors**
+
 Hybrid works best when non-programmers need to create AI.
 Best for community modding, frequent iteration, complex scenarios.
 Combines behavior trees for structure with scripts for custom logic.
 
 ### AI Architecture Comparison
 
-| Architecture   | Predictability | Complexity | Moddability | Performance |
-| -------------- | -------------- | ---------- | ----------- | ----------- |
+| Architecture       | Predictability | Complexity | Moddability | Performance |
+| ------------------ | -------------- | ---------- | ----------- | ----------- |
 | **State Machines** | Very High      | Low        | Low         | Very Fast   |
 | **Behavior Trees** | High           | Medium     | Medium      | Fast        |
 | **GOAP**           | Medium         | High       | Low-Medium  | Medium      |
@@ -254,6 +265,7 @@ flowchart TD
 ### Decision Criteria
 
 **Real-Time Competitive**
+
 Use deterministic lockstep simulation.
 Required: Server-authoritative, anti-cheat, replay support.
 Trade-off: Higher latency, complex implementation.
@@ -271,8 +283,8 @@ Trade-off: Different game feel, less emergent.
 
 ### Multiplayer Architecture Comparison
 
-| Architecture  | Anti-Cheat | Latency | Bandwidth | Replay Support |
-| ------------- | ---------- | ------- | --------- | -------------- |
+| Architecture      | Anti-Cheat | Latency | Bandwidth | Replay Support |
+| ----------------- | ---------- | ------- | --------- | -------------- |
 | **Deterministic** | Excellent  | High    | Very Low  | Complete       |
 | **State Sync**    | Good       | Medium  | Medium    | Limited        |
 | **Client-Auth**   | Poor       | Low     | N/A       | None           |
@@ -318,16 +330,19 @@ flowchart TD
 ### Decision Criteria
 
 **Commercial Product**
+
 JSON + Lua works best when you want curated modding within safe boundaries.
 Best for weapon packs, unit variants, scenarios.
 Trade-off: Requires API design and sandboxing.
 
 **Community-Driven**
+
 Full Declarative (QML) works best when players should create entirely new game modes.
 Best for total conversions, novel mechanics, deep customization.
 Trade-off: Higher security risks, more support burden.
 
 **No Modding Needed**
+
 Hardcoded works for focused single-player experiences.
 Best for narrative games, curated experiences, rapid prototypes.
 Trade-off: No community longevity.
@@ -336,13 +351,13 @@ Trade-off: No community longevity.
 
 | Modding Goal     | Hardcoded | JSON Only | JSON + Lua | Full Declarative |
 | ---------------- | --------- | --------- | ---------- | ---------------- |
-| Add new maps     | ✗         | ✓         | ✓          | ✓                |
-| Create scenarios | ✗         | ✓         | ✓          | ✓                |
-| Add weapons      | ✗         | ✓         | ✓          | ✓                |
-| Add unit types   | ✗         | ✗         | ✓          | ✓                |
-| New mechanics    | ✗         | ✗         | ✓          | ✓                |
-| New AI behaviors | ✗         | ✗         | ✓          | ✓                |
-| Total conversion | ✗         | ✗         | ✗          | ✓                |
+| Add new maps     | No        | Yes       | Yes        | Yes              |
+| Create scenarios | No        | Yes       | Yes        | Yes              |
+| Add weapons      | No        | Yes       | Yes        | Yes              |
+| Add unit types   | No        | No        | Yes        | Yes              |
+| New mechanics    | No        | No        | Yes        | Yes              |
+| New AI behaviors | No        | No        | Yes        | Yes              |
+| Total conversion | No        | No        | No         | Yes              |
 
 ---
 
@@ -399,8 +414,8 @@ flowchart TD
 
 ### Architecture Selection Guide
 
-| Scenario                 | Recommended Pattern | Key Characteristics                                             |
-| ------------------------ | ------------------- | --------------------------------------------------------------- |
+| Scenario                     | Recommended Pattern | Key Characteristics                                             |
+| ---------------------------- | ------------------- | --------------------------------------------------------------- |
 | **Competitive Multiplayer**  | OpenCombat          | Deterministic, server-authoritative, three-tier state hierarchy |
 | **Commercial Release**       | Hybrid              | Combines determinism with modding, type-safe ECS                |
 | **Single-Player Simulation** | OpenCombat-SDL      | Bitfield states, automatic prerequisites, rich interactions     |
@@ -409,36 +424,37 @@ flowchart TD
 
 ---
 
-## Quick Reference: Decision Summary Tables
 
-### State Management Quick Pick
+### Quick Reference: Decision Summary Tables
 
-| If you need...          | Choose          | From Chapter |
-| ----------------------- | --------------- | ------------ |
-| Multiplayer determinism | State Hierarchy | 3            |
-| Maximum moddability     | Dual-State      | 6            |
-| Automatic prerequisites | Bitfield        | 2            |
-| Best overall            | Hybrid          | 10           |
+#### State Management Quick Pick
 
-### Entity Model Quick Pick
+| If you need...          | Choose              | From Chapter |
+| ----------------------- | ------------------- | ------------ |
+| Multiplayer determinism | State Hierarchy     | 3            |
+| Maximum moddability     | Dual-State System   | 6            |
+| Automatic prerequisites | Bitfield System     | 2            |
+| Best overall            | Hybrid Approach     | 10           |
 
-| If you need...              | Choose       | From Chapter |
-| --------------------------- | ------------ | ------------ |
-| Maximum performance (1000+) | Pure ECS     | 12           |
-| Type safety + flexibility   | Modified ECS | 12           |
-| Maximum moddability         | Component    | 6            |
-| Rapid development           | OOP          | 2            |
+#### Entity Model Quick Pick
 
-### AI Quick Pick
+| If you need...              | Choose    | From Chapter |
+| --------------------------- | --------- | ------------ |
+| Maximum performance (1000+) | Pure ECS  | 12           |
+| Type safety + flexibility   | ECS       | 12           |
+| Maximum moddability         | Component | 6            |
+| Rapid development           | OOP       | 2            |
 
-| If you need...              | Choose         | From Chapter |
-| --------------------------- | -------------- | ------------ |
-| Simple/obedient units       | State Machines | 4            |
-| Complex tactical reasoning  | GOAP           | 5            |
-| Reactive behaviors          | Behavior Trees | 12           |
-| Designer-friendly + complex | Hybrid         | 10           |
+#### AI Quick Pick
 
-### Multiplayer Quick Pick
+| If you need...              | Choose          | From Chapter |
+| --------------------------- | --------------- | ------------ |
+| Simple/obedient units       | State Machines  | 3            |
+| Complex tactical reasoning  | GOAP            | 5            |
+| Reactive behaviors          | Behavior Trees  | 12           |
+| Designer-friendly + complex | Hybrid Approach | 10           |
+
+#### Multiplayer Quick Pick
 
 | If you need...        | Choose               | From Chapter |
 | --------------------- | -------------------- | ------------ |
@@ -446,7 +462,7 @@ flowchart TD
 | Turn-based            | Command validation   | 8            |
 | Co-op only            | Client-authoritative | 1            |
 
-### Modding Quick Pick
+#### Modding Quick Pick
 
 | If you need...     | Choose           | From Chapter |
 | ------------------ | ---------------- | ------------ |
@@ -456,35 +472,35 @@ flowchart TD
 
 ---
 
-## Implementation Checklist
+### Implementation Checklist
 
 After using these flowcharts, verify your choices:
 
-### State Management
+#### State Management
 - [ ] Can you serialize game state completely?
 - [ ] Can you query "what is this unit doing?" easily?
 - [ ] Are state transitions explicit?
 - [ ] (Multiplayer) Can two clients stay synchronized?
 
-### Entity System
+#### Entity System
 - [ ] Can you add new unit types without code changes (if modding)?
 - [ ] Are entity references type-safe?
 - [ ] Is memory layout cache-friendly?
 - [ ] Can entities be composed of reusable components?
 
-### AI System
+#### AI System
 - [ ] Does AI react to threats immediately?
 - [ ] Can AI show initiative?
 - [ ] Is AI behavior configurable/scriptable?
 - [ ] (Multiplayer) Is AI deterministic?
 
-### Multiplayer
+#### Multiplayer
 - [ ] Is simulation deterministic?
 - [ ] Can you record and replay games?
 - [ ] Is cheating prevented?
 - [ ] Is latency acceptable for target audience?
 
-### Modding
+#### Modding
 - [ ] Can modders add content without recompilation?
 - [ ] Is there a mod manager for dependencies?
 - [ ] Can data be hot-reloaded?
@@ -496,16 +512,21 @@ After using these flowcharts, verify your choices:
 
 Each flowchart references specific chapters for implementation details:
 
-- **Chapter 1:** Executive Summary - Universal patterns and trade-offs
-- **Chapter 2:** Entity Systems - OOP vs ECS vs Composition
-- **Chapter 3:** State Machines - Managing unit behavior
-- **Chapter 4:** Command Systems - From intent to action
-- **Chapter 5:** World Simulation - Terrain, LOS, environment
-- **Chapter 6:** Moddability - Content creation strategies
-- **Chapter 8:** Networking - Synchronization strategies
-- **Chapter 10:** Recommendations - Synthesized best practices
-- **Chapter 12:** Implementation Guide - Concrete code patterns
+- **[Chapter 1: Executive Summary](chapter_01_executive_summary.md)** - Universal patterns and trade-offs
+- **[Chapter 2: Architectural Philosophy](chapter_02_architectural_philosophy.md)** - OOP vs ECS vs Composition
+- **[Chapter 3: State Management](chapter_03_state_management.md)** - Managing unit behavior
+- **[Chapter 4: World and Terrain](chapter_04_world_terrain.md)** - From intent to action
+- **[Chapter 5: Unit Hierarchy](chapter_05_unit_hierarchy.md)** - Terrain, LOS, environment
+- **[Chapter 6: Orders and AI](chapter_06_orders_ai.md)** - Content creation strategies
+- **[Chapter 7: Moddability and Data-Driven Architecture](chapter_07_moddability.md)** - Deep modding systems
+- **[Chapter 8: Architectural Patterns](chapter_08_architectural_patterns.md)** - Synchronization strategies
+- **[Chapter 9: Lessons Learned](chapter_09_lessons_learned.md)** - Historical insights
+- **[Chapter 10: Recommendations](chapter_10_recommendations.md)** - Synthesized best practices
+- **[Chapter 11: Networking](chapter_11_networking.md)** - Multiplayer synchronization
+- **[Chapter 12: Implementation Guide](chapter_12_implementation_guide.md)** - Concrete code patterns
 
 ---
 
 These flowcharts distill nearly two decades of Close Combat clone development. Use them as starting points, but adapt recommendations to your specific constraints and goals.
+
+<!-- End of file -->

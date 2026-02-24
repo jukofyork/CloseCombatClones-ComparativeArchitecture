@@ -6,13 +6,13 @@ Atomic Games released *Close Combat* in 1996, and it changed tactical wargaming 
 
 The series expanded with sequels covering the Eastern Front, the Battle of the Bulge, Normandy, and the brutal urban combat of Aachen. Each entry sharpened the formula: real-time tactics, accurate ballistics, morale systems that mirrored real combat psychology, and a focus on terrain and positioning over sheer firepower. These weren't games about mindlessly clicking to attack. They demanded an understanding of how infantry actually fights—when to lay down suppressing fire, when to push forward, when to hold ground, and when to retreat.
 
-Thirty years later, *Close Combat*'s influence is everywhere. Its DNA runs through modern tactical shooters, the revival of realistic military simulations, and the enduring appeal of games that reward careful positioning over twitch reflexes.
+Nearly thirty years later, *Close Combat*'s influence is everywhere. Its DNA runs through modern tactical shooters, the revival of realistic military simulations, and the enduring appeal of games that reward careful positioning over twitch reflexes.
 
 ---
 
 ## Why This Book Exists
 
-This book exists because for twenty years, developers have pursued the essence of Close Combat, leaving behind a wealth of architectural insights.
+This book exists because for nearly twenty years, developers have sought to capture what made *Close Combat* special, leaving behind a wealth of architectural insights.
 
 From 2005 to 2024, three major open-source projects tackled the challenge of building Close Combat-inspired tactical wargames. Each addressed the same core question—how to model squad-level real-time tactical combat on a computer—and each found unique architectural solutions. These were serious efforts by skilled developers working through genuinely difficult problems:
 
@@ -34,11 +34,11 @@ Built in C++ with traditional object-oriented design, OpenCombat-SDL reflects th
 
 ### CloseCombatFree: The Declarative Experiment (2011–2012)
 
-CloseCombatFree adopted Qt's QML (Qt Modeling Language) as its primary content definition language. By treating game content as declarative data instead of procedural code, CCF enabled remarkable moddability. Scenarios, units, and behaviors could be modified without recompiling. The project illustrates both the strengths and weaknesses of declarative approaches in game development.
+CloseCombatFree (CCF) adopted Qt's QML (Qt Modeling Language) as its primary content definition language. By treating game content as declarative data instead of procedural code, CCF enabled remarkable moddability. Scenarios, units, and behaviors could be modified without recompiling. The project illustrates both the strengths and weaknesses of declarative approaches in game development.
 
 ### OpenCombat: The Modern Systems Approach (2020–2024)
 
-Written in Rust and designed for multiplayer from the start, OpenCombat embodies modern systems-oriented game architecture. It employs a three-tier state hierarchy (Phase → Behavior → Gesture), message-driven state updates for deterministic simulation, and a modified ECS pattern that balances type safety with simplicity. For developers building tactical games today, OpenCombat's architecture provides the most practical patterns.
+Written in Rust and designed for multiplayer from the start, OpenCombat embodies modern systems-oriented game architecture. It employs a three-tier state hierarchy (Phase → Behavior → Gesture), message-driven state updates for deterministic simulation, and a modified Entity Component System (ECS) pattern that balances type safety with simplicity. For developers building tactical games today, OpenCombat's architecture provides the most practical patterns.
 
 ---
 
@@ -125,4 +125,4 @@ Whether you're building the next great tactical wargame or studying how games wo
 
 ---
 
-*Next: [Introduction](introduction.md)*
+[Next: Introduction →](introduction.md)

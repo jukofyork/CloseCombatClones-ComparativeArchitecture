@@ -1,3 +1,8 @@
+| [← Previous: Appendix B - Unit Attribute Systems](appendix_b_unit_attribute_systems.md) |
+|:--|
+
+---
+
 # Appendix C: File Formats and Data Hierarchy
 
 ## C.1 Comparative Overview
@@ -115,7 +120,6 @@ flowchart TD
     acqueville --> acq_buildings
 
     gfx_soldiers --> SOLDIERS
-
     classDef default fill:#fff,stroke:#000,stroke-width:1px,color:#000
     classDef light fill:#f0f0f0,stroke:#333,stroke-width:1px,color:#000
     classDef medium fill:#d0d0d0,stroke:#333,stroke-width:1px,color:#000
@@ -206,7 +210,7 @@ Weapon definitions specify ballistic properties, timing, and resource references
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `earthShaker` | Boolean | Indicates artillery/tank gun ( Area effect) |
+| `earthShaker` | Boolean | Indicates artillery/tank gun (Area effect) |
 
 **Child Elements**:
 
@@ -439,7 +443,7 @@ flowchart TD
 
 ### C.2.5 Modding Architecture Ideas
 
-The OpenCombat-SDL project includes documentation (`docs/MODDING_ARCHITECTURE_IDEAS.md`) outlining potential improvements:
+The OpenCombat-SDL project documentation outlines potential improvements:
 
 1. **Mod Directory Support**: Loading mods from separate directories without modifying base files
 2. **Override System**: XML files that override base definitions
@@ -507,14 +511,14 @@ flowchart TD
         spr_ui["ui.xcf"]
         spr_soldier_src["soldiers.xcf"]
         spr_vehicle_src["vehicles.xcf"]
-        spr_weapon_src["weapon_riffle.xcf"]
+        spr_weapon_src["weapon_rifle.xcf"]
         spr_expl_src["explosions.xcf"]
     end
 
     subgraph AUDIO_FILES["Audio Files"]
-        snd_mauser1["MauserRiffleFire2.ogg"]
-        snd_mauser2["MauserRiffleFire3.ogg"]
-        snd_mauser_r1["MauserRiffleReload1.ogg"]
+        snd_mauser1["MauserRifleFire2.ogg"]
+        snd_mauser2["MauserRifleFire3.ogg"]
+        snd_mauser_r1["MauserRifleReload1.ogg"]
         snd_mosin_r1["MosinNagantReload1.ogg"]
         snd_mosin_r2["MosinNagantReload2.ogg"]
         snd_mg34["Mg34x7.ogg"]
@@ -523,7 +527,7 @@ flowchart TD
         snd_bren10["BrenMark2x10.ogg"]
         snd_die5["MaleDie5.ogg"]
         snd_die8["MaleDie8.ogg"]
-        snd_impact["BulletMetalmpact1.wav"]
+        snd_impact["BulletMetalImpact1.wav"]
         snd_clac["Clac1.ogg"]
     end
 
@@ -580,7 +584,7 @@ flowchart TD
 
 ### C.3.2 JSON Deployment Format
 
-OpenCombat uses JSON files to define scenario deployments, separating static map data from dynamic unit placement.
+OpenCombat uses JSON files to define scenario deployments, separating static map data from dynamic unit placement. Example deployment files include `demo1_deployment.json`, `demo2_deployment.json`, and `map1_deployment.json`.
 
 #### C.3.2.1 Deployment Schema
 
@@ -839,11 +843,11 @@ image = "0.24.7"       # Image processing
   - Impacts: `[Type]Impact[Variant].wav`
 
 **Examples**:
-- `MauserRiffleFire2.ogg` - Mauser rifle fire variant 2
+- `MauserRifleFire2.ogg` - Mauser rifle fire variant 2
 - `MosinNagantReload1.ogg` - Mosin-Nagant reload sound
 - `BrenMark2x8.ogg` - Bren machine gun 8-round burst
 - `MaleDie5.ogg` - Male soldier death sound 5
-- `BulletMetalmpact1.wav` - Bullet impact on metal
+- `BulletMetalImpact1.wav` - Bullet impact on metal
 
 ---
 
@@ -853,8 +857,8 @@ image = "0.24.7"       # Image processing
 
 ```mermaid
 flowchart TD
-    subgraph ROOT["closecombatfree Root"]
-        root["closecombatfree"]
+    subgraph ROOT["CloseCombatFree Root"]
+        root["CloseCombatFree"]
         proj_file["closecombatfree.pro"]
     end
 
@@ -1022,6 +1026,8 @@ flowchart TD
     root --> CAMPAIGNFILES
     root --> SAVES
     root --> EDITOR
+
+Save files store the complete game state including unit positions, rotations, and other dynamic properties. They use the same QML format as scenario files, allowing save files to be loaded as scenarios or vice versa.
 
     qml_main --> CAMPAIGNS
     qml_effects --> EFFECTS
@@ -1203,7 +1209,7 @@ CloseCombatFree uses simple key=value configuration files:
 
 **config**:
 ```ini
-# Close Combat Free - cofiguration file
+# CloseCombatFree - configuration file
 # Lines beginning with '#' are comments
 # Accepted format is: "option = value"
 # Option names and values are expected to be given in lower case.
@@ -1722,3 +1728,8 @@ This appendix analyzes the file formats and data hierarchies used by three Close
 Each approach has distinct advantages: XML provides explicit structure, JSON enables modern tooling integration, and QML offers runtime flexibility. New projects should consider their target audience (modders vs. players), available tooling, and team expertise when selecting file formats.
 
 Section C.6 provides a roadmap for new implementations, suggesting JSON for unit definitions, TMX for maps, and a structured modding architecture that could support content from all three existing projects.
+
+---
+
+| [Next: Appendix D →](appendix_d_code_architecture.md) |
+|:--|

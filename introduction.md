@@ -19,37 +19,39 @@ A true Close Combat clone keeps the spirit of the original: commanding a handful
 
 ---
 
+Previous: [Preface](preface.md)
+
 ## The Close Combat Formula
 
 The Close Combat series created a blueprint that later games have tried to follow. To grasp the architectural challenges this book explores, you first need to understand that blueprint.
 
 ### The Seven Pillars of Close Combat
 
-**1. Squad-Based Organization**
+#### 1. Squad-Based Organization
 
-Players command squads of 6-12 soldiers, not individual troops. Soldiers within a squad act on their own—finding cover, engaging targets, reacting to threats. This approach frees players to focus on tactics instead of micromanaging every movement.
+Players command squads of 6–12 soldiers, not individual troops. Soldiers within a squad act on their own—finding cover, engaging targets, reacting to threats. This approach frees players to focus on tactics instead of micromanaging every movement.
 
-**2. Realistic Ballistics**
+#### 2. Realistic Ballistics
 
 Weapons perform as they do in real combat. Bullets arc under gravity and ricochet off cover. Suppression—firing near enemies to keep them pinned—often matters more than direct hits. Each weapon has distinct traits: submachine guns excel at close range but falter at distance, rifles balance accuracy and reach, and machine guns deliver sustained fire but require setup.
 
-**3. Morale and Suppression**
+#### 3. Morale and Suppression
 
 Soldiers react to combat psychologically. Under fire, they become suppressed—less accurate, slower to respond, sometimes panicking or freezing. Morale drops with casualties, poor leadership, or heavy incoming fire. This system adds depth beyond raw firepower: a few well-placed suppressing shots can cripple a larger force.
 
-**4. Terrain and Cover**
+#### 4. Terrain and Cover
 
 The battlefield shapes every engagement. Buildings block fire completely. Walls shield from specific angles. Higher ground improves visibility. Terrain slows movement in mud or rubble. These elements create the genre's core puzzle: how to cross open ground under fire, or use a building for cover while keeping enemies in sight.
 
-**5. Autonomous AI**
+#### 5. Autonomous AI
 
 Soldiers think for themselves. They return fire when attacked, take cover when suppressed, and maintain awareness of nearby threats. Players give broad orders—"advance to that house," "pin down that position"—and the AI handles the rest.
 
-**6. Real-Time with Pause (or Continuous)**
+#### 6. Real-Time with Pause (or Continuous)
 
 Combat happens in real time, building tension and forcing quick decisions. Some games let players pause to issue orders; others, like the original Close Combat, run without interruption. Either way, the real-time pace sets these games apart from turn-based strategy.
 
-**7. Emergent Narrative**
+#### 7. Emergent Narrative
 
 No two battles unfold the same way. Realistic ballistics, morale systems, and autonomous AI generate unscripted stories—a squad holding out against overwhelming odds, a veteran leader lost to a sniper, raw recruits breaking under fire. These moments arise naturally from the game's systems, not pre-written scripts.
 
@@ -61,8 +63,8 @@ This book examines three implementations that span twenty years of development, 
 
 ### Representative Diversity
 
-| Aspect             | OpenCombat-SDL         | CloseCombatFree     | OpenCombat               |
-| ------------------ | ---------------------- | ------------------- | ------------------------ |
+| Aspect                 | OpenCombat-SDL         | CloseCombatFree     | OpenCombat               |
+| ---------------------- | ---------------------- | ------------------- | ------------------------ |
 | **Era**                | 2005–2008              | 2011–2012           | 2020–2024                |
 | **Language**           | C++                    | C++/QML             | Rust                     |
 | **Paradigm**           | Classical OOP          | Declarative         | Systems-Oriented         |
@@ -173,7 +175,7 @@ This book examines the architectural and systems design of tactical wargames. So
 
 We use pseudocode to explain concepts without tying them to a specific language. Here's how we structure it:
 
-```
+```text
 // Comments explain intent
 
 ClassName {
@@ -318,4 +320,4 @@ Whether you're building a tactical wargame, studying game architecture, or just 
 
 ---
 
-*Next: [How to Use This Book](how_to_use_this_book.md)*
+Next: [How to Use This Book](how_to_use_this_book.md)

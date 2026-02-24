@@ -1,3 +1,5 @@
+[← Previous: Chapter 1 - Executive Summary](chapter_01_executive_summary.md)
+
 # Chapter 2: Architectural Philosophy
 
 ## The Foundations of Tactical Simulation Design
@@ -14,8 +16,8 @@ Close Combat stands apart in real-time strategy games. Most RTS titles treat uni
 
 **Key Differences:**
 
-| Feature           | Traditional RTS               | Tactical Wargame                            |
-| ----------------- | ----------------------------- | ------------------------------------------- |
+| **Feature**           | Traditional RTS               | Tactical Simulation                         |
+| --------------------- | ----------------------------- | ------------------------------------------- |
 | **Unit Count**        | Hundreds to thousands         | Dozens to hundreds                          |
 | **Unit Identity**     | Generic ("Rifleman #47")      | Individual ("Pvt. John Miller")             |
 | **Morale System**     | Binary (alive/dead)           | Continuous (suppressed → panicked → routed) |
@@ -27,9 +29,9 @@ These differences force architectural trade-offs. Systems built for 10,000 ident
 
 ### 2.1.2 The Simulation vs. Game Balance
 
-Tactical wargames constantly balance **simulation authenticity** against **gameplay clarity**. This tension shapes every architectural decision:
+Tactical wargames constantly balance **simulation realism** against **gameplay clarity**. This tension shapes every architectural decision:
 
-**Authenticity Needs:**
+**Realism Needs:**
 - Realistic ballistics with projectile physics
 - Detailed morale modeling based on psychology research
 - Complex line-of-sight calculations
@@ -43,7 +45,7 @@ Tactical wargames constantly balance **simulation authenticity** against **gamep
 - Reasonable learning curves
 - Engaging pacing
 
-The three implementations in this book occupy different positions on this spectrum:
+The three implementations in this book occupy different positions on this spectrum, balancing simulation realism with gameplay clarity:
 
 ```mermaid
 flowchart LR
@@ -70,11 +72,11 @@ flowchart LR
     classDef dark fill:#b0b0b0,stroke:#000,stroke-width:2px,color:#000
 ```
 
-### 2.1.3 The Authenticity Paradox
+### 2.1.3 The Realism Paradox
 
 More realism doesn't always feel more real. When soldiers behave too erratically—ignoring orders due to morale checks, taking cover unpredictably, or panicking—players call the system "broken" instead of "realistic." The architecture must model reality while keeping player control and predictability intact.
 
-**Three Layers of Authenticity:**
+**Three Layers of Realism:**
 
 1. **Physical Layer**: Ballistics, line-of-sight, and movement physics need accuracy. Players accept realistic bullet trajectories.
 
@@ -94,7 +96,7 @@ Over two decades, three architectural styles took shape in Close Combat clones. 
 
 OpenCombat-SDL borrowed heavily from military simulation tools of the late 1990s and early 2000s, where accuracy often trumped flexibility.
 
-#### Key Design Choices
+#### Key Tenets
 
 **1. Objects Mirror Reality**
 
@@ -150,8 +152,8 @@ This design lets states combine in unexpected ways, creating emergent behavior w
 
 Actions declare their requirements, and the system handles the rest:
 
-```cpp
-// Action definition in SoldierActions.txt
+```yaml
+# Action definition in SoldierActions.yaml
 Action RunTo {
     Duration: 2000ms
     Requires: [Standing, Reloaded]
@@ -159,11 +161,11 @@ Action RunTo {
     Removes: [Stopped, Walking, Crawling]
 }
 
-// When a prone soldier tries to run:
-// 1. The system notices the missing prerequisite: Standing
-// 2. Finds the StandUp action that adds Standing
-// 3. Inserts StandUp before RunTo
-// 4. The soldier stands, then runs—no extra code needed
+# When a prone soldier tries to run:
+# 1. The system notices the missing prerequisite: Standing
+# 2. Finds the StandUp action that adds Standing
+# 3. Inserts StandUp before RunTo
+# 4. The soldier stands, then runs—no extra code needed
 ```
 
 **4. XML for Data, C++ for Logic**
@@ -190,7 +192,7 @@ void Soldier::Simulate(long dt, World* world) {
 }
 ```
 
-#### The Philosophy Behind the Code
+#### Why This Philosophy?
 
 **Context (2005–2008):**
 - Object-oriented design ruled software engineering
@@ -207,12 +209,12 @@ void Soldier::Simulate(long dt, World* world) {
 
 **Trade-offs:**
 
-| Strength                | Weakness                             |
+| **Strength**            | **Weakness**                         |
 | ----------------------- | ------------------------------------ |
-| Intuitive modeling      | Rigid class hierarchies              |
-| Clean encapsulation     | Behavior changes require recompiling |
-| Natural for simulations | Adding new unit types is difficult   |
-| Clear organization      | Object references grow complex       |
+| **Intuitive modeling**  | Rigid class hierarchies              |
+| **Clean encapsulation** | Behavior changes require recompiling |
+| **Natural for simulations** | Adding new unit types is difficult |
+| **Clear organization**  | Object references grow complex       |
 
 ### 2.2.2 CloseCombatFree (2011–2012): The Modding-First Philosophy
 
@@ -342,13 +344,13 @@ Everything becomes moddable through QML files. Iteration happens without compila
 
 **Philosophical Trade-offs:**
 
-| Advantage           | Disadvantage                      |
+| **Advantage**       | **Disadvantage**                  |
 | ------------------- | --------------------------------- |
-| Maximum moddability | QML performance limits            |
-| No recompilation    | Tight visual-logic coupling       |
-| Designer-friendly   | Qt ecosystem lock-in              |
-| Hot-reload          | Debugging across C++/QML boundary |
-| Declarative clarity | Less control over execution order |
+| **Maximum moddability** | QML performance limits        |
+| **No recompilation**    | Tight visual-logic coupling   |
+| **Designer-friendly**   | Qt ecosystem lock-in          |
+| **Hot-reload**          | Debugging across C++/QML boundary |
+| **Declarative clarity** | Less control over execution order |
 
 ### 2.2.3 OpenCombat (2020–2024): The Systems-First Philosophy
 
@@ -403,7 +405,7 @@ Systems query state, compute changes, and send messages instead of mutating dire
 
 ```mermaid
 flowchart TD
-    BS["BattleState<br>soldiers: Vec<Soldier> [contiguous]<br>vehicles: Vec<Vehicle> [contiguous]<br>squads: HashMap<Uuid, Squad> [lookup]"]:::medium
+    BS["BattleState<br>soldiers: Vec<Soldier> [contiguous]<br>vehicles: Vec<Vehicle> [contiguous]<br>squads: Vec<Squad> [contiguous]"]:::medium
     SYS1["Systems<br>- AI<br>- Combat"]:::light
     SYS2["Systems<br>- Move<br>- Render"]:::light
     
@@ -469,13 +471,13 @@ Deterministic simulation enables multiplayer and replays. Type safety prevents s
 
 **Philosophical Trade-offs:**
 
-| Advantage              | Disadvantage                               |
+| **Advantage**          | **Disadvantage**                           |
 | ---------------------- | ------------------------------------------ |
-| Determinism guaranteed | More verbose than direct mutation          |
-| Type safety            | Steeper learning curve for message-passing |
-| Clear data flow        | Indirection through indices                |
-| Testability            | Centralized state structure                |
-| Memory safety          | Rust's complexity barrier                  |
+| **Determinism guaranteed** | More verbose than direct mutation      |
+| **Type safety**            | Steeper learning curve for message-passing |
+| **Clear data flow**        | Indirection through indices            |
+| **Testability**            | Centralized state structure            |
+| **Memory safety**          | Rust's complexity barrier              |
 
 ---
 
@@ -483,18 +485,18 @@ Deterministic simulation enables multiplayer and replays. Type safety prevents s
 
 ### 2.3.1 Values Comparison Table
 
-| Value             | OpenCombat-SDL          | CloseCombatFree               | OpenCombat              |
-| ----------------- | ----------------------- | ----------------------------- | ----------------------- |
-| **Primary Goal**      | Simulation authenticity | Modding accessibility         | Multiplayer correctness |
-| **Core Abstraction**  | Object-oriented         | Declarative/Component         | Systems-oriented        |
-| **State Management**  | Bitfield composition    | Dual-state (runtime + visual) | Three-tier hierarchy    |
-| **Behavior Location** | C++ methods             | QML functions                 | System functions        |
-| **Content Creation**  | XML + recompile         | QML (no recompile)            | JSON + recompile        |
-| **Execution Model**   | Immediate updates       | Property bindings             | Message queue           |
-| **Determinism**       | Implicit                | Implicit                      | Explicit (design goal)  |
-| **Modding Level**     | Parameters only         | Full content + behavior       | Scenarios only          |
-| **Type Safety**       | Runtime                 | Runtime                       | Compile-time            |
-| **Team Size**         | Small (1-3)             | Any (designer-friendly)       | Medium (3-8)            |
+| **Value**             | **OpenCombat-SDL**          | **CloseCombatFree**           | **OpenCombat**              |
+| --------------------- | --------------------------- | ----------------------------- | --------------------------- |
+| **Primary Goal**      | Simulation realism          | Modding accessibility         | Multiplayer correctness     |
+| **Core Abstraction**  | Object-oriented             | Declarative/Component         | Systems-oriented            |
+| **State Management**  | Bitfield composition        | Dual-state (runtime + visual) | Three-tier hierarchy        |
+| **Behavior Location** | C++ methods                 | QML functions                 | System functions            |
+| **Content Creation**  | XML + recompile             | QML (no recompile)            | JSON + recompile            |
+| **Execution Model**   | Immediate updates           | Property bindings             | Message queue               |
+| **Determinism**       | Implicit                    | Implicit                      | Explicit (design goal)      |
+| **Modding Level**     | Parameters only             | Full content + behavior       | Scenarios only              |
+| **Type Safety**       | Runtime                     | Runtime                       | Compile-time                |
+| **Team Size**         | Small (1-3)                 | Any (designer-friendly)       | Medium (3-8)                |
 
 ### 2.3.2 When Each Philosophy Shines
 
@@ -593,7 +595,7 @@ fn movement_system(state: &mut BattleState) {
 
 ### 2.4.2 Why Each Shift Happened
 
-| From        | To          | Reason                                                                                       |
+| **From**        | **To**          | **Reason**                                                                                       |
 | ----------- | ----------- | -------------------------------------------------------------------------------------------- |
 | **Inheritance** | **Composition** | Composition avoids rigid hierarchies and enables flexible combinations.                      |
 | **Composition** | **ECS**         | ECS delivers better performance through cache-friendly data layouts and parallel processing. |
@@ -637,7 +639,7 @@ OpenCombat makes determinism an explicit requirement instead of an accidental be
 
 ## 2.5 Philosophical Questions for Your Project
 
-Before choosing an architecture, answer these fundamental questions:
+Before choosing an architecture for your tactical simulation, answer these fundamental questions:
 
 ### 2.5.1 Simulation Depth vs. Accessibility
 
@@ -657,7 +659,7 @@ Before choosing an architecture, answer these fundamental questions:
 
 **Decision guide:**
 
-| Target Audience          | Recommended Depth     |
+| **Target Audience**          | **Recommended Depth**     |
 | ------------------------ | --------------------- |
 | Military enthusiasts     | Deep simulation       |
 | General strategy players | Moderate simulation   |
@@ -696,7 +698,7 @@ Before choosing an architecture, answer these fundamental questions:
 
 **Cost comparison:**
 
-| Feature                 | Single-Player Cost | Multiplayer Cost                      |
+| **Feature**                 | **Single-Player Cost** | **Multiplayer Cost**                      |
 | ----------------------- | ------------------ | ------------------------------------- |
 | State management        | 1x                 | 3x (sync, validation, reconciliation) |
 | Content creation        | 1x                 | 2x (server + client assets)           |
@@ -868,7 +870,7 @@ The architecture you choose now will define your game for years. Decide carefull
 
 ## Key Takeaways
 
-1. **Three philosophies, three priorities**: authenticity (SDL), moddability (CCF), correctness (OpenCombat)
+1. **Three philosophies, three priorities**: realism (OpenCombat-SDL), moddability (CCF), correctness (OpenCombat)
 
 2. **State management is everything**: every other system relies on it
 

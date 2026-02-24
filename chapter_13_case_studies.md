@@ -1,3 +1,7 @@
+*Previous: [Chapter 12: Implementation Guide](chapter_12_implementation_guide.md)*
+
+---
+
 # Chapter 13: Practical Case Studies
 
 ## Applying Patterns in Real-World Scenarios
@@ -317,10 +321,11 @@ Weapons are also defined in JSON:
 }
 ```
 
-**Implementation Metrics**
-- Lines of code: ~150 (Lua) + ~60 (JSON) = **210 lines**
-- Time to implement: 1 day (hot reload eliminates recompilation)
-- Moddability: Excellent—new behaviors can be added via Lua scripts
+**Lines of Code**: ~150 (Lua) + ~60 (JSON) = **210 lines**
+
+**Time to Implement**: 1 day (hot reload eliminates recompilation)
+
+**Moddability**: Excellent—new behaviors can be added via Lua scripts
 
 ### 13.2.4 CloseCombatFree Approach: Pure QML Definition
 
@@ -434,7 +439,7 @@ Unit {
 
     function markTarget(target) {
         sniper.markedTarget = target;
-        emit targetMarked(target);
+        targetMarked(target);
     }
 
     function handleOrder(order) {
@@ -563,12 +568,14 @@ Scenario {
 ```
 
 **Lines of Code**: ~180 (QML)
+
 **Time to Implement**: 4-6 hours (hot reload, no compilation)
+
 **Moddability**: Excellent—pure QML allows instant edits and previews
 
 ### 13.2.5 Comparative Analysis
 
-| Aspect             | OpenCombat-SDL | OpenCombat           | CloseCombatFree |
+| **Aspect**             | OpenCombat-SDL | OpenCombat           | CloseCombatFree |
 | ------------------ | -------------- | -------------------- | --------------- |
 | **Lines of Code**      | ~380           | ~210                 | ~180            |
 | **Time to Implement**  | 2-3 days       | 1 day                | 4-6 hours       |
@@ -645,7 +652,9 @@ Unit: {
 - Both JSON and Lua support hot reloading
 - Critical paths remain in optimized compiled code
 
-**Lines of Code**: ~80 (JSON) + ~70 (Lua) = **~150 lines**
+**Lines of Code**: ~80 (JSON) + ~70 (Lua) = ~150 lines
+
+*Note: This count includes only JSON and Lua files. The hybrid approach also requires additional compiled code (C++/Rust) for the engine integration and type-safe core systems.*
 
 This hybrid approach delivers CloseCombatFree's moddability, OpenCombat-SDL's performance, and OpenCombat's type safety.
 
@@ -938,7 +947,7 @@ pub fn coordinate_ambush_trigger(
 }
 ```
 
-**Lines of Code**: ~350 (Rust) + ~20 (JSON) = **~370 lines**
+**Lines of Code**: ~350 (Rust) + ~20 (JSON) = **370 lines**
 
 **Complexity**: Medium. The three-tier system requires understanding the hierarchy.
 
@@ -1010,7 +1019,7 @@ Item {
     }
 
     function springAmbush() {
-        emit ambushSprung(unit.squad, ambushZone.center);
+        ambushSprung(unit.squad, ambushZone.center);
         engagementSequence.start();
     }
 
@@ -1037,13 +1046,13 @@ Item {
 }
 ```
 
-**Lines of Code**: ~250 (QML) = **~250 lines**
+**Lines of Code**: ~250 (QML) = **250 lines**
 
 **Complexity**: Low. The declarative state machine is intuitive.
 
 ### 13.3.5 Comparative Analysis
 
-| Aspect           | OpenCombat-SDL    | OpenCombat        | CloseCombatFree  |
+| **Aspect**           | OpenCombat-SDL    | OpenCombat        | CloseCombatFree  |
 | ---------------- | ----------------- | ----------------- | ---------------- |
 | **Lines of Code**    | ~420              | ~370              | ~250             |
 | **State Complexity** | High (bitfield)   | Medium (enums)    | Low (QML states) |
@@ -1051,14 +1060,12 @@ Item {
 | **Debugging**        | Hard (bit values) | Medium (messages) | Easy (visual)    |
 | **Moddability**      | Poor              | Good              | Excellent        |
 
-### 13.3.6 Synthesis: Recommended Approach
+### 13.3.6 Synthesis: Recommended Hybrid Approach
 
 **Hybrid Behavior System**:
 
 ```pseudocode
-// Core state in enum (type-safe)
-// Behavior defined in Lua (moddable)
-
+// Core state in C++ enum (type-safe)
 enum AmbushState {
     Concealed,
     Scanning,
@@ -1067,6 +1074,7 @@ enum AmbushState {
     Repositioning,
 }
 
+-- Behavior defined in Lua (moddable)
 -- behaviors/ambush.lua
 AmbushBehavior = {
     states = {
@@ -1203,7 +1211,7 @@ void World::DestroyCover(int tileX, int tileY) {
 }
 ```
 
-**Lines of Code**: ~500 (C++) + ~50 (XML) = **~550 lines**
+**Lines of Code**: ~500 (C++) + ~50 (XML) = **550 lines**
 
 ### 13.4.3 OpenCombat Approach: Message-Based Cover Updates
 
@@ -1348,7 +1356,7 @@ Prop {
     function destroyCover() {
         isDestroyed = true;
         spawnDebris();
-        emit coverDestroyed(cover);
+        coverDestroyed(cover);
     }
 }
 ```
@@ -1357,7 +1365,7 @@ Prop {
 
 ### 13.4.5 Comparative Analysis
 
-| Aspect         | OpenCombat-SDL | OpenCombat      | CloseCombatFree |
+| **Aspect**         | OpenCombat-SDL | OpenCombat      | CloseCombatFree |
 | -------------- | -------------- | --------------- | --------------- |
 | **Lines of Code**  | ~550           | ~600            | ~300            |
 | **Granularity**    | Tile-based     | Object-based    | Object-based    |
@@ -1365,7 +1373,7 @@ Prop {
 | **Visual Quality** | Good           | Good            | Excellent       |
 | **Moddability**    | Limited        | Good            | Excellent       |
 
-### 13.4.6 Synthesis: Recommended Approach
+### 13.4.6 Synthesis: Recommended Hybrid Approach
 
 **Hybrid Grid + Object System**:
 
@@ -1390,7 +1398,8 @@ CoverObject: {
         if self.integrity <= 0 {
             destroy()
         }
-        emit CoverDamaged(self.id, self.integrity)
+        // Signal that cover has been damaged
+        CoverDamaged(self.id, self.integrity)
     }
 }
 
@@ -1563,7 +1572,7 @@ Item {
 
 ### 13.5.5 Comparative Analysis
 
-| Aspect            | OpenCombat-SDL | OpenCombat    | CloseCombatFree      |
+| **Aspect**            | OpenCombat-SDL | OpenCombat    | CloseCombatFree      |
 | ----------------- | -------------- | ------------- | -------------------- |
 | **Lines of Code**     | ~400           | ~500          | ~350                 |
 | **Update Frequency**  | Every frame    | Every frame   | 10 Hz                |
@@ -1571,7 +1580,7 @@ Item {
 | **Performance**       | Good           | Good          | Moderate             |
 | **Elevation Support** | No             | Yes           | Limited              |
 
-### 13.5.6 Synthesis: Recommended Approach
+### 13.5.6 Synthesis: Recommended Hybrid Approach
 
 **Hybrid Visibility System**:
 
@@ -1681,7 +1690,7 @@ void Campaign::Save(const std::string& filename) {
 }
 ```
 
-**Lines of Code**: ~800 (C++) + ~150 (XML)
+**Lines of Code**: ~800 (C++) + ~150 (XML) = **950 lines**
 
 ### 13.6.3 OpenCombat Approach: JSON Persistence + Deterministic Replay
 
@@ -1725,7 +1734,7 @@ impl CampaignManager {
 }
 ```
 
-**Lines of Code**: ~700 (Rust) + ~100 (JSON) = **~800 lines**
+**Lines of Code**: ~700 (Rust) + ~100 (JSON) = **800 lines**
 
 ### 13.6.4 CloseCombatFree Approach: QML Campaign Definition
 
@@ -1772,11 +1781,13 @@ Campaign {
 }
 ```
 
-**Lines of Code**: ~600 (QML) = **~600 lines**
+**Lines of Code**: ~600 (QML) = **600 lines**
+
+*Note: CloseCombatFree's campaign system uses simplified JSON persistence without deterministic replay. For production use, consider adding deterministic simulation and Lua event hooks for moddability.*
 
 ### 13.6.5 Comparative Analysis
 
-| Aspect         | OpenCombat-SDL | OpenCombat    | CloseCombatFree |
+| **Aspect**         | OpenCombat-SDL | OpenCombat    | CloseCombatFree |
 | -------------- | -------------- | ------------- | --------------- |
 | **Lines of Code**  | ~950           | ~800          | ~600            |
 | **Persistence**    | Binary save    | JSON + replay | JSON            |
@@ -1784,7 +1795,7 @@ Campaign {
 | **Replay Support** | No             | Yes           | No              |
 | **Visual Tools**   | Limited        | Limited       | Built-in        |
 
-### 13.6.6 Synthesis: Recommended Approach
+### 13.6.6 Synthesis: Recommended Hybrid Approach
 
 **Hybrid Campaign System**:
 
@@ -1835,13 +1846,13 @@ end
 
 ### 13.7.1 Key Insights from Case Studies
 
-| Case Study      | Best Approach | Key Insight                                              |
-| --------------- | ------------- | -------------------------------------------------------- |
-| **Sniper Team**     | OpenCombat    | Lua scripting makes behaviors moddable                   |
-| **Ambush Behavior** | Hybrid        | State machines combined with scripts provide flexibility |
-| **Dynamic Cover**   | OpenCombat    | Spatial indexing and messages improve performance        |
-| **Fog of War**      | Hybrid        | Shadow casting with smooth rendering delivers quality    |
-| **Campaign**        | Hybrid        | JSON structure with Lua events creates power             |
+| Case Study          | Best Approach | Architecture Pattern              | Key Insight                                              |
+| ------------------- | ------------- | --------------------------------- | -------------------------------------------------------- |
+| **Sniper Team**     | OpenCombat    | Component Composition + Lua       | Lua scripting makes behaviors moddable                   |
+| **Ambush Behavior** | Hybrid        | State Machine + Message Passing   | State machines combined with scripts provide flexibility |
+| **Dynamic Cover**   | OpenCombat    | Message-Driven Spatial Indexing   | Spatial indexing and messages improve performance        |
+| **Fog of War**      | Hybrid        | Shadow Casting + Smooth Rendering | Shadow casting with smooth rendering delivers quality    |
+| **Campaign**        | Hybrid        | JSON + Deterministic Replay       | JSON structure with Lua events creates power             |
 
 ### 13.7.2 Universal Recommendations
 

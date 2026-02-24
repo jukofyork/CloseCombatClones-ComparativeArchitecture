@@ -1,3 +1,5 @@
+[Previous: Chapter 9: Lessons Learned](chapter_09_lessons_learned.md)
+
 # Chapter 10: Architectural Recommendations for Tactical Wargames
 
 ## The Answer Key: What to Do and Why
@@ -13,14 +15,15 @@ Your architecture must align with your game's primary purpose. Each game type re
 Competitive multiplayer needs determinism, fairness, and anti-cheat. Players will exploit any ambiguity in game state.
 
 **Required Patterns**:
-- **Server-authoritative simulation**: Server validates all state changes
-- **Deterministic lockstep**: Fixed timestep, seeded RNG, reproducible physics
-- **Three-tier state hierarchy**: Phase → Behavior → Gesture for clear state relationships
-- **Message-driven updates**: All state changes flow through messages (enables replay and sync)
-- **Type-safe indices**: Compile-time prevention of entity reference bugs
+- Server-authoritative simulation: Server validates all state changes
+- Deterministic lockstep: Fixed timestep, seeded RNG, reproducible physics
+- Three-tier state hierarchy: Phase → Behavior → Gesture for clear state relationships
+- Message-driven updates: All state changes flow through messages (enables replay and sync)
+- Type-safe indices: Compile-time prevention of entity reference bugs
 
 **Technology Choices**:
-```
+
+```text
 Language: Rust (memory safety) or C++17 (performance, ecosystem)
 Networking: ZeroMQ, ENet, or custom UDP with reliability layer
 State Sync: Event sourcing (messages) not snapshots
@@ -28,6 +31,7 @@ Physics: Fixed-point or deterministic floating-point
 ```
 
 **Example: Deterministic State Update**
+
 ```rust
 // OpenCombat pattern: All changes via messages
 enum BattleStateMessage {
@@ -48,13 +52,14 @@ fn tick(state: &mut BattleState, messages: &[BattleStateMessage]) {
 Single-player games focus on simulation depth, emergent behavior, and combat feel rather than synchronization. Rich interactions matter more than message passing overhead.
 
 **Recommended Patterns**:
-- **Bitfield state system**: 64 orthogonal states for emergent capability combinations
-- **Automatic prerequisite chaining**: Actions declare requirements, system finds prerequisites
-- **Deep inheritance hierarchies**: Natural modeling of "Soldier IS-A Object"
-- **Direct method calls**: Simple, synchronous, intuitive
+- Bitfield state system: 64 orthogonal states for emergent capability combinations
+- Automatic prerequisite chaining: Actions declare requirements, system finds prerequisites
+- Deep inheritance hierarchies: Natural modeling of "Soldier IS-A Object"
+- Direct method calls: Simple, synchronous, intuitive
 
 **Technology Choices**:
-```
+
+```text
 Language: C++17 (performance, control, ecosystem)
 Graphics: SDL2, Raylib, or SFML
 Physics: Box2D (if needed) or custom deterministic
@@ -62,6 +67,7 @@ Pathfinding: A* with custom heuristics
 ```
 
 **Example: Automatic Prerequisite Chain**
+
 ```cpp
 // OpenCombat-SDL pattern: Declarative action requirements
 void Soldier::AddAction(Action* action) {
@@ -72,7 +78,7 @@ void Soldier::AddAction(Action* action) {
     while (prereq != -1) {
         Action* prereqAction = new Action(prereq);
         _actionQueue.push_front(prereqAction);  // Insert before
-        prereq = CheckRequirements(prereqAction, &_currentState);
+        prereq = CheckRequirements(prereqAction->Index, &_currentState);
     }
 
     _actionQueue.push_back(action);
@@ -94,7 +100,8 @@ If your community creates content, runtime flexibility becomes essential. Recomp
 - **Property binding**: Reactive UI that drives game logic
 
 **Technology Choices**:
-```
+
+```text
 Language: C++17/Qt5 (QML) or C# (Unity) or JavaScript/Electron
 Scripting: Lua, Wren, or QML itself
 Data: JSON, YAML, or XML
@@ -102,6 +109,7 @@ Hot Reload: File watching + dynamic reloading
 ```
 
 **Example: Runtime Unit Creation**
+
 ```qml
 // CloseCombatFree pattern: Declarative unit definition
 Tank {
@@ -193,6 +201,7 @@ flowchart TD
 The hierarchy provides clear relationships and timescale separation. The bitfield enables efficient capability queries. Together, they address both organizational and performance needs.
 
 **Implementation Pattern**:
+
 ```cpp
 struct UnitState {
     // Hierarchy (from OpenCombat)
@@ -206,12 +215,13 @@ struct UnitState {
 };
 
 // Query capabilities efficiently
-bool canFire = (state.capabilities & CAN_FIRE) == CAN_FIRE;
+bool canFire = (state.capabilities & static_cast<uint64_t>(Capability::CanFire)) != 0;
 ```
 
 **Language-Specific Implementations**:
 
 **C++**:
+
 ```cpp
 enum class Capability : uint64_t {
     CanMove = 1 << 0,
@@ -226,6 +236,7 @@ constexpr uint64_t operator|(Capability a, Capability b) {
 ```
 
 **Rust**:
+
 ```rust
 bitflags! {
     struct Capabilities: u64 {
@@ -237,6 +248,7 @@ bitflags! {
 ```
 
 **C#**:
+
 ```csharp
 [Flags]
 public enum Capabilities : ulong {
@@ -253,7 +265,7 @@ public enum Capabilities : ulong {
 This approach avoids rigid inheritance hierarchies. It supports unusual unit types like flying tanks or crewed artillery. The aggregate pattern also models squad relationships naturally.
 
 **Universal Pattern**:
-```pseudocode
+```text
 Entity Unit {
     uuid: EntityId
     components: Map<ComponentType, Component>
@@ -295,6 +307,7 @@ Aggregate Squad {
 ```
 
 **Implementation Pattern (C++)**:
+
 ```cpp
 // Type-safe indices instead of pointers
 struct SoldierIndex { size_t value; };
@@ -316,6 +329,7 @@ struct Squad {
 ```
 
 **Implementation Pattern (Rust)**:
+
 ```rust
 pub struct Soldier {
     pub transform: Transform,
@@ -488,7 +502,7 @@ struct SpatialHash {
     cellSize: float = 100.0
     cells: Map<uint64_t, List<EntityId>>
 
-    function hash(position: Vec2) -> uint64_t {
+    function hash(position: Vec2) returns uint64_t {
         x = position.x / cellSize
         y = position.y / cellSize
         return (x << 32) | y
@@ -678,7 +692,7 @@ These patterns work in any language with the right constructs.
 **Solution:** Use type-safe indices with central storage.
 
 **Universal Concept:**
-```pseudocode
+```text
 // Instead of pointers
 Soldier* soldier;  // Dangerous: dangling, null, ownership unclear
 
@@ -690,6 +704,7 @@ Soldier& soldier = world.soldiers[idx.value];  // Access via central storage
 **Language Implementations:**
 
 **C++:**
+
 ```cpp
 struct SoldierIndex {
     size_t value;
@@ -748,7 +763,7 @@ const createSoldierIndex = (value: number): SoldierIndex =>
 **Solution**: Route all changes through messages.
 
 **Example**:
-```pseudocode
+```text
 // Direct mutation hides context
 soldier.health -= damage;  // Who caused this? When?
 
@@ -775,7 +790,7 @@ bus.publish(SoldierDamaged(soldierIdx, 10, attacker));
 **Solution**: Use a spatial hash for O(1) insertion and O(cells_in_radius) queries.
 
 **Example**:
-```pseudocode
+```text
 struct SpatialHash {
     cellSize: float
 
@@ -879,8 +894,8 @@ flowchart TB
 
 ### 10.4.2 Key Design Decisions
 
-| System            | Pattern                         | Implementation                            |
-| ----------------- | ------------------------------- | ----------------------------------------- |
+| System | Pattern | Implementation |
+|--------|---------|----------------|
 | **State Management**  | Three-tier hierarchy + Bitfield | Phase→Behavior→Gesture + Capability flags |
 | **Entity Model**      | Component composition           | Entities as component containers          |
 | **Entity References** | Type-safe indices               | SoldierIndex, VehicleIndex wrappers       |
@@ -894,7 +909,8 @@ flowchart TB
 ### 10.4.3 Technology Stack Recommendations
 
 **For Maximum Performance (AAA/Competitive)**:
-```
+
+```text
 Language: C++20 or Rust
 Graphics: Custom Vulkan/DirectX12 or wgpu
 Physics: Custom deterministic or Jolt Physics
@@ -904,7 +920,7 @@ Build: CMake or Cargo
 ```
 
 **For Rapid Development (Indie/First Game)**:
-```
+```text
 Language: C# (Unity/Godot) or C++ (SDL2/Raylib)
 Graphics: Unity/Godot engine or SDL2
 Physics: Unity Physics2D or Box2D
@@ -914,7 +930,7 @@ Build: Editor-based or simple Makefile
 ```
 
 **For Maximum Moddability (Community-Focused)**:
-```
+```text
 Language: C++17/Qt5 or C# (Unity)
 Graphics: Qt/QML or Unity
 Physics: Qt's built-in or Unity
@@ -1008,7 +1024,7 @@ Before writing code, answer these questions:
 - Single-player, multiplayer, or both?
 - Competitive multiplayer? (Requires determinism)
 - Modding support needed?
-- Target audience: hardcore wargamers or casual players?
+- Target audience: hardcore war gamers or casual players?
 - Scale: maximum units on screen?
 
 **Technical**
@@ -1190,7 +1206,7 @@ Use CloseCombatFree patterns. They're declarative with hot reload. Invest in QML
 
 **The Universal Truth**
 
-No single "right" architecture exists—only trade-offs. The Close Combat clones prove the same game concept can succeed with radically different approaches. Understand the trade-offs and choose based on your constraints.
+No single "right" architecture exists—only trade-offs. The Close Combat clones have proven the same game concept can succeed with radically different approaches. Understand the trade-offs and choose based on your constraints.
 
 The patterns in this book give you the vocabulary. The recommendations provide guidance. Your execution determines the result.
 

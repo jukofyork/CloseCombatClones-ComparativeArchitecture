@@ -62,49 +62,49 @@ The insights apply to any programming language or game engine. While the source 
 **[Chapter 3: State Management Deep Dive](chapter_03_state_management.md)**
 
 - OpenCombat-SDL: 64-bit bitfield state machine
-- OpenCombat: Three-tier state hierarchy (Phase→Behavior→Gesture)
 - CloseCombatFree: Dual-state system (Runtime + Visual)
+- OpenCombat: Three-tier state hierarchy (Phase→Behavior→Gesture)
 - Comparisons and recommendations
 
 **[Chapter 4: World & Terrain Design Patterns](chapter_04_world_terrain.md)**
 
 - The three pillars: Cover, Hindrance, Elevation
 - OpenCombat-SDL: Tile-based spatial partitioning
-- OpenCombat: Opacity-based visibility system
 - CloseCombatFree: Height maps and raycasting
+- OpenCombat: Opacity-based visibility system
 - Best practices for terrain design
 
 **[Chapter 5: Unit Hierarchy & Object Models](chapter_05_unit_hierarchy.md)**
 
 - OpenCombat-SDL: Deep inheritance hierarchy
-- OpenCombat: Modified ECS pattern
 - CloseCombatFree: Component composition with QML
+- OpenCombat: Modified ECS pattern
 - Comparisons and modern recommendations
 
 **[Chapter 6: Order & AI System Design](chapter_06_orders_ai.md)**
 
 - The spectrum of command abstraction
 - OpenCombat-SDL: Two-tier command system
-- OpenCombat: Behavior-driven AI
 - CloseCombatFree: Queue-based orders
+- OpenCombat: Behavior-driven AI
 - The AI autonomy spectrum and modern approaches
 
 **[Chapter 7: Moddability & Data-Driven Design](chapter_07_moddability.md)**
 
-- The modding spectrum
+- The moddability spectrum
 - OpenCombat-SDL: XML content modding
 - OpenCombat: JSON configuration modding
 - CloseCombatFree: Full QML content modding
 - Designing for moddability
 
-**[Chapter 8: Modern GameDev Pattern Adoption](chapter_08_architectural_patterns.md)**
+**[Chapter 8: Architectural Patterns](chapter_08_architectural_patterns.md)**
 
 - Classic patterns: Command, Observer, State, Factory
 - Game-specific patterns: ECS, Object Pool, Service Locator
 - Modern patterns: Event Sourcing, Data-Oriented Design
 - Anti-patterns to avoid
 
-**[Chapter 9: Strengths, Weaknesses & Lessons Learned](chapter_09_lessons_learned.md)**
+**[Chapter 9: Lessons Learned: 20 Years of Tactical Wargame Development](chapter_09_lessons_learned.md)**
 
 - Strengths and weaknesses of each project
 - Comparative feature matrix
@@ -123,7 +123,7 @@ The insights apply to any programming language or game engine. While the source 
 - Multiplayer architecture
 - Implementation roadmap
 
-**[Chapter 11: The Close Combat Pattern Language](chapter_11_universal_patterns.md)**
+**[Chapter 11: Universal Patterns](chapter_11_universal_patterns.md)**
 
 - Catalog of 17+ design patterns
 - Pattern taxonomy: Entity, State, Command, Perception, System
@@ -187,35 +187,35 @@ The insights apply to any programming language or game engine. While the source 
 - Architecture Pitfalls: Deep inheritance, premature ECS, simulation/rendering coupling
 - Multiplayer Pitfalls: Late determinism, RNG issues, floating-point inconsistencies
 - AI Pitfalls: Omniscient AI, frame-rate dependency, complexity, autonomy
-- Modding Pitfalls: Hardcoded content, binary formats, no hot-reload
+- Modding Pitfalls: Hardcoded content, binary formats, no hot reload
 - Performance Pitfalls: O(n²) coordination, spatial query issues
 
 ---
 
 ### Technical Appendices
 
-**[Appendix A: State and World Systems](appendix_a_state_world_systems.md)**
+**[Appendix A: State & World Systems](appendix_a_state_world_systems.md)**
 
 - Technical reference for state management in all three games
 - Bitfield architecture (OpenCombat-SDL)
-- Three-tier state hierarchy (OpenCombat)
 - Dual-state system (CloseCombatFree)
+- Three-tier state hierarchy (OpenCombat)
 - Design pattern comparisons and recommendations
 
-**[Appendix B: Unit, Vehicle, and Squad Attribute Systems](appendix_b_unit_attribute_systems.md)**
+**[Appendix B: Unit, Vehicle, & Squad Attribute Systems](appendix_b_unit_attribute_systems.md)**
 
 - Entity system architectures in detail
 - Deep OOP hierarchy (OpenCombat-SDL)
-- Modified ECS pattern (OpenCombat)
 - Component composition (CloseCombatFree)
+- Modified ECS pattern (OpenCombat)
 - Attribute system comparisons and design recommendations
 
-**[Appendix C: File Formats and Data Hierarchy](appendix_c_file_formats.md)**
+**[Appendix C: File Formats & Data Hierarchy](appendix_c_file_formats.md)**
 
 - Complete file format specifications
 - XML data files (OpenCombat-SDL)
-- JSON and TMX formats (OpenCombat)
 - QML declarative data (CloseCombatFree)
+- JSON and TMX formats (OpenCombat)
 - Format comparisons and architecture recommendations
 
 ---
@@ -245,3 +245,4 @@ The insights apply to any programming language or game engine. While the source 
 - **Innovation:** Three-tier state hierarchy with message-driven deterministic simulation
 - **Best For:** Multiplayer, competitive play, replay systems
 - **Key Insight:** Server-authoritative design enables competitive multiplayer, complete replay recording, and emergent AI behavior
+

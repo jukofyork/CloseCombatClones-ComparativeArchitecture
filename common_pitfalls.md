@@ -101,7 +101,7 @@ struct Health {
 - Group fields by update frequency
 - Separate simulation data from rendering data
 
-**Reference:** Chapter 5: Unit Hierarchy and Chapter 12: Modified ECS with Type-Safe Indices
+**Reference:** See [Chapter 5: Unit Hierarchy](chapter_05_unit_hierarchy.md) and [Chapter 12: Modified ECS with Type-Safe Indices](chapter_12_modified_ecs.md)
 
 ---
 
@@ -192,7 +192,7 @@ impl BattleState {
 - Define explicit transition rules
 - Prevent direct state mutation from arbitrary code
 
-**Reference:** Chapter 3: State Management Patterns, Section 3.8.2
+**Reference:** See [Chapter 3: State Management Patterns](chapter_03_state_management.md), Section 3.8.2
 
 ---
 
@@ -268,7 +268,7 @@ fn remove_soldier(&mut self, idx: SoldierIndex) {
 - Use deferred updates: collect changes, apply after iteration
 - For deletion, use swap-remove or mark-and-sweep patterns
 
-**Reference:** Chapter 5: Section 5.2.3 Modified ECS Pattern
+**Reference:** See [Chapter 5: Section 5.2.3 Modified ECS Pattern](chapter_05_unit_hierarchy.md)
 
 ---
 
@@ -332,7 +332,7 @@ void Soldier::QueueAction(Action action) {
 // Player clicks: "Run to X"
 // System automatically inserts:
 // 1. StandUp (removes PRONE, adds STANDING)
-// 2. RunTo (requires STANDING, adds RUNNING)
+// 2. Run to X (requires STANDING, adds RUNNING)
 ```
 
 **Prevention:**
@@ -340,11 +340,11 @@ void Soldier::QueueAction(Action action) {
 - Implement automatic prerequisite resolution
 - Avoid requiring players to handle obvious transitions
 
-**Reference:** Chapter 3: Section 3.3.2 Automatic Prerequisite Chaining
+**Reference:** See [Chapter 3: Section 3.3.2 Automatic Prerequisite Chaining](chapter_03_state_management.md)
 
 ---
 
-### 1.5 Hardcoded State Dependencies
+### 1.5 Pitfall: Hardcoded State Dependencies
 
 **The Problem:**
 State logic scattered in if-statements throughout the codebase, making it impossible to find all affected code.
@@ -433,7 +433,7 @@ if soldier.capabilities.contains(Capabilities::CAN_FIRE) {
 - Recalculate capabilities when state changes
 - Never check raw state bits outside capability calculation
 
-**Reference:** Chapter 3: Section 3.6.3 Pattern Combinations
+**Reference:** See [Chapter 3: Section 3.6.3 Pattern Combinations](chapter_03_state_management.md)
 
 ---
 
@@ -458,21 +458,21 @@ class VeteranSniper : public Sniper { /* ... */ };
 // The diamond problem appears if Mobile and Armed mixins are added.
 ```
 
-**Why It's Bad:**
+**Consequences:**
 - Multiple inheritance creates the diamond problem
 - Rigid taxonomies force premature classification
 - Novel combinations become impossible (flying tank?)
 - The fragile base class problem emerges
 - Cache performance suffers from scattered vtables
 
-**How to Detect It:**
+**Detection:**
 ```bash
 # Check inheritance depth
 grep -r "class.*:.*public" --include="*.h" | grep -v "//" | awk -F: '{print $2}' | grep -c "public"
 # Chains like A->B->C->D indicate deep hierarchies
 ```
 
-**How to Fix It:**
+**Solution:**
 Use component composition:
 ```rust
 // OpenCombat's flat ECS approach
@@ -510,12 +510,12 @@ Entity {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 - Prefer composition over inheritance
 - Keep inheritance hierarchies shallow (2-3 levels maximum)
 - Use ECS or component-based architecture
 
-**Reference:** See Chapter 5: Section 5.2 Evolution from Deep Inheritance to Composition
+**Reference:** See [Chapter 5: Section 5.2 Evolution from Deep Inheritance to Composition](chapter_05_unit_hierarchy.md)
 
 ---
 
@@ -543,22 +543,22 @@ class World {
 };
 ```
 
-**Why It's Bad:**
+**Consequences:**
 - Excessive boilerplate for simple games
 - Component lookup overhead
 - Debugging becomes difficult with scattered logic
 - Overkill for games with fewer than 1,000 entities
 - Steep learning curve for teams
 
-**How to Detect It:**
+**Detection:**
 - The game has fewer than 500 units
 - More time is spent on ECS plumbing than gameplay
 - Simple operations require 50+ lines of code
 
-**How to Fix It:**
-Use a modified ECS (OpenCombat's approach):
+**Solution:**
+Use a Modified ECS (OpenCombat's approach):
 ```rust
-// Modified ECS - entities are structs, not just IDs
+// Modified ECS approach - entities are structs, not just IDs
 pub struct BattleState {
     pub soldiers: Vec<Soldier>,    // Contiguous array
     pub vehicles: Vec<Vehicle>,    // Separate array
@@ -583,12 +583,12 @@ fn update_soldiers(state: &mut BattleState, dt: f32) {
 // - Simplicity without complex query systems
 ```
 
-**Prevention Tips:**
+**Prevention:**
 - Use pure ECS only for games with 10,000+ entities
-- For tactical wargames (500-1,000 units), use modified ECS
+- For tactical wargames (500-1,000 units), use Modified ECS
 - Start simple, add complexity only when needed
 
-**Reference:** See Chapter 5: Section 5.2.3 Modified ECS with Type-Safe Indices
+**Reference:** See [Chapter 5: Section 5.2.3 Modified ECS with Type-Safe Indices](chapter_05_unit_hierarchy.md)
 
 ---
 
@@ -615,20 +615,20 @@ void World::Simulate(float dt) {
 }
 ```
 
-**Why It's Bad:**
+**Consequences:**
 - Simulation cannot run without graphics initialized
 - Headless servers become impossible
-- Different framerates for simulation and rendering can't be used
+- Different frame rates for simulation and rendering can't be used
 - Deterministic replay cannot be implemented
 - Testing requires display initialization
 
-**How to Detect It:**
+**Detection:**
 ```bash
 # Look for Draw/Render calls in Update functions
 grep -rn "Update.*{" --include="*.cpp" -A 20 | grep -E "(Draw|Render|Sprite)"
 ```
 
-**How to Fix It:**
+**Solution:**
 Strict separation:
 ```cpp
 // OpenCombat-SDL got this right
@@ -652,17 +652,17 @@ game_loop() {
     while (running) {
         ProcessInput();
         World::Simulate(dt);      // Fixed timestep
-        World::Render(screen);    // Variable framerate
+        World::Render(screen);    // Variable frame rate
     }
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 - Never call render functions from simulation code
 - Use separate update rates (simulation at 60Hz, rendering at display rate)
 - Ensure simulation can run without graphics
 
-**Reference:** See Chapter 9: Section 9.2.2 Separation of Simulation from Rendering
+**Reference:** See [Chapter 9: Section 9.2.2 Separation of Simulation from Rendering](chapter_09_lessons_learned.md)
 
 ---
 
@@ -695,18 +695,18 @@ class Renderer {
 };
 ```
 
-**Why It's Bad:**
+**Consequences:**
 - AI cannot be tested without the rendering system
 - Rendering cannot be modified without breaking AI
 - Circular dependencies appear
 - Separation of concerns is violated
 
-**How to Detect It:**
+**Detection:**
 - Graphics headers appear in AI code
 - AI headers appear in rendering code
 - Dependency analysis tools reveal circular references
 
-**How to Fix It:**
+**Solution:**
 Use intermediate data structures:
 ```rust
 // Simulation produces pure data
@@ -751,13 +751,13 @@ fn build_render_state(battle: &BattleState) -> RenderState {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 - AI should access only simulation state
 - Rendering should access only render state
 - Use explicit conversion between states
 - Never import graphics headers in AI code
 
-**Reference:** See Chapter 12: Section 12.3 Phase 1 Implementation
+**Reference:** See [Chapter 12: Section 12.3 Phase 1 Implementation](chapter_12_implementation_guide.md)
 
 ---
 
@@ -782,16 +782,20 @@ void Soldier::Fire() {
     target.TakeDamage(damage);
 }
 
-// Frame-rate dependent!
+// Frame rate dependent!
 void Soldier::Move(float dt) {
     position += velocity * dt;  // dt varies by frame rate
 }
 ```
 
-**Why It's Bad:**
-Rewriting core systems becomes necessary. Floating-point behavior differs across platforms. Random number generation requires synchronization. Frame-rate dependent logic causes desyncs. The process often demands a complete architectural overhaul.
+**Consequences:**
+- Rewriting core systems becomes necessary
+- Floating-point behavior differs across platforms
+- Random number generation requires synchronization
+- Frame rate dependent logic causes desyncs
+- The process often demands a complete architectural overhaul
 
-**How to Detect It:**
+**Detection:**
 ```bash
 # Search for non-deterministic functions
 grep -rn "rand()\|srand()\|random()" --include="*.cpp"
@@ -799,7 +803,7 @@ grep -rn "gettimeofday\|clock_gettime" --include="*.cpp"
 grep -rn "float.*=.*dt\|delta_time" --include="*.cpp"
 ```
 
-**How to Fix It:**
+**Solution:**
 Design for determinism from the start:
 ```rust
 // OpenCombat's deterministic approach
@@ -830,7 +834,7 @@ impl FixedPoint {
     }
 }
 
-// Frame-rate independent using tick count
+// Frame rate independent using tick count
 pub fn tick(state: &mut BattleState, tick_number: u64) {
     // Always advance by fixed amount
     let dt = TICK_DURATION;
@@ -842,10 +846,10 @@ pub fn tick(state: &mut BattleState, tick_number: u64) {
 }
 ```
 
-**Prevention Tips:**
-Use deterministic RNG from the beginning. Implement fixed-point or consistent floating-point rounding. Adopt fixed timestep simulation instead of frame-rate dependent logic. Ensure all state changes occur through a message system.
+**Prevention:**
+Use deterministic RNG from the beginning. Implement fixed-point or consistent floating-point rounding. Adopt fixed-timestep simulation instead of frame rate dependent logic. Ensure all state changes occur through a message system.
 
-**Reference:** See Chapter 15: Section 15.1.1 The Determinism Requirement
+**Reference:** See [Chapter 15: Section 15.1.1 The Determinism Requirement](chapter_15_multiplayer.md)
 
 ---
 
@@ -871,15 +875,15 @@ void Soldier::Fire() {
 std::mt19937 rng(std::random_device{}());  // Different seed on each machine!
 ```
 
-**Why It's Bad:**
+**Consequences:**
 RNG sequences vary across platforms, causing multiplayer desyncs. Bug reproduction becomes unreliable. Replay systems fail.
 
-**How to Detect It:**
+**Detection:**
 ```bash
 grep -rn "rand()\|srand()\|std::random" --include="*.cpp" --include="*.h"
 ```
 
-**How to Fix It:**
+**Solution:**
 Implement deterministic RNG with synchronized seeds:
 ```rust
 // OpenCombat's solution
@@ -933,10 +937,10 @@ impl BattleState {
 // Replay only requires initial seed plus inputs
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Avoid system RNG entirely. Always seed from game state, not system time. Use deterministic algorithms like xorshift or PCG. Include RNG state in save files.
 
-**Reference:** See Chapter 15: Section 15.2.1 Message-Based State Updates
+**Reference:** See [Chapter 15: Section 15.2.1 Message-Based State Updates](chapter_15_multiplayer.md)
 
 ---
 
@@ -956,13 +960,13 @@ float new_x = position.x + cos(angle) * speed;
 float new_y = position.y + sin(angle) * speed;
 ```
 
-**Why It's Bad:**
+**Consequences:**
 x86 and ARM have different FPU implementations. Compilers use different optimization strategies. Math libraries show slight variations in transcendental functions. Tiny differences accumulate over thousands of operations.
 
-**How to Detect It:**
+**Detection:**
 Search for `float` or `double` in simulation code. Test on multiple platforms (x86, ARM). Use different compilers (GCC, Clang, MSVC).
 
-**How to Fix It:**
+**Solution:**
 Use fixed-point arithmetic or consistent rounding:
 ```rust
 // Fixed-point for positions (OpenCombat approach)
@@ -1004,10 +1008,10 @@ pub fn consistent_sqrt(value: f32) -> f32 {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Use fixed-point for positions and critical calculations. Round floating-point results to consistent precision. Avoid transcendental functions like sin/cos in simulation code. Use lookup tables for trigonometry when needed.
 
-**Reference:** See Chapter 15: Section 15.1.1 The Determinism Requirement
+**Reference:** See [Chapter 15: Section 15.1.1 The Determinism Requirement](chapter_15_multiplayer.md)
 
 ---
 
@@ -1030,13 +1034,13 @@ void World::Update() {
 // Results diverge!
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Hash map iteration order varies by implementation. Different STL versions iterate differently. Results depend on memory layout. Desyncs occur even with identical inputs.
 
-**How to Detect It:**
+**Detection:**
 Check if `std::unordered_map` or hash maps are used. Verify whether the order of `Update()` calls affects results.
 
-**How to Fix It:**
+**Solution:**
 Use deterministic ordering:
 ```rust
 // OpenCombat's solution
@@ -1065,14 +1069,14 @@ pub fn tick(state: &mut BattleState) {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Always iterate in sorted order. Never rely on hash map iteration order. Collect changes before applying them. Sort changes before application.
 
-**Reference:** See Chapter 15: Section 15.2.2 Fixed Timestep Simulation
+**Reference:** See [Chapter 15: Section 15.2.2 Fixed Timestep Simulation](chapter_15_multiplayer.md)
 
 ---
 
-### 3.5 Solution: Message-Based Architecture
+### 3.5 Pitfall: Message-Based Architecture Solution
 
 A message-based architecture solves all multiplayer pitfalls:
 
@@ -1114,7 +1118,7 @@ impl BattleState {
 5. Multiplayer: Server validates and broadcasts messages
 ```
 
-**Reference:** See Chapter 15: Section 15.2 The Deterministic Simulation Approach
+**Reference:** See [Chapter 15: Section 15.2 The Deterministic Simulation Approach](chapter_15_multiplayer.md)
 
 ---
 
@@ -1139,15 +1143,15 @@ class AI {
 };
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Players find it frustrating when AI operates outside the same rules. Immersion breaks, balance becomes impossible, and fog of war fails to function.
 
-**How to Detect It:**
+**Detection:**
 - Does the AI use different line-of-sight checks than the player?
 - Can the AI target enemies the player can't see?
 - Does the AI possess map-wide knowledge?
 
-**How to Fix It:**
+**Solution:**
 Implement a proper perception system:
 ```rust
 // OpenCombat's perception system
@@ -1183,10 +1187,10 @@ impl AI {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Use the same line-of-sight checks for AI and players. Limit AI knowledge to what it can perceive, implement fog of war, and ensure AI makes mistakes—no perfect accuracy.
 
-**Reference:** See Chapter 14: Section 14.3 Perception Systems
+**Reference:** See [Chapter 14: Section 14.3 Perception Systems](chapter_14_ai_systems.md)
 
 ---
 
@@ -1198,7 +1202,7 @@ AI behavior changes with frame rate, creating unpredictability and balance issue
 **Real Example:**
 ```cpp
 void AI::Update(float dt) {
-    // Frame-rate dependent!
+// Frame rate dependent!
     if (dt > 0.1f) {  // Different behavior at low FPS
         panic_mode = true;
     }
@@ -1211,15 +1215,15 @@ void AI::Update(float dt) {
 }
 ```
 
-**Why It's Bad:**
+**Consequences:**
 AI behaves differently on fast and slow machines. Timing exploits emerge, bugs become hard to reproduce, and multiplayer fairness suffers.
 
-**How to Detect It:**
+**Detection:**
 - Does the AI use `delta_time` for decision timing?
 - Does the AI rely on system time (`gettimeofday`)?
 - Test AI at 30fps, 60fps, and 144fps to spot inconsistencies.
 
-**How to Fix It:**
+**Solution:**
 Use a fixed timestep for AI:
 ```rust
 // OpenCombat's approach
@@ -1238,10 +1242,10 @@ pub fn tick_ai(state: &mut BattleState, tick: u64) {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Avoid real time for AI decisions. Never use `delta_time` for AI logic. Rely on tick counts for timing and run AI at a fixed frequency, such as 10Hz.
 
-**Reference:** See Chapter 14: Section 14.1.2 System AI Timescales
+**Reference:** See [Chapter 14: Section 14.1.2 System AI Timescales](chapter_14_ai_systems.md)
 
 ---
 
@@ -1271,15 +1275,15 @@ class UtilityAI {
 // Players can't understand why AI chose position A over B.
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Players struggle to predict AI behavior. Debugging becomes difficult, balance suffers from too many variables, and emergent behavior turns chaotic.
 
-**How to Detect It:**
+**Detection:**
 - Can you explain why the AI made a specific decision?
 - Does the AI require more than 10 considerations per decision?
 - Does AI behavior vary chaotically between playthroughs?
 
-**How to Fix It:**
+**Solution:**
 Simplify AI with clear rules:
 ```rust
 // OpenCombat's simpler approach
@@ -1310,10 +1314,10 @@ fn evaluate_threat_response(soldier: &Soldier) -> Option<Behavior> {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Keep AI explainable. Use simple priority systems instead of complex scoring. Limit considerations to 3-5 per decision. Ensure AI behavior remains consistent and predictable.
 
-**Reference:** See Chapter 14: Section 14.2.4 Comparative Summary
+**Reference:** See [Chapter 14: Section 14.2.4 Comparative Summary](chapter_14_ai_systems.md)
 
 ---
 
@@ -1336,15 +1340,15 @@ void Soldier::Update() {
 }
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Players lose control when units disregard commands. Frustration builds, planned strategies fail, and the game feels like it plays itself.
 
-**How to Detect It:**
+**Detection:**
 - Can units be ordered to retreat?
 - Do units always attack when enemies are visible?
 - Can you order a unit to hold fire?
 
-**How to Fix It:**
+**Solution:**
 Implement order override with priority:
 ```rust
 // OpenCombat's approach - three-tier system
@@ -1379,14 +1383,14 @@ pub fn tick_soldier(soldier_idx: SoldierIndex, state: &mut BattleState) {
 // 3. Default AI - if no orders
 ```
 
-**Prevention Tips:**
-AI should prioritize survival—returning fire or seeking cover—but otherwise follow player orders. Allow "hold fire" and "hold position" commands. Make AI autonomy visible to players.
+**Prevention:**
+AI should prioritize survival—returning fire or seeking cover—but otherwise follow player orders. Allow "hold fire" and "hold position" commands. Make AI autonomy levels visible to players.
 
-**Reference:** See Chapter 6: Section 6.2.2 Dynamic Behavior Override
+**Reference:** See [Chapter 6: Section 6.2.2 Dynamic Behavior Override](chapter_06_orders_and_ai.md)
 
 ---
 
-### 4.5 Solution: Perception + Behavior Separation
+### 4.5 Pitfall: Perception + Behavior Separation Solution
 
 The key to avoiding AI pitfalls lies in separating perception from behavior:
 
@@ -1445,7 +1449,7 @@ impl BehaviorSystem {
 **Benefits:**
 Perception limits information, preventing cheating. Behavior becomes simple and explainable. Systems can be tested independently, and balancing becomes straightforward.
 
-**Reference:** See Chapter 14: Section 14.4.1 Overview of Decision Architectures
+**Reference:** See [Chapter 14: Section 14.4.1 Overview of Decision Architectures](chapter_14_ai_systems.md)
 
 ---
 
@@ -1478,10 +1482,10 @@ void Soldier::Fire() {
 }
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Balancing requires recompilation. The community can't create mods. Developers lose time waiting for builds. Binaries bloat with compiled content.
 
-**How to Detect It:**
+**Detection:**
 ```bash
 # Count enums for content types
 grep -rn "enum.*Type" --include="*.cpp" --include="*.h"
@@ -1490,7 +1494,7 @@ grep -rn "enum.*Type" --include="*.cpp" --include="*.h"
 grep -rn "damage\s*=\s*[0-9]" --include="*.cpp"
 ```
 
-**How to Fix It:**
+**Solution:**
 Move content to external data files:
 ```json
 // weapons.json
@@ -1541,10 +1545,10 @@ impl WeaponDatabase {
 }
 ```
 
-**Prevention Tips:**
-Externalize all content to JSON, XML, or YAML. Use string IDs instead of enums. Load data at runtime. Implement hot-reload for development.
+**Prevention:**
+Externalize all content to JSON, XML, or YAML. Use string IDs instead of enums. Load data at runtime. Implement hot-reload capability for development.
 
-**Reference:** See Chapter 7: Section 7.3 OpenCombat-SDL Configuration Approach
+**Reference:** See [Chapter 7: Section 7.3 OpenCombat-SDL Configuration Approach](chapter_07_moddability.md)
 
 ---
 
@@ -1569,13 +1573,13 @@ void SaveGame(const char* filename) {
 }
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Saves break when game updates. Debugging becomes impossible. Corrupted saves can't be recovered. Modders can't edit files. Platform differences cause issues.
 
-**How to Detect It:**
+**Detection:**
 Check if save files are human-readable. Try opening them in a text editor. Test if saves break between versions.
 
-**How to Fix It:**
+**Solution:**
 Use text-based serialization:
 ```rust
 // OpenCombat's JSON-based saves
@@ -1604,10 +1608,10 @@ pub fn save_game(state: &BattleState, path: &str) -> Result<()> {
 // Platform-independent
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Use JSON, XML, or YAML for saves. Include version numbers for migration. Pretty-print for debugging. Never write raw memory.
 
-**Reference:** See Chapter 7: Section 7.4.2 JSON Deployment System
+**Reference:** See [Chapter 7: Section 7.4.2 JSON Deployment System](chapter_07_moddability.md)
 
 ---
 
@@ -1633,13 +1637,13 @@ class Game {
 // 100 tweaks = 50 minutes wasted
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Developers wait too long. Balancing becomes inefficient. Modders get frustrated. Time gets wasted.
 
-**How to Detect It:**
+**Detection:**
 Check if changing a JSON file requires restart. Measure iteration cycle time. Test if values can be tweaked while playing.
 
-**How to Fix It:**
+**Solution:**
 Implement hot-reload:
 ```rust
 pub struct ConfigSystem {
@@ -1681,10 +1685,10 @@ fn tick(state: &mut BattleState) {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Watch files for changes. Reload automatically. Keep iteration cycles under five seconds. Use inotify or FSEvents for efficient watching.
 
-**Reference:** See Chapter 9: Section 9.6.3 Hot-Reload Development
+**Reference:** See [Chapter 9: Section 9.6.3 Hot-Reload Development](chapter_09_lessons_learned.md)
 
 ---
 
@@ -1718,13 +1722,13 @@ flowchart TD
     class pistol,sniper,aggressive,level1,explosion file
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Modders must learn multiple formats. Tooling varies. Workflows become fragmented. Documentation gets complicated.
 
-**How to Detect It:**
+**Detection:**
 Count how many file formats your modding system uses. Check if modders need multiple editors or tools.
 
-**How to Fix It:**
+**Solution:**
 Standardize on one format:
 ```mermaid
 flowchart TD
@@ -1774,14 +1778,14 @@ Sniper {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Choose one primary format like JSON or YAML. Maintain consistency across all content types. Provide unified tooling. Document the API thoroughly.
 
-**Reference:** See Chapter 7: Section 7.5 CloseCombatFree Declarative Modding
+**Reference:** See [Chapter 7: Section 7.5 CloseCombatFree Declarative Modding](chapter_07_moddability.md)
 
 ---
 
-### 5.5 Solution: Data-Driven from Day One
+### 5.5 Pitfall: Data-Driven from Day One Solution
 
 Design for modding from the start:
 
@@ -1817,7 +1821,7 @@ impl ContentDatabase {
 // Version migration
 ```
 
-**Reference:** See Chapter 7: Section 7.2 The Modding Spectrum
+**Reference:** See [Chapter 7: Section 7.2 The Modding Spectrum](chapter_07_moddability.md)
 
 ---
 
@@ -1846,13 +1850,13 @@ void UpdateSquadCohesion(Squad* squad) {
 // 100 soldiers = 10,000 iterations per frame!
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Squad coordination checks scale poorly. Ten soldiers require 100 checks; 100 soldiers need 10,000. This causes frame drops with large units and delivers unnecessary precision since squad cohesion is inherently fuzzy.
 
-**How to Detect It:**
+**Detection:**
 Profile with large unit counts (100+). Watch for nested loops over unit lists and O(n²) algorithms.
 
-**How to Fix It:**
+**Solution:**
 Use leader-based approximation instead:
 
 ```rust
@@ -1874,10 +1878,10 @@ pub fn update_squad_cohesion(squad: &mut Squad, state: &BattleState) {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Use spatial partitioning. Approximate with leader-based calculations. Keep squad sizes realistic (8-12 members). Cache results when possible.
 
-**Reference:** See Chapter 5: Section 5.4.3 Formation Following
+**Reference:** See [Chapter 5: Section 5.4.3 Formation Following](chapter_05_unit_hierarchy.md)
 
 ---
 
@@ -1902,13 +1906,13 @@ void UpdateVisibility() {
 // 500 soldiers × 500 enemies = 250,000 checks per frame!
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Quadratic scaling destroys performance. Most checks are unnecessary because units are too distant. Random memory access patterns hurt cache efficiency.
 
-**How to Detect It:**
+**Detection:**
 Profile with more than 200 units. Look for nested loops over all units. Watch for frame time increasing quadratically with unit count.
 
-**How to Fix It:**
+**Solution:**
 Implement spatial hashing:
 
 ```rust
@@ -1955,10 +1959,10 @@ for enemy in nearby_enemies {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Always use spatial partitioning for queries. Choose cell size based on typical query radius. Update the spatial hash when units move. Query before expensive operations.
 
-**Reference:** See Chapter 12: Section 12.2.5 Spatial Indexing Options
+**Reference:** See [Chapter 12: Section 12.2.5 Spatial Indexing Options](chapter_12_implementation_guide.md)
 
 ---
 
@@ -1985,13 +1989,13 @@ void Update() {
 }
 ```
 
-**Why It's Bad:**
+**Consequences:**
 Frequent allocations cause garbage collection pauses in managed languages. Memory fragmentation leads to scattered heap allocations and cache misses. Frame times become unpredictable.
 
-**How to Detect It:**
+**Detection:**
 Use memory profilers like Valgrind or heaptrack. Watch for `malloc`/`new` in frame loops. Monitor garbage collection frequency in Java, C#, or JavaScript.
 
-**How to Fix It:**
+**Solution:**
 Preallocate and reuse buffers:
 
 ```rust
@@ -2038,10 +2042,10 @@ impl BulletPool {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Preallocate buffers at startup. Use `clear()` instead of `new`. Implement object pools for temporary objects. Profile memory allocations per frame.
 
-**Reference:** See Chapter 5: Section 5.2.3 Cache Efficiency
+**Reference:** See [Chapter 5: Section 5.2.3 Cache Efficiency](chapter_05_unit_hierarchy.md)
 
 ---
 
@@ -2063,13 +2067,13 @@ void UpdateSoldier(Soldier* soldier) {
 // 100 soldiers × 60fps = 6000 pathfinding calls per second!
 ```
 
-**Why It's Bad:**
+**Consequences:**
 A* pathfinding is expensive (O(n log n)). Paths rarely change every frame. This wastes CPU on redundant calculations.
 
-**How to Detect It:**
+**Detection:**
 Profile pathfinding calls per frame. Check if paths are recalculated when destinations remain unchanged. Watch for frame time spikes when units move.
 
-**How to Fix It:**
+**Solution:**
 Cache paths and only recalculate when necessary:
 
 ```rust
@@ -2126,14 +2130,14 @@ impl Path {
 }
 ```
 
-**Prevention Tips:**
+**Prevention:**
 Cache paths until invalidated. Only recalculate when obstacles change. Use cheaper steering for local avoidance. Limit pathfinding to 1-2Hz instead of every frame.
 
-**Reference:** See Chapter 12: Section 12.3.2 Phase 2 Pathfinding
+**Reference:** See [Chapter 12: Section 12.3.2 Phase 2 Pathfinding](chapter_12_implementation_guide.md)
 
 ---
 
-### 6.5 Solution: Spatial Hash + Caching
+### 6.5 Pitfall: Spatial Hash + Caching Solution
 
 The best performance comes from combining spatial hashing with smart caching:
 
@@ -2198,7 +2202,7 @@ impl OptimizedWorld {
 **Benefits:**
 Updates become O(n) instead of O(n²). Spatial queries run in constant time. Allocations are minimal. Pathfinding uses cached results.
 
-**Reference:** See Chapter 12: Section 12.3 Phase 1-2 Implementation Roadmap
+**Reference:** See [Chapter 12: Section 12.3 Phase 1-2 Implementation Roadmap](chapter_12_implementation_guide.md)
 
 ---
 
@@ -2207,7 +2211,7 @@ Updates become O(n) instead of O(n²). Spatial queries run in constant time. All
 Use this checklist to audit your codebase:
 
 ### State Management
-- [ ] Classes have no more than 30 fields
+- [ ] Keep classes under 30 fields
 - [ ] State changes are centralized
 - [ ] Collections are not modified during iteration
 - [ ] Prerequisites are handled automatically
@@ -2215,7 +2219,7 @@ Use this checklist to audit your codebase:
 
 ### Architecture
 - [ ] Inheritance hierarchies stay under three levels deep
-- [ ] A modified ECS works better than pure ECS for fewer than 1,000 entities
+- [ ] Use Modified ECS for fewer than 1,000 entities
 - [ ] Simulation remains separate from rendering
 - [ ] Simulation code contains no rendering calls
 - [ ] AI never accesses rendering data
@@ -2223,7 +2227,7 @@ Use this checklist to audit your codebase:
 ### Multiplayer
 - [ ] Deterministic RNG is implemented from the start
 - [ ] Fixed-point or consistent float arithmetic is used
-- [ ] A fixed timestep ensures frame-rate independence
+- [ ] A fixed timestep ensures frame rate independence
 - [ ] Iteration order is deterministic
 - [ ] State changes occur through messages
 
@@ -2242,7 +2246,7 @@ Use this checklist to audit your codebase:
 - [ ] Content types avoid hardcoded enums
 
 ### Performance
-- [ ] Spatial partitioning speeds up queries
+- [ ] Use spatial partitioning for queries
 - [ ] No O(n²) algorithms are used
 - [ ] Buffers are preallocated, not created per frame
 - [ ] Pathfinding is cached
@@ -2261,7 +2265,7 @@ Twenty years of Close Combat clones reveal these rules as the most reliable way 
 5. **Make content data-driven**: Use JSON or YAML, not code.
 6. **Optimize for cache efficiency**: Contiguous arrays outperform linked lists.
 7. **Use spatial partitioning**: Queries should never run in O(n²) time.
-8. **Enforce a fixed timestep**: Frame-rate independence is critical.
+8. **Enforce a fixed timestep**: Frame rate independence is critical.
 9. **Limit AI perception**: AI should see only what the player sees.
 10. **Enable hot-reloading**: Reduce iteration time from minutes to seconds.
 
@@ -2269,11 +2273,11 @@ Twenty years of Close Combat clones reveal these rules as the most reliable way 
 
 ## References by Chapter
 
-- **Chapter 3**: State Management Patterns (pitfalls 1.1-1.5)
-- **Chapter 5**: Unit Hierarchy and Composition (pitfalls 2.1, 2.2, 6.1)
-- **Chapter 6**: Orders and AI (pitfalls 4.1-4.4)
-- **Chapter 7**: Moddability (pitfalls 5.1-5.4)
-- **Chapter 9**: Lessons Learned (all categories)
-- **Chapter 12**: Implementation Guide (pitfalls 2.3, 2.4, 6.2-6.4)
-- **Chapter 14**: AI Systems (pitfalls 4.1-4.5)
-- **Chapter 15**: Multiplayer (pitfalls 3.1-3.5)
+- [Chapter 3: State Management Patterns](chapter_03_state_management.md) (pitfalls 1.1-1.5)
+- [Chapter 5: Unit Hierarchy and Composition](chapter_05_unit_hierarchy.md) (pitfalls 2.1, 2.2, 6.1)
+- [Chapter 6: Orders and AI](chapter_06_orders_and_ai.md) (pitfalls 4.1-4.4)
+- [Chapter 7: Moddability](chapter_07_moddability.md) (pitfalls 5.1-5.4)
+- [Chapter 9: Lessons Learned](chapter_09_lessons_learned.md) (all categories)
+- [Chapter 12: Implementation Guide](chapter_12_implementation_guide.md) (pitfalls 2.3, 2.4, 6.2-6.4)
+- [Chapter 14: AI Systems](chapter_14_ai_systems.md) (pitfalls 4.1-4.5)
+- [Chapter 15: Multiplayer](chapter_15_multiplayer.md) (pitfalls 3.1-3.5)

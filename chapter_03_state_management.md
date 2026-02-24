@@ -1,5 +1,9 @@
 # Chapter 3: State Management Patterns in Tactical Wargames
 
+*Previous: [Chapter 2: Architectural Philosophy](chapter_02_architectural_philosophy.md)*
+
+---
+
 ## 3.1 The State Management Problem
 
 Tactical wargames face a distinct challenge. Units must track dozens of interacting states at once—posture, activity, orders, morale, health, and environmental factors. A single soldier might be prone, crawling, suppressed, reloading, concealed, and moving to a new position simultaneously.
@@ -18,24 +22,23 @@ This chapter explores three core patterns for handling this complexity, all draw
 
 ## 3.2 Pattern Taxonomy
 
-State management systems divide into four basic types based on their composition:
+State management systems divide into three basic types based on their composition:
 
-| Pattern              | Composition Model    | Best For                | Complexity |
-| -------------------- | -------------------- | ----------------------- | ---------- |
-| **Bitfield System**      | Orthogonal bits      | Capability tracking     | Low        |
-| **State Hierarchy**      | Containment tiers    | Action sequencing       | Medium     |
-| **Dual-State**           | Parallel streams     | Visual/logic separation | Low        |
-| **Finite State Machine** | Transitions & guards | Strict state control    | High       |
+| Pattern           | Composition Model | Best For                | Complexity |
+| ----------------- | ----------------- | ----------------------- | ---------- |
+| **Bitfield**      | Orthogonal bits   | Capability tracking     | Low        |
+| **Hierarchy**     | Containment tiers | Action sequencing       | Medium     |
+| **Dual-State**    | Parallel streams  | Visual/logic separation | Low        |
 
-We'll examine three implementations covering the first three patterns:
+We'll examine three implementations covering these patterns:
 
-- **OpenCombat-SDL**: Bitfield System (64 orthogonal states)
-- **OpenCombat**: State Hierarchy (Phase → Behavior → Gesture)
+- **OpenCombat-SDL**: Bitfield (64 orthogonal states)
+- **OpenCombat**: Hierarchy (Phase → Behavior → Gesture)
 - **CloseCombatFree**: Dual-State (Runtime Status + Health State)
 
 ---
 
-## 3.3 Pattern 1: The Bitfield System
+## 3.3 Pattern 1: Bitfield
 
 ### 3.3.1 Core Philosophy: Orthogonal Composition
 
@@ -57,7 +60,7 @@ SET_BIT(unit_state, SUPPRESSED)
 
 ### 3.3.2 Automatic Prerequisite Chaining
 
-The bitfield system shines when paired with action requirements. Actions declare their prerequisites, and the system chains necessary state changes automatically.
+The bitfield pattern shines when paired with action requirements. Actions declare their prerequisites, and the system chains necessary state changes automatically.
 
 ```pseudocode
 // Action definition
@@ -97,27 +100,27 @@ This creates natural intelligence—units transition through intermediate states
 
 ### 3.3.4 Determinism and Multiplayer
 
-Bitfield systems are inherently deterministic—the same operations produce identical results across platforms. Still, some considerations apply:
+Bitfield patterns are inherently deterministic—the same operations produce identical results across platforms. Still, some considerations apply:
 
 - **Simple Serialization**: A single integer transfers all state data
 - **Replay Compatibility**: State changes are compact and precise
 - **Desync Detection**: XOR comparison quickly spots state mismatches
 
-For multiplayer, bitfield systems work best when the server validates state transitions before broadcasting.
+For multiplayer, bitfield patterns work best when the server validates state transitions before broadcasting.
 
 ---
 
-## 3.4 Pattern 2: The State Hierarchy
+## 3.4 Pattern 2: Hierarchy
 
 ### 3.4.1 Core Philosophy: Temporal Separation
 
-The hierarchical approach sorts states by timescale and authority, creating tiers that handle specific questions:
+The hierarchy approach sorts states by timescale and authority, creating tiers that handle specific questions:
 
-| Tier     | Question Answered                              | Duration                | Update Frequency |
-| -------- | ---------------------------------------------- | ----------------------- | ---------------- |
-| **Phase**    | "What phase of the game are we in?"            | Minutes to Hours        | Event-driven     |
-| **Behavior** | "What is the unit trying to accomplish?"       | Seconds to Minutes      | As needed        |
-| **Gesture**  | "What is the unit physically doing right now?" | Milliseconds to Seconds | Every frame      |
+| Tier         | Question Answered                              | Duration                 | Update Frequency |
+| ------------ | ---------------------------------------------- | ------------------------ | ---------------- |
+| **Phase**    | "What phase of the game are we in?"            | Minutes to hours         | Event-driven     |
+| **Behavior** | "What is the unit trying to accomplish?"       | Seconds to minutes       | As needed        |
+| **Gesture**  | "What is the unit physically doing right now?" | Milliseconds to seconds  | Every frame      |
 
 ```pseudocode
 // Three-tier state representation
@@ -137,7 +140,7 @@ unit_state = {
 
 ### 3.4.2 Tier Relationships and Propagation
 
-The hierarchy establishes state propagation rules:
+The hierarchy pattern establishes state propagation rules:
 
 ```pseudocode
 // Behavior propagation determines squad coordination
@@ -190,7 +193,7 @@ A reloading soldier finishes at exactly frame 1847, ensuring consistent animatio
 
 ### 3.4.5 Determinism and Multiplayer
 
-The hierarchical pattern works well for deterministic multiplayer:
+The hierarchy pattern works well for deterministic multiplayer:
 
 ```pseudocode
 // Message-driven state changes
@@ -211,23 +214,23 @@ This approach matters most in competitive multiplayer, where synchronization mus
 
 ---
 
-## 3.5 Pattern 3: The Dual-State System
+## 3.5 Pattern 3: Dual-State
 
 ### 3.5.1 Core Philosophy: Separation of Concerns
 
 The dual-state approach divides state into two parallel streams:
 
-1. **Runtime Status**: The unit's current operational state, stored as a QString or string
+1. **Runtime Status**: The unit's current operational state, stored as a string
 2. **Health State**: Visual and condition state, managed declaratively
 
 ```pseudocode
-// C++ side: Runtime status
+// Logic side: Runtime status
 class Unit {
-    QString unitStatus;  // "MOVING", "RELOADING", "READY"
-    QString healthState; // "healthy", "damaged", "destroyed"
+    string unitStatus;   // "MOVING", "RELOADING", "READY"
+    string healthState;  // "healthy", "damaged", "destroyed"
 };
 
-// QML/Visual side: Declarative states
+// Visual side: Declarative states (QML/declarative syntax)
 states: [
     State { name: "healthy"; opacity: 1.0 }
     State { name: "damaged"; opacity: 0.7; smoke_effect: visible }
@@ -294,7 +297,7 @@ This makes the pattern well-suited for moddable games, where designers—not pro
 
 ### 3.5.5 Determinism and Multiplayer
 
-The pattern creates multiplayer challenges:
+The dual-state pattern creates multiplayer challenges:
 
 - String synchronization uses more bandwidth than integers
 - Clients can set any status without server validation
@@ -313,8 +316,8 @@ This pattern works best for single-player or cooperative games where modding fle
 
 ### 3.6.1 Decision Matrix
 
-| Criteria                   | Bitfield  | Hierarchy | Dual-State  |
-| -------------------------- | --------- | --------- | ----------- |
+| Criteria                       | Bitfield  | Hierarchy | Dual-State  |
+| ------------------------------ | --------- | --------- | ----------- |
 | **Multiplayer Requirements**   | Good      | Excellent | Challenging |
 | **Modding Support**            | Limited   | Moderate  | Excellent   |
 | **Complex State Combinations** | Excellent | Good      | Poor        |
@@ -328,10 +331,10 @@ When choosing a pattern, start by asking:
 
 Do you need deterministic multiplayer?
 - If yes, ask: Do you need complex state combinations?
-  - Yes? Use a bitfield system.
-  - No? Use a state hierarchy.
+  - Yes? Use a bitfield.
+  - No? Use a hierarchy.
 - If no, ask: Is modding a priority?
-  - Yes? Use a dual-state system.
+  - Yes? Use a dual-state.
   - No? Consider your state complexity:
     - Simple states? Use dual-state.
     - Complex states? Use bitfield.
@@ -379,6 +382,7 @@ Determinism ensures identical inputs produce identical outputs. This matters for
 | Bitfield   | High        | Fixed-width operations avoid surprises |
 | Hierarchy  | High        | Temporal gestures lock down timing     |
 | Dual-State | Moderate    | String comparisons may vary by system  |
+
 
 **How to Ensure Determinism:**
 - Replace floating-point math with fixed-point
@@ -497,7 +501,7 @@ server_validate(status_request, current_status) {
 
 ## 3.8 Implementation Patterns in Pseudocode
 
-### 3.8.1 Bitfield System Pattern
+### 3.8.1 Bitfield Pattern
 
 ```pseudocode
 define State {
@@ -556,13 +560,13 @@ define StateMachine {
 }
 ```
 
-### 3.8.2 State Hierarchy Pattern
+### 3.8.2 Hierarchy Pattern
 
 ```pseudocode
 define Phase {
     Placement,
     Battle,
-    End(Victorious, Reason)
+    End
 }
 
 define Behavior {
@@ -656,6 +660,7 @@ define Unit {
 }
 
 define VisualUnit {
+    // Note: QML/declarative syntax for visual state management
     states: [
         State {
             name: "healthy"
@@ -711,7 +716,7 @@ Most tactical wargames benefit from a hybrid approach:
 
 3. **Support modding through scriptable behaviors**
    - Behaviors reference scripts: `behavior: { type: "Defend", script: "defensive.lua" }`
-   - Lua scripts handle custom logic without recompiling.
+   - Lua scripts handle custom logic without recompiling
 
 4. **Maintain server authority in multiplayer**
    - Clients request state changes.
@@ -744,13 +749,13 @@ Use pure bitfields for simplicity. Limit to 32 or 64 states. Define actions in e
 
 ## 3.10 Conclusion
 
-State management forms the foundation of tactical gameplay. Whether you choose bitfields, hierarchy, or dual-state separation determines how every other system in your game behaves.
+State management forms the foundation of tactical gameplay. Whether you choose bitfield, hierarchy, or dual-state patterns determines how every other system in your game behaves.
 
 The Close Combat clones show that priorities shape the best approach:
 
 - **OpenCombat-SDL** used bitfields for performance and emergent behavior.
 - **OpenCombat** relied on hierarchical states for deterministic multiplayer.
-- **CloseCombatFree** favored dual-state separation to maximize modding.
+- **CloseCombatFree** favored dual-state to maximize modding.
 
 Your choice depends on:
 1. Your target platform (single or multiplayer).
@@ -764,14 +769,14 @@ Commit fully to your chosen pattern. A poorly implemented hybrid causes more pro
 
 ## Appendix A: State Pattern Quick Reference
 
-### Bitfield System
+### Bitfield
 ```
 Best for: Orthogonal capabilities where memory matters
 Avoid when: You need more than 64 states or complex transitions
 Key metric: State combinations equal 2ⁿ (n = bit count)
 ```
 
-### State Hierarchy
+### Hierarchy
 ```
 Best for: Deterministic multiplayer with clear relationships
 Avoid when: You need rapid iteration without recompiling
@@ -783,13 +788,6 @@ Key metric: Three tiers multiplied by update frequency determine organization
 Best for: Modding, visual separation, and rapid prototyping
 Avoid when: Type safety is critical or you need complex state machines
 Key metric: States can be unlimited (string-based)
-```
-
-### Finite State Machine
-```
-Best for: Strict state control with complex transition rules
-Avoid when: You have many orthogonal states or simple behavior
-Key metric: Complexity equals states multiplied by transitions
 ```
 
 ---

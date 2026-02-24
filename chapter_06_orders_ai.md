@@ -1,3 +1,7 @@
+*Previous: [Chapter 5: Unit Hierarchy](chapter_05_unit_hierarchy.md)*
+
+---
+
 # Chapter 6: Orders, Behaviors, and AI Architecture
 
 ## 6.1 The Intent-to-Action Pipeline
@@ -141,7 +145,7 @@ enum OrderType
 
 class Behavior                  // AI interpretation of orders
     type: BehaviorType
-    posture: BodyPosition       // StandUp | Crouched | Lying
+    posture: BodyPosition       // Standing | Crouching | Prone
 
 enum BehaviorType
     // Movement behaviors
@@ -253,7 +257,7 @@ flowchart LR
 
 The matrix shows valid transitions between behaviors, blocking illogical changes like engaging enemies while actively hiding.
 
-### 6.2.3 CloseCombatFree: The Queue-Based Sequential System
+### 6.2.3 CloseCombatFree: Queue-Based Sequential System
 
 CloseCombatFree uses a straightforward sequential order queue, where animation drives completion. The design favors clarity and accessibility over complex AI.
 
@@ -467,7 +471,7 @@ function CoordinateSquadEngagement(squad, enemySquad)
 
 Stance systems show unit posture and tactical intent to players and AI. The three games handle stance in distinct ways, each balancing simplicity against expressiveness.
 
-### 6.4.1 Stance Taxonomy
+### 6.4.1 General: Stance Taxonomy
 
 ```mermaid
 flowchart TB
@@ -535,10 +539,10 @@ enum SoldierState
     Dead
 
 function GetCurrentStance(soldier)
-    if soldier.state.Contains(Prone)
+    if soldier.state == Prone
         return Stance.Prone
-    else if soldier.state.Contains(Crouching)
-        return Stance.Crouched
+    else if soldier.state == Crouching
+        return Stance.Crouching
     else
         return Stance.Standing
 
@@ -551,7 +555,7 @@ function GetStanceEffects(stance)
                 accuracyModifier: 0.8,
                 coverEffectiveness: Low
             }
-        Crouched ->
+        Crouching ->
             return {
                 movementSpeed: 0.6,
                 visibility: Medium,
@@ -573,9 +577,9 @@ OpenCombat distinguishes body position from behavior, enabling sophisticated com
 
 ```pseudocode
 enum Body
-    StandUp
-    Crouched
-    Lying
+    Standing
+    Crouching
+    Prone
 
 enum Behavior
     MoveTo(paths)
@@ -588,37 +592,37 @@ function DetermineOptimalBodyPosition(soldier, behavior, threatLevel)
     match behavior
         MoveTo(_) ->
             if threatLevel > Danger
-                return Body.Crouched
+                return Body.Crouching
             else
-                return Body.StandUp
+                return Body.Standing
 
         Defend(_) ->
             // Balance visibility and cover
             if soldier.HasGoodCover
-                return Body.Lying
+                return Body.Prone
             else
-                return Body.Crouched
+                return Body.Crouching
 
         Hide(_) ->
-            return Body.Lying  // Always prone when hiding
+            return Body.Prone  // Always prone when hiding
 
         EngageSoldier(target) ->
             // Dynamic based on target distance
             distance = Distance(soldier, target)
             if distance < CloseRange
-                return Body.StandUp  // Faster tracking
+                return Body.Standing  // Faster tracking
             else if distance < MediumRange
-                return Body.Crouched
+                return Body.Crouching
             else
-                return Body.Lying  // Best accuracy
+                return Body.Prone  // Best accuracy
 
-function Posture.FromBehavior(behavior)
+function GetPostureFromBehavior(behavior)
     // Posture affects hit detection and visibility
     match behavior
         MoveTo(_) | MoveFastTo(_) | Idle(_) ->
-            return Posture.StandUp
+            return Body.Standing
         Defend(_) | SneakTo(_) | Hide(_) | SuppressFire(_) ->
-            return Posture.Flat
+            return Body.Prone
 ```
 
 ---
@@ -676,7 +680,7 @@ flowchart LR
     class labels dark
 ```
 
-### 6.5.2 OpenCombat-SDL: Zero Autonomy (Pure Obedience)
+### 6.5.2 OpenCombat-SDL: Minimal Autonomy
 
 ```pseudocode
 class SoldierAI
@@ -694,11 +698,13 @@ class SoldierAI
 **Design Philosophy**: Players control every action. Soldiers function as direct extensions of player commands.
 
 **Advantages**:
+
 - Behavior stays predictable
 - Eliminates "AI stupidity" frustrations
 - Keeps accountability with the player
 
 **Disadvantages**:
+
 - Forces heavy micromanagement
 - Feels unrealistic (real soldiers take initiative)
 - Scales poorly with large unit counts
@@ -726,10 +732,6 @@ class ReactiveSoldierAI
             behavior = TranslateOrderToBehavior(soldier.currentOrder)
             soldier.SetBehavior(behavior)
 ```
-
-**The Feeling System:**
-
-OpenCombat models emotional state through the `Feeling` enum:
 
 ```pseudocode
 enum Feeling
@@ -764,6 +766,10 @@ function UpdateFeeling(soldier, world)
     // Natural decay
     soldier.feeling.decrease(UNDER_FIRE_TICK)
 ```
+
+**The Feeling System:**
+
+OpenCombat models emotional state through the `Feeling` enum. The intensity value allows graduated responses rather than binary states.
 
 **Design Philosophy**: Soldiers protect themselves when threatened but follow player orders otherwise.
 
@@ -825,6 +831,8 @@ function EvaluatePlan(plan, squad, world)
 
     return score
 ```
+
+---
 
 ## 6.6 Decision Architectures: GOAP vs Behavior Trees
 
@@ -1045,7 +1053,7 @@ actions = [
     Action(
         name: "TakeCover",
         cost: 0.5,
-        preconditions: {IsInCover: false, IsUnderFire: true},
+        preconditions: {IsInCover: false, UnderFireIntensity: "> 100"},
         effects: {IsInCover: true, IsSafe: true}
     )
 ]
@@ -1094,8 +1102,8 @@ function ReactToContact(soldier, world)
 | **Planning**      | Reactive                     | Proactive                          |
 | **Emergence**     | Limited                      | High                               |
 | **Debugging**     | Visual, intuitive            | Requires plan inspection           |
-| **Performance**   | O(depth)                     | O(actions^depth)                   |
-| **Use Cases**     | Reactive AI, clear behaviors | Complex planning, emergent tactics |
+| **Performance**   | O(depth)                      | O(actions^depth)                   |
+| Use Cases         | Reactive AI, clear behaviors  | Complex planning, emergent tactics |
 
 **Recommendations for tactical wargames:**
 - Implement **Behavior Trees** for individual soldier behaviors (OpenCombat's current approach)
@@ -1486,18 +1494,18 @@ selector:
 
 ## 6.9 Comparative Summary
 
-| Feature             | OpenCombat-SDL              | OpenCombat                            | CloseCombatFree          |
-| ------------------- | --------------------------- | ------------------------------------- | ------------------------ |
-| **Architecture**        | Two-tier (Orders→Actions)   | Three-layer (Orders→Behavior→Gesture) | Queue-based sequential   |
-| **AI Autonomy**         | None (pure obedience)       | Reactive (self-preservation)          | Minimal (state triggers) |
-| **Order Types**         | 5 basic types               | 8 types + chaining                    | 7 types                  |
-| **Queue Support**       | Implicit (action queue)     | Explicit (order chaining)             | Explicit (order list)    |
-| **Squad Coordination**  | Formation positions         | Individual pathing + AI               | Not implemented          |
-| **Prerequisites**       | Automatic (action chaining) | Gesture timing                        | Animation-driven         |
-| **Override Capability** | Player only                 | AI can override orders                | Player only              |
-| **Visual Feedback**     | Action markers              | Debug paths                           | Order markers            |
-| **Stance System**       | Implicit (state-derived)    | Explicit (Body enum)                  | Implicit                 |
-| **Moddability**         | Compiled C++                | Compiled Rust                         | Compiled C++/QML         |
+| Feature               | OpenCombat-SDL              | OpenCombat                            | CloseCombatFree          |
+| --------------------- | --------------------------- | ------------------------------------- | ------------------------ |
+| **Architecture**      | Two-tier (Orders→Actions)   | Three-layer (Orders→Behavior→Gesture) | Queue-based sequential   |
+| **AI Autonomy**       | Minimal                     | Reactive (self-preservation)          | Minimal (state triggers) |
+| **Order Types**       | 5 basic types               | 8 types + chaining                    | 7 types                  |
+| **Queue Support**     | Implicit (action queue)     | Explicit (order chaining)             | Explicit (order list)    |
+| **Squad Coordination**| Formation positions         | Individual pathing + AI               | Not implemented          |
+| **Prerequisites**     | Automatic (action chaining) | Gesture timing                        | Animation-driven         |
+| **Override Capability** | Player only                | AI can override orders                | Player only              |
+| **Visual Feedback**   | Action markers              | Debug paths                           | Order markers            |
+| **Stance System**     | Implicit (state-derived)    | Explicit (Body enum)                  | Implicit                 |
+| **Moddability**       | Compiled C++                | Compiled Rust                         | Compiled C++/QML         |
 
 **Key Insights:**
 

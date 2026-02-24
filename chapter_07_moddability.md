@@ -1,3 +1,7 @@
+*Previous: [Chapter 6: Orders and AI Systems](chapter_06_orders_ai.md)*
+
+---
+
 # Chapter 7: Moddability and Data-Driven Architecture
 
 ## 7.1 Introduction: The Architecture of Extensibility
@@ -13,8 +17,6 @@ This chapter explores three modding approaches through Close Combat clones:
 | **Declarative Modding**   | CloseCombatFree   | Full QML-based content definition            |
 
 These approaches occupy different points on the modding spectrum, each balancing accessibility, performance, and expressive power. Their trade-offs offer valuable lessons for architects designing the next generation of tactical simulations.
-
----
 
 ## 7.2 The Modding Spectrum: A Taxonomy of Extensibility
 
@@ -86,8 +88,6 @@ Architectural approaches enable different modding levels:
 | **Tooling**         | Text editor    | Editor tools      | IDE/Debugger | Engine source |
 | **Iteration Speed** | Instant        | Minutes           | Hours        | Days          |
 | **Distribution**    | Config files   | Asset packs       | Mod packages | Fork/Engine   |
-
----
 
 ## 7.3 OpenCombat-SDL: The Configuration Approach
 
@@ -206,6 +206,8 @@ flowchart TD
 </Weapon>
 ```
 
+> **See Also:** For complete OpenCombat-SDL file format specifications, see [Appendix C: File Formats](appendix_c_file_formats.md#c2-opencombat-sdl-file-system).
+
 ### 7.3.3 The Manager Pattern
 
 The Manager pattern handles data loading and object creation:
@@ -264,6 +266,8 @@ Soldier* SoldierManager::CreateInstance(const std::string& typeName) {
 | Animation Mappings | ✓          | Edit XML references     |
 | State Transitions  | ✓          | Edit SoldierActions.txt |
 
+> **See Also:** For detailed state machine implementation patterns, see [Chapter 3: State Management](chapter_03_state_management.md).
+
 **What Requires Code Changes:**
 
 | Aspect               | Hardcoded Location    | Change Required                  |
@@ -299,9 +303,7 @@ void Soldier::UpdateAI(float dt) {
 }
 ```
 
-OpenCombat-SDL supports Level 1-2 modding—parameter tweaking and content addition—but requires recompilation for Level 3+ changes to game mechanics.
-
----
+OpenCombat-SDL supports Level 1–2 modding—parameter tweaking and content addition—but requires recompilation for Level 3+ changes to game mechanics.
 
 ## 7.4 OpenCombat (Rust): The Data-Driven Approach
 
@@ -343,6 +345,8 @@ flowchart TB
     class I1,I2,P1,O1,O2,O3 light
 ```
 
+> **See Also:** For complete OpenCombat file format specifications, see [Appendix C: File Formats](appendix_c_file_formats.md#c3-opencombat-file-system).
+
 ### 7.4.2 JSON Deployment System
 
 OpenCombat defines scenarios in JSON, allowing precise mission setups:
@@ -363,7 +367,7 @@ OpenCombat defines scenarios in JSON, allowing precise mission setups:
         {"MosinNagant": 5},
         {"MosinNagant": 5}
       ],
-      "order": {"Defend": {"position": {"x": 100.0, "y": 200.0}}},
+      "order": {"defend": {"position": {"x": 100.0, "y": 200.0}}},
       "behavior": "Standard"
     },
     {
@@ -375,7 +379,7 @@ OpenCombat defines scenarios in JSON, allowing precise mission setups:
       "main_weapon": {
         "BrenMark2": [{"BrenCurved30": 30}]
       },
-      "order": {"Suppress": {"position": {"x": 400.0, "y": 200.0}}}
+      "order": {"suppress": {"position": {"x": 400.0, "y": 200.0}}}
     }
   ],
   "vehicles": [
@@ -391,6 +395,8 @@ OpenCombat defines scenarios in JSON, allowing precise mission setups:
   }
 }
 ```
+
+> **Note:** The `type_` field uses an underscore suffix because `type` is a reserved keyword in Rust. The serde serialization library automatically maps `type_` in the JSON to `type` in the Rust structs.
 
 ### 7.4.3 Runtime Configuration System
 
@@ -437,11 +443,11 @@ pub enum ChangeConfigMessage {
     // ... additional terrain types
 
     // Explosive radius adjustments
-    ExplosiveDirectDeathRayon(ExplosiveType, Distance),
-    ExplosiveRegressiveDeathRayon(ExplosiveType, Distance),
+    ExplosiveDirectDeathRadius(ExplosiveType, Distance),
+    ExplosiveRegressiveDeathRadius(ExplosiveType, Distance),
 
     // Combat parameters
-    HideMaximumRayon(Distance),
+    HideMaximumRadius(Distance),
     InaccurateFireFactorByMeter(f32),
     PathFindingHeuristicCoefficient(f32),
 }
@@ -508,6 +514,8 @@ OpenCombat integrates the industry-standard Tiled editor for map creation:
 </map>
 ```
 
+> **See Also:** For detailed terrain architecture and spatial partitioning systems, see [Chapter 4: World and Terrain](chapter_04_world_terrain.md).
+
 ### 7.4.5 Type System Constraints
 
 OpenCombat's data-driven approach offers flexibility, though Rust's strong type system imposes modding limitations:
@@ -542,7 +550,7 @@ To add a new soldier type:
 
 OpenCombat supports Level 2 modding—adding content with standard types—while offering exceptional runtime configurability. Level 3+ modding, however, requires recompilation due to Rust's type system.
 
----
+> **See Also:** For unit type hierarchies and soldier attributes, see [Chapter 5: Unit Hierarchy](chapter_05_unit_hierarchy.md).
 
 ## 7.5 CloseCombatFree: The Declarative Modding Revolution
 
@@ -578,6 +586,8 @@ flowchart TB
     class Q1,Q2,Q3,C1,C2,C3 light
 ```
 
+> **See Also:** For complete CloseCombatFree file format specifications, see [Appendix C: File Formats](appendix_c_file_formats.md#c4-closecombatfree-file-system).
+
 ### 7.5.2 QML-Based Unit Definitions
 
 CloseCombatFree defines units entirely in QML, a radical departure from traditional approaches:
@@ -607,10 +617,10 @@ Tank {
     unitHeight: 110
 
     // Armor values (mm)
-    frontArmour: 120
-    sideArmour: 90
-    backArmour: 60
-    turretArmour: 100
+    frontArmor: 120
+    sideArmor: 90
+    backArmor: 60
+    turretArmor: 100
 
     // Combat parameters
     mainGunReloadingTime: 5000      // milliseconds
@@ -905,10 +915,10 @@ Tank {
     acceleration: 3.5
 
     // Armor (mm)
-    frontArmour: 140
-    sideArmour: 50
-    backArmour: 40
-    turretArmour: 110
+    frontArmor: 140
+    sideArmor: 50
+    backArmor: 40
+    turretArmor: 110
 
     // Combat
     mainGunReloadingTime: 4500
@@ -961,8 +971,6 @@ QML-based modding offers flexibility but comes with constraints:
 
 CloseCombatFree supports Level 3 modding (mechanics changes) through QML. Content creators can nearly reach Level 4, with the added benefit of hot-reload for fast iteration.
 
----
-
 ## 7.6 Comparative Analysis: The Three Approaches
 
 ### 7.6.1 Modding Capability Comparison
@@ -980,7 +988,7 @@ CloseCombatFree supports Level 3 modding (mechanics changes) through QML. Conten
 | **Hot Reload**     | No               | No               | Yes                    |
 | **Mod Packaging**  | File replacement | File replacement | Directory-based        |
 | **Type Safety**    | Runtime errors   | Compile-time     | Runtime errors         |
-| **Performance**    | Native           | Native           | Good, with JS overhead |
+| **Performance**    | Native           | Native           | Good, with JavaScript overhead |
 
 ### 7.6.2 Modder Skill Requirements
 
@@ -988,7 +996,7 @@ CloseCombatFree supports Level 3 modding (mechanics changes) through QML. Conten
 flowchart BT
     Beginner["BEGINNER<br/>Parameter Tweaking<br/>Value tweaking<br/>(All engines)"]
     Intermediate["INTERMEDIATE<br/>JSON/XML Editing<br/>Data editing<br/>(OpenCombat-SDL, OpenCombat)"]
-    Advanced["ADVANCED<br/>QML/JS Scripting<br/>Behavior scripting<br/>(CloseCombatFree)"]
+    Advanced["ADVANCED<br/>QML/JavaScript Scripting<br/>Behavior scripting<br/>(CloseCombatFree)"]
     Expert["EXPERT<br/>C++/Rust Coding<br/>Engine modification<br/>(All engines)"]
     
     Beginner --> Intermediate --> Advanced --> Expert
@@ -1047,16 +1055,14 @@ flowchart LR
 | **OpenCombat**      | Scenario design, balance tuning, competitive multiplayer  | New unit types or custom mechanics          |
 | **CloseCombatFree** | Total conversions, rapid prototyping, educational modding | Performance-critical modifications          |
 
----
-
 ## 7.7 Design Patterns for Moddable Games
 
 ### 7.7.1 Pattern 1: Data-Driven Entity Component System
 
 Moddable games work best when entity definitions stay separate from their implementation. Here's how a sniper team might be defined in YAML:
 
-```cpp
-// units/sniper.yaml
+```yaml
+# units/sniper.yaml
 entity_type: infantry
 name: Sniper Team
 
@@ -1107,6 +1113,8 @@ public:
 ```
 
 ### 7.7.2 Pattern 2: Scripting Layer Architecture
+
+> **See Also:** For order systems and AI behavior patterns, see [Chapter 6: Orders and AI Systems](chapter_06_orders_ai.md).
 
 Scripting languages let modders customize behavior without touching the core engine. The C++ API exposes key systems to Lua:
 
@@ -1314,8 +1322,6 @@ credits:
     role: "AI behaviors"
 ```
 
----
-
 ## 7.8 Trade-Offs: Moddability vs. Performance vs. Security
 
 ### 7.8.1 The Modding Triangle
@@ -1344,7 +1350,7 @@ Moddability, performance, and security pull in different directions. Balancing a
 | --------------------- | -------------------- | -------------- | ------------ |
 | **XML/JSON (SDL)**        | Low (parsed once)    | Moderate       | Fast         |
 | **JSON + Runtime Config** | Very low             | Moderate       | Fast         |
-| **QML (CCF)**             | Moderate (JS engine) | Higher         | Moderate     |
+| **QML (CCF)**             | Moderate (JavaScript engine) | Higher         | Moderate     |
 | **Lua Scripting**         | Low to moderate      | Moderate       | Moderate     |
 | **Full C++ Mods**         | None                 | High (plugins) | Fast         |
 
@@ -1423,8 +1429,6 @@ bool ValidateMod(const ModPackage& mod) {
 | **Open source**             | Full QML                        | Encourages community contributions          |
 | **Mobile ports**            | Binary data + Limited scripting | Optimizes performance                       |
 | **Educational**             | QML                             | Provides visual feedback and fast iteration |
-
----
 
 ## 7.9 Serialization and Persistence Strategies
 
@@ -1571,8 +1575,6 @@ public:
 };
 ```
 
----
-
 ## 7.10 Practical Recommendations
 
 ### 7.10.1 For New Projects
@@ -1697,8 +1699,6 @@ class Soldier : public Entity {
     // Add/remove components dynamically
 };
 ```
-
----
 
 ## 7.11 Conclusion
 

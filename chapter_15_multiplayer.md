@@ -1,3 +1,7 @@
+[Previous: Chapter 14 - AI Systems](chapter_14_ai_systems.md)
+
+---
+
 # Chapter 15: Multiplayer Architecture for Tactical Wargames
 
 ## Synchronization, Determinism, and Network Architecture
@@ -53,18 +57,18 @@ impl DeterministicRNG {
 
 Tactical wargames face different latency challenges than fast-paced action games:
 
-| Game Type            | Acceptable Latency | Input Frequency   | Latency Compensation   |
-| -------------------- | ------------------ | ----------------- | ---------------------- |
-| First-Person Shooter | < 100ms            | Continuous        | Client prediction      |
-| Fighting Game        | < 50ms             | Discrete frames   | Rollback netcode       |
-| RTS Game             | 150-300ms          | Discrete commands | Command delay          |
-| Tactical Wargame     | 200-500ms          | Intermittent      | Deterministic lockstep |
+| Game Type            | Acceptable Latency | Input Frequency   | Latency Compensation     |
+| -------------------- | ------------------ | ----------------- | ------------------------ |
+| First-Person Shooter | < 100ms            | Continuous        | Client prediction        |
+| Fighting Game        | < 50ms             | Discrete frames   | Rollback netcode         |
+| RTS Game             | 150-300ms          | Discrete commands | Command delay            |
+| Tactical Wargame     | 200-500ms          | Intermittent      | Deterministic lockstep   |
 
 **The Tactical Advantage**: The slower pace of tactical games works in their favor. When a player issues a "move to position" command, they expect a delay while the unit acknowledges and begins moving. The natural rhythm of tactical decision-making—seconds or minutes between significant actions—handles network latency better than twitch-based games.
 
 This creates a design requirement: the game must feel responsive even with 200-500ms latencies. Developers need careful input acknowledgment and feedback systems:
 
-```pseudocode
+```text
 // Immediate feedback loop
 onPlayerIssueOrder(order) {
     // 1. Show acknowledgment immediately (no network wait)
@@ -163,7 +167,7 @@ OpenCombat sets the standard for tactical wargame multiplayer architecture. Its 
 
 ### 15.2.1 Message-Based State Updates
 
-OpenCombat never changes game state directly. All modifications flow through a message system:
+OpenCombat never changes game state directly. All modifications flow through a message system (see [Chapter 5: Unit Hierarchy](chapter_05_unit_hierarchy.md) for Soldier/Unit state management details):
 
 ```rust
 // Core message enum - every state change is a message
@@ -225,7 +229,7 @@ impl BattleState {
 
 ### 15.2.2 Fixed Timestep Simulation
 
-OpenCombat uses a fixed timestep to ensure determinism:
+OpenCombat uses a fixed timestep to ensure determinism (see [Chapter 14: AI Systems](chapter_14_ai_systems.md) for AI synchronization details):
 
 ```rust
 pub const TICK_RATE: u32 = 60;  // 60 FPS
@@ -343,7 +347,7 @@ impl Replay {
 
 Some multiplayer games skip determinism and use state replication instead.
 
-```pseudocode
+```text
 class StateSnapshotSync {
     function SendFullState(state) {
         // Serialize entire state
@@ -373,7 +377,7 @@ class StateSnapshotSync {
 - Small-scale multiplayer (2-4 players)
 - Games with simple state (not hundreds of units)
 
-**Disadvantages**:
+**Cons:**
 - High bandwidth usage
 - No replay capability
 - Harder to debug
@@ -383,7 +387,7 @@ class StateSnapshotSync {
 
 Games can replicate events instead of synchronizing state.
 
-```pseudocode
+```text
 class EventReplication {
     function OnPlayerAction(action) {
         // Create event
@@ -414,12 +418,12 @@ class EventReplication {
 }
 ```
 
-**Advantages**:
+**Pros:**
 - Lower bandwidth than state snapshots
 - Works well for discrete actions
 - Easier to implement than determinism
 
-**Disadvantages**:
+**Cons:**
 - Events can arrive out of order
 - Harder to recover from desync
 - Still vulnerable to cheating
@@ -427,6 +431,8 @@ class EventReplication {
 ---
 
 ## 15.4 Network Architecture Patterns
+
+For additional architectural patterns, see [Chapter 8: Architectural Patterns](chapter_08_architectural_patterns.md).
 
 ### 15.4.1 Client-Server (Authoritative)
 
@@ -496,12 +502,12 @@ flowchart TB
     class PeerB,PeerC light
 ```
 
-**Advantages**:
+**Pros:**
 - No dedicated server required
 - Lower latency with direct connections
 - Works well for LAN parties
 
-**Disadvantages**:
+**Cons:**
 - Host advantage (zero latency for the host)
 - Harder to prevent cheating
 - Host migration adds complexity
@@ -543,7 +549,7 @@ flowchart LR
 
 Modern games often mix multiple approaches.
 
-```pseudocode
+```text
 class HybridNetworkManager {
     // Authoritative server for critical state
     AuthoritativeServer gameServer;
@@ -581,7 +587,7 @@ class HybridNetworkManager {
 
 A simple but effective method delays all inputs by a fixed amount.
 
-```pseudocode
+```text
 class InputDelaySystem {
     delayFrames: int = 6;  // 100ms at 60fps
     inputQueue: Queue<TimedInput>;
@@ -608,14 +614,17 @@ class InputDelaySystem {
 }
 ```
 
-**Pros**: Simple, deterministic, no misprediction
-**Cons**: 100ms delay on all actions
+**Pros:**
+- Simple, deterministic, no misprediction
+
+**Cons:**
+- 100ms delay on all actions
 
 ### 15.5.2 Client-Side Prediction
 
 Predict the outcome of local actions immediately.
 
-```pseudocode
+```text
 class ClientSidePrediction {
     Simulation localSimulation;      // What we think will happen
     Simulation serverSimulation;     // What server says happened
@@ -646,14 +655,17 @@ class ClientSidePrediction {
 }
 ```
 
-**Pros**: Feels responsive with zero perceived lag
-**Cons**: Mispredictions cause jarring corrections
+**Pros:**
+- Feels responsive with zero perceived lag
+
+**Cons:**
+- Mispredictions cause jarring corrections
 
 ### 15.5.3 Server Reconciliation
 
 The server has the final say, but the client predicts optimistically.
 
-```pseudocode
+```text
 class ServerReconciliation {
     Queue<Input> pendingInputs;  // Inputs not yet acknowledged
     Simulation authoritative;    // Server's state
@@ -692,7 +704,7 @@ class ServerReconciliation {
 
 For remote entities, interpolate between known positions.
 
-```pseudocode
+```text
 class EntityInterpolation {
     struct PositionSnapshot {
         Vector3 position;
@@ -728,12 +740,12 @@ class EntityInterpolation {
 
 **When to Use Each Technique**:
 
-| Technique             | Use For              | Best Latency  |
-| --------------------- | -------------------- | ------------- |
-| Input Delay           | Turn-based, slow RTS | 100-300ms     |
-| Client Prediction     | Local player only    | 0ms perceived |
-| Server Reconciliation | Competitive games    | 50-100ms      |
-| Entity Interpolation  | Remote entities      | 100-200ms     |
+| Technique               | Use For                | Best Latency    |
+| ----------------------- | ---------------------- | --------------- |
+| Input Delay             | Turn-based, slow RTS   | 100-300ms       |
+| Client Prediction       | Local player only      | 0ms perceived   |
+| Server Reconciliation   | Competitive games      | 50-100ms        |
+| Entity Interpolation    | Remote entities        | 100-200ms       |
 
 ---
 
@@ -743,7 +755,7 @@ class EntityInterpolation {
 
 All clients wait for each other before advancing.
 
-```pseudocode
+```text
 class LockstepSync {
     Map<PlayerId, Input> receivedInputs;
     bool waiting = false;
@@ -775,14 +787,18 @@ class LockstepSync {
 }
 ```
 
-**Pros**: Perfect synchronization, simple
-**Cons**: Game speed matches the slowest player's connection
+**Pros:**
+- Perfect synchronization
+- Simple implementation
+
+**Cons:**
+- Game speed matches the slowest player's connection
 
 ### 15.6.2 Delta Compression
 
 Send only what changed.
 
-```pseudocode
+```text
 class DeltaCompression {
     BattleState previousState;
 
@@ -816,7 +832,7 @@ class DeltaCompression {
 
 Predict where entities will be.
 
-```pseudocode
+```text
 class DeadReckoning {
     function PredictPosition(entity): Vector3 {
         // Position = last_known + velocity * time + 0.5 * acceleration * time^2
@@ -853,7 +869,7 @@ class DeadReckoning {
 
 Never trust the client.
 
-```pseudocode
+```text
 class ServerValidator {
     function ValidateCommand(cmd, playerState): bool {
         // Check cooldowns
@@ -886,7 +902,7 @@ class ServerValidator {
 
 Record games and analyze them for cheats.
 
-```pseudocode
+```text
 class ReplayAnalyzer {
     function AnalyzeForCheats(replay): List<Cheat> {
         cheats = [];
@@ -929,7 +945,7 @@ class ReplayAnalyzer {
 
 Protect the game client.
 
-```pseudocode
+```text
 class AntiTamper {
     function VerifyIntegrity() {
         // Check code checksums
@@ -1048,7 +1064,7 @@ struct ReplayController {
 
 Spectators join as non-participating observers:
 
-```pseudocode
+```text
 class SpectatorManager {
     List<Spectator> spectators;
     BattleState currentState;
@@ -1087,6 +1103,8 @@ class SpectatorManager {
 ---
 
 ## 15.9 Implementation Guide
+
+For detailed implementation guidance on these patterns, see [Chapter 12: Implementation Guide](chapter_12_implementation_guide.md).
 
 ### 15.9.1 Making a Single-Player Game Multiplayer-Ready
 
@@ -1142,17 +1160,17 @@ struct Position {
     float x, y;
 };
 
-// After: Fixed-point positions
-struct Position {
+// After: FixedPoint positions
+struct WorldPoint {
     FixedPoint x, y;  // 16.16 fixed-point
 
-    Position operator+(const Position& other) const {
+    WorldPoint operator+(const WorldPoint& other) const {
         return {x + other.x, y + other.y};
     }
 };
 ```
 
-**Phase 4: Add Seeded RNG**
+**Phase 4: Add DeterministicRNG**
 
 ```cpp
 // Before: Platform RNG
@@ -1160,7 +1178,7 @@ int RollDice() {
     return rand() % 6 + 1;
 }
 
-// After: Seeded RNG
+// After: DeterministicRNG
 class DeterministicRNG {
     uint64_t state;
 
@@ -1235,6 +1253,8 @@ class GameClient {
 
 ### 15.9.2 Architecture Decisions for Deterministic Simulation
 
+When converting a single-player game to multiplayer, choosing the right architecture depends on the type of multiplayer experience you want to provide. The decision matrix below outlines the trade-offs between different approaches based on your game's requirements.
+
 ```mermaid
 flowchart TD
     classDef default fill:#fff,stroke:#000,stroke-width:1px,color:#000
@@ -1262,7 +1282,7 @@ flowchart TD
         subgraph Casual["Casual/Social"]
             direction TB
             Cas1["Non-deterministic"]
-            Cas2["State snapshots\nEvent replication\nSimpler implementation"]
+            Cas2["State Snapshots\nEvent replication\nSimpler implementation"]
         end
 
         Q --> Competitive
@@ -1275,7 +1295,11 @@ flowchart TD
     class Comp2,Coop2,Cas2 light
 ```
 
+Each approach has different implications for implementation complexity, bandwidth requirements, and cheat prevention. Competitive PvP games benefit most from deterministic simulation with authoritative servers, while casual and cooperative games can use simpler non-deterministic approaches.
+
 ### 15.9.3 Testing Determinism
+
+Thorough testing is essential to ensure deterministic behavior across all platforms. The following test cases verify that your simulation produces identical results given the same inputs.
 
 ```rust
 #[test]
@@ -1328,7 +1352,7 @@ fn test_floating_point_consistency() {
     let b = 0.2_f32;
     let c = a + b;
 
-    // This will pass on all platforms with IEEE 754 compliance
+    // This will pass on all platforms with 32-bit IEEE 754 compliance
     assert_eq!(c, 0.30000001192092896);
 }
 ```
@@ -1336,6 +1360,8 @@ fn test_floating_point_consistency() {
 ---
 
 ## 15.10 Case Study: Converting OpenCombat-SDL to Multiplayer
+
+Converting a single-player tactical wargame like OpenCombat-SDL to support multiplayer requires fundamental changes to the architecture. This section examines what would need to change, how the state management would be affected, and what serialization requirements would be necessary.
 
 ### 15.10.1 What Would Need to Change
 
@@ -1434,6 +1460,8 @@ public:
 
 **2. Add Three-Tier State Hierarchy**:
 
+For more details on the three-tier state hierarchy, see [Chapter 3: State Management](chapter_03_state_management.md).
+
 ```cpp
 // Current: 64-bit bitfield (simple but limiting)
 class State {
@@ -1512,7 +1540,7 @@ public:
     void WriteBytes(const std::vector<uint8_t>& bytes);
 };
 
-// Example: Serialize BattleStateMessage
+// Example: Serialize BattleStateMessage (Note: Use FixedPoint, not float, for positions)
 void SerializeBattleStateMessage(
     const BattleStateMessage& msg,
     Serializer& ser
@@ -1523,13 +1551,15 @@ void SerializeBattleStateMessage(
         case MessageType::SoldierState:
             ser.Write<uint32_t>(msg.soldier_index);
             ser.Write<uint8_t>(static_cast<uint8_t>(msg.behavior));
-            ser.Write<float>(msg.position.x);
-            ser.Write<float>(msg.position.y);
+            // Serialize FixedPoint as integers for network transmission
+            ser.Write<int32_t>(msg.position.x.to_raw());
+            ser.Write<int32_t>(msg.position.y.to_raw());
             break;
 
         case MessageType::CombatEvent:
             ser.Write<uint32_t>(msg.attacker);
             ser.Write<uint32_t>(msg.target);
+            // Damage can use float if not used in deterministic simulation
             ser.Write<float>(msg.damage);
             break;
 
@@ -1547,8 +1577,8 @@ BattleStateMessage DeserializeMessage(Deserializer& des) {
                 .soldier_index = des.Read<uint32_t>(),
                 .behavior = static_cast<Behavior>(des.Read<uint8_t>()),
                 .position = {
-                    des.Read<float>(),
-                    des.Read<float>()
+                    FixedPoint::from_raw(des.Read<int32_t>()),
+                    FixedPoint::from_raw(des.Read<int32_t>())
                 }
             };
 
@@ -1596,7 +1626,7 @@ Converting OpenCombat-SDL to multiplayer would take approximately:
 
 Multiplayer changes every aspect of tactical wargame architecture. Five principles summarize the lessons from this chapter:
 
-### The Five Principles of Multiplayer Architecture
+## The Five Principles of Multiplayer Architecture
 
 **1. Determinism is Non-Negotiable**
 Competitive multiplayer requires deterministic simulation. Without it, synchronization becomes impossible and exploits inevitable.
@@ -1625,7 +1655,7 @@ Anti-cheat isn't a feature added later—it's a consequence of architectural cho
 
 ### Final Recommendation
 
-If you're building a tactical wargame and considering multiplayer in the future, adopt OpenCombat's architectural patterns from the beginning. Retrofitting determinism into a non-deterministic codebase is difficult and often fails. The patterns in this chapter—message-driven state updates, fixed timestep simulation, three-tier state hierarchy, and server-authoritative architecture—are not just best practices. They are essential for multiplayer tactical games.
+If you're building a tactical wargame and considering multiplayer in the future, adopt OpenCombat's architectural patterns from the beginning. Retrofitting determinism into a non-deterministic codebase is difficult and often fails. The patterns in this chapter—message-driven state updates, fixed timestep simulation, three-tier state hierarchy (see [Chapter 3: State Management](chapter_03_state_management.md)), and server-authoritative architecture—are not just best practices. It's essential for multiplayer tactical games.
 
 The choice between single-player and multiplayer isn't a feature toggle. It's an architectural commitment that shapes every system in your game. Choose wisely, commit fully, and build with confidence.
 
@@ -1640,5 +1670,7 @@ The choice between single-player and multiplayer isn't a feature toggle. It's an
 5. **Retrofitting multiplayer** is significantly harder than designing for it initially.
 
 ---
+
+[Next: Conclusion](conclusion.md)
 
 **THE END**
