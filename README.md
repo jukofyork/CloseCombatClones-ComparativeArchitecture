@@ -6,9 +6,9 @@
 
 ## Book Overview
 
-This comprehensive study represents the definitive analysis of open-source Close Combat-inspired tactical wargame development spanning 20 years (2005-2024). Through detailed examination of three distinct implementations—each representing a different architectural paradigm—this book distills universal patterns applicable to any tactical wargame project regardless of technology stack, team size, or target platform.
+This book offers the most thorough analysis yet of open-source Close Combat-inspired tactical wargames developed over two decades. By examining three distinct projects—each built with a different architectural approach—it extracts patterns that work for any tactical wargame, regardless of technology, team size, or platform.
 
-**Language-Agnostic Focus:** While the source projects use C++, Rust, and QML, this book presents all patterns in universal pseudocode and architectural diagrams, making the insights applicable to any programming language or game engine.
+The insights apply to any programming language or game engine. While the source projects use C++, Rust, and QML, the book presents patterns through universal pseudocode and architectural diagrams.
 
 ---
 
@@ -18,28 +18,28 @@ This comprehensive study represents the definitive analysis of open-source Close
 
 **[Preface](preface.md)**
 
-- The Close Combat legacy and influence
-- Why this book exists (20 years of open-source attempts)
-- The three projects analyzed
-- Purpose: universal patterns for tactical wargame development
-- Acknowledgments and target audience
+- The legacy and influence of Close Combat
+- Twenty years of open-source attempts
+- The three projects under analysis
+- Why these patterns matter for tactical wargame development
+- Acknowledgments and who should read this book
 
 **[Introduction](introduction.md)**
 
-- What is a "Close Combat Clone"?
-- The Close Combat formula (7 pillars)
-- Why these three projects were chosen
-- How to read this book (different paths)
-- What's NOT covered
-- Conventions used (pseudocode, diagrams, terminology)
+- Defining a "Close Combat Clone"
+- The seven pillars of the Close Combat formula
+- Why these three projects were selected
+- How to navigate this book
+- What the book doesn't cover
+- Conventions: pseudocode, diagrams, and terminology
 
 **[How to Use This Book](how_to_use_this_book.md)**
 
-- Four reading paths (Designer, Programmer, Modder, Researcher)
+- Four reading paths: Designer, Programmer, Modder, Researcher
 - Chapter summaries with time estimates
-- Pattern index location
+- Where to find the pattern index
 - Code repository references
-- Decision frameworks and quick reference
+- Decision frameworks and quick-reference guides
 
 ---
 
@@ -47,15 +47,15 @@ This comprehensive study represents the definitive analysis of open-source Close
 
 **[Chapter 1: Executive Summary & Project Overview](chapter_01_executive_summary.md)**
 
-- Introduction to the three Close Combat clones
-- Project overview and timeline (2005-2024)
-- Comparative overview and architecture spectrum
-- Document usage guide
+- The three Close Combat clones at a glance
+- Project timelines from 2005 to 2024
+- Architectural comparisons
+- How to use this document
 
 **[Chapter 2: Architectural Philosophy Comparison](chapter_02_architectural_philosophy.md)**
 
-- Three philosophical approaches: Classical OOP, Systems-Oriented, Declarative
-- Communication patterns across architectures
+- Three approaches: Classical OOP, Systems-Oriented, Declarative
+- How architectures handle communication
 - State synchronization strategies
 - Choosing the right philosophy for your project
 
@@ -64,37 +64,37 @@ This comprehensive study represents the definitive analysis of open-source Close
 - OpenCombat-SDL: 64-bit bitfield state machine
 - OpenCombat: Three-tier state hierarchy (Phase→Behavior→Gesture)
 - CloseCombatFree: Dual-state system (Runtime + Visual)
-- Comparative analysis and recommendations
+- Comparisons and recommendations
 
 **[Chapter 4: World & Terrain Design Patterns](chapter_04_world_terrain.md)**
 
 - The three pillars: Cover, Hindrance, Elevation
 - OpenCombat-SDL: Tile-based spatial partitioning
 - OpenCombat: Opacity-based visibility system
-- CloseCombatFree: Height map and raycasting
-- Terrain design best practices
+- CloseCombatFree: Height maps and raycasting
+- Best practices for terrain design
 
 **[Chapter 5: Unit Hierarchy & Object Models](chapter_05_unit_hierarchy.md)**
 
 - OpenCombat-SDL: Deep inheritance hierarchy
 - OpenCombat: Modified ECS pattern
 - CloseCombatFree: Component composition with QML
-- Comparative analysis and modern recommendations
+- Comparisons and modern recommendations
 
 **[Chapter 6: Order & AI System Design](chapter_06_orders_ai.md)**
 
-- Command abstraction spectrum
+- The spectrum of command abstraction
 - OpenCombat-SDL: Two-tier command system
 - OpenCombat: Behavior-driven AI
 - CloseCombatFree: Queue-based orders
-- AI autonomy spectrum and modern approaches
+- The AI autonomy spectrum and modern approaches
 
 **[Chapter 7: Moddability & Data-Driven Design](chapter_07_moddability.md)**
 
 - The modding spectrum
 - OpenCombat-SDL: XML content modding
 - OpenCombat: JSON configuration modding
-- CloseCombatFree: QML full content modding
+- CloseCombatFree: Full QML content modding
 - Designing for moddability
 
 **[Chapter 8: Modern GameDev Pattern Adoption](chapter_08_architectural_patterns.md)**
@@ -106,9 +106,9 @@ This comprehensive study represents the definitive analysis of open-source Close
 
 **[Chapter 9: Strengths, Weaknesses & Lessons Learned](chapter_09_lessons_learned.md)**
 
-- Detailed analysis of each project's strengths and weaknesses
+- Strengths and weaknesses of each project
 - Comparative feature matrix
-- Universal lessons across all three projects
+- Universal lessons from all three projects
 - Common pitfalls and success patterns
 
 **[Chapter 10: Recommendations for New Implementations](chapter_10_recommendations.md)**
@@ -125,7 +125,7 @@ This comprehensive study represents the definitive analysis of open-source Close
 
 **[Chapter 11: The Close Combat Pattern Language](chapter_11_universal_patterns.md)**
 
-- Complete catalog of 17+ design patterns
+- Catalog of 17+ design patterns
 - Pattern taxonomy: Entity, State, Command, Perception, System
 - Problem-solution format with variations
 - Decision framework for pattern selection
@@ -159,7 +159,7 @@ This comprehensive study represents the definitive analysis of open-source Close
 
 **[Chapter 15: Multiplayer Architecture](chapter_15_multiplayer.md)**
 
-- Why multiplayer changes everything
+- Why multiplayer complicates everything
 - Deterministic simulation approach
 - Lockstep synchronization
 - Bandwidth optimization
@@ -183,12 +183,12 @@ This comprehensive study represents the definitive analysis of open-source Close
 
 **[Common Pitfalls Guide](common_pitfalls.md)**
 
-- Category 1: State Management Pitfalls (God objects, spaghetti transitions, prerequisite handling)
-- Category 2: Architecture Pitfalls (Deep inheritance, premature ECS, simulation/rendering coupling)
-- Category 3: Multiplayer Pitfalls (Late determinism, RNG issues, floating-point inconsistencies)
-- Category 4: AI Pitfalls (Omniscient AI, frame-rate dependency, complexity, autonomy)
-- Category 5: Modding Pitfalls (Hardcoded content, binary formats, no hot-reload)
-- Category 6: Performance Pitfalls (O(n²) coordination, spatial query issues)
+- State Management Pitfalls: God objects, spaghetti transitions, prerequisite handling
+- Architecture Pitfalls: Deep inheritance, premature ECS, simulation/rendering coupling
+- Multiplayer Pitfalls: Late determinism, RNG issues, floating-point inconsistencies
+- AI Pitfalls: Omniscient AI, frame-rate dependency, complexity, autonomy
+- Modding Pitfalls: Hardcoded content, binary formats, no hot-reload
+- Performance Pitfalls: O(n²) coordination, spatial query issues
 
 ---
 
@@ -196,11 +196,11 @@ This comprehensive study represents the definitive analysis of open-source Close
 
 **[Appendix A: State and World Systems](appendix_a_state_world_systems.md)**
 
-- Detailed technical reference for state management in all three games
+- Technical reference for state management in all three games
 - Bitfield architecture (OpenCombat-SDL)
 - Three-tier state hierarchy (OpenCombat)
 - Dual-state system (CloseCombatFree)
-- Design pattern comparison and recommendations
+- Design pattern comparisons and recommendations
 
 **[Appendix B: Unit, Vehicle, and Squad Attribute Systems](appendix_b_unit_attribute_systems.md)**
 
@@ -208,7 +208,7 @@ This comprehensive study represents the definitive analysis of open-source Close
 - Deep OOP hierarchy (OpenCombat-SDL)
 - Modified ECS pattern (OpenCombat)
 - Component composition (CloseCombatFree)
-- Attribute system comparison and design recommendations
+- Attribute system comparisons and design recommendations
 
 **[Appendix C: File Formats and Data Hierarchy](appendix_c_file_formats.md)**
 
@@ -216,11 +216,11 @@ This comprehensive study represents the definitive analysis of open-source Close
 - XML data files (OpenCombat-SDL)
 - JSON and TMX formats (OpenCombat)
 - QML declarative data (CloseCombatFree)
-- Format comparison and architecture recommendations
+- Format comparisons and architecture recommendations
 
 ---
 
-## The Three Projects Analysed
+## The Three Projects Analyzed
 
 ### [OpenCombat-SDL](https://github.com/jukofyork/OpenCombat-SDL) (2005-2008)
 
@@ -228,7 +228,7 @@ This comprehensive study represents the definitive analysis of open-source Close
 - **Paradigm:** Classical Object-Oriented
 - **Innovation:** 64-bit composable state bitfields with automatic prerequisite chaining
 - **Best For:** Deep simulation, single-player experiences
-- **Key Insight:** Automatic state transitions eliminate micromanagement while maintaining player agency
+- **Key Insight:** Automatic state transitions reduce micromanagement while keeping player control intact
 
 ### [CloseCombatFree](https://github.com/sierdzio/closecombatfree) (2011-2012)
 
@@ -236,7 +236,7 @@ This comprehensive study represents the definitive analysis of open-source Close
 - **Paradigm:** Declarative Component Architecture
 - **Innovation:** QML for runtime content definition and hot reload
 - **Best For:** Maximum moddability, community content
-- **Key Insight:** Modding communities thrive when content creators can modify behavior without recompilation
+- **Key Insight:** Modding communities flourish when creators can modify behavior without recompiling
 
 ### [OpenCombat](https://github.com/buxx/OpenCombat) (2020-2024)
 
@@ -245,14 +245,3 @@ This comprehensive study represents the definitive analysis of open-source Close
 - **Innovation:** Three-tier state hierarchy with message-driven deterministic simulation
 - **Best For:** Multiplayer, competitive play, replay systems
 - **Key Insight:** Server-authoritative design enables competitive multiplayer, complete replay recording, and emergent AI behavior
-
----
-
-***NOTE: This "book" was 100% generated using [Kimi-K2.5](https://huggingface.co/moonshotai/Kimi-K2.5):***
-
-1. *The first draft was created by processing these very detailed (AI generated) architecture documentations for each game:*
-    - [OpenCombat-SDL Architecture Documentation](https://github.com/jukofyork/OpenCombat-SDL/blob/master/docs/ARCHITECTURE.md)
-    - [CloseCombatFree Architecture Documentation](https://github.com/jukofyork/closecombatfree/blob/master/doc/ARCHITECTURE.md)
-    - [OpenCombat Architecture Documentation](https://github.com/jukofyork/OpenCombat/blob/master/doc/ARCHITECTURE.md)
-2. *Next [Mistral-Large-Instruct-2407](https://huggingface.co/mistralai/Mistral-Large-Instruct-2407) was used as a copy-editor to rewrite/rephrase the generated text.*
-3. *Finally [Kimi-K2.5](https://huggingface.co/moonshotai/Kimi-K2.5) was used again for one final correctness pass.*
