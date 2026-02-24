@@ -1611,7 +1611,7 @@ classDiagram
     }
 
     class EventBus {
-        -Map<EventType, Observer[]> listeners
+        -Map&lt;EventType, Observer[]&gt; listeners
         +Subscribe(EventType, Observer)
         +Unsubscribe(EventType, Observer)
         +Publish(Event)

@@ -744,16 +744,10 @@ flowchart TB
     end
 
     subgraph "Behavioral Thresholds"
-        T1[""> 80: Confident""
-        Normal operation]
-        T2["50-80: Cautious"
-        Seek cover more]
-        T3["20-50: Suppressed"
-        Reduced accuracy
-        May refuse orders]
-        T4[""< 20: Panic""
-        Flee or freeze
-        AI takes over]
+        T1["> 80: Confident<br>Normal operation"]
+        T2["50-80: Cautious<br>Seek cover more"]
+        T3["20-50: Suppressed<br>Reduced accuracy<br>May refuse orders"]
+        T4["< 20: Panic<br>Flee or freeze<br>AI takes over"]
     end
 
     IM --> T1

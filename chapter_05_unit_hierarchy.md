@@ -201,9 +201,9 @@ OpenCombat demonstrates modern data-oriented design:
 ```mermaid
 flowchart TD
     subgraph BattleState["BattleState"]
-        BS1["soldiers: Vec<Soldier> [contiguous]"]
-        BS2["vehicles: Vec<Vehicle> [contiguous]"]
-        BS3["squads: HashMap<Uuid, Squad> [lookup]"]
+        BS1["soldiers: Vec&lt;Soldier&gt; [contiguous]"]
+        BS2["vehicles: Vec&lt;Vehicle&gt; [contiguous]"]
+        BS3["squads: HashMap&lt;Uuid, Squad&gt; [lookup]"]
     end
 
     BattleState --> Sys1["Systems: AI, Combat"]
@@ -724,8 +724,8 @@ Combine the strengths of all three systems:
 ```mermaid
 flowchart TD
     subgraph Layer1["ENTITY STORAGE<br>Contiguous arrays - cache efficient"]
-        L1A["soldiers: Vec<Soldier>"]
-        L1B["vehicles: Vec<Vehicle>"]
+        L1A["soldiers: Vec&lt;Soldier&gt;"]
+        L1B["vehicles: Vec&lt;Vehicle&gt;"]
     end
 
     subgraph Layer2["COMPONENT SYSTEM<br>Composition over inheritance"]

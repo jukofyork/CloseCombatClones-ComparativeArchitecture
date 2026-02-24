@@ -397,9 +397,9 @@ Systems query state, compute changes, and send messages instead of mutating dire
 
 ```mermaid
 flowchart TD
-    BS[BattleState<br>soldiers: Vec<Soldier> [contiguous]<br>vehicles: Vec<Vehicle> [contiguous]<br>squads: HashMap<Uuid, Squad> [lookup]]
-    SYS1[Systems<br>- AI<br>- Combat]
-    SYS2[Systems<br>- Move<br>- Render]
+    BS["BattleState<br>soldiers: Vec&lt;Soldier&gt; [contiguous]<br>vehicles: Vec&lt;Vehicle&gt; [contiguous]<br>squads: HashMap&lt;Uuid, Squad&gt; [lookup]"]
+    SYS1["Systems<br>- AI<br>- Combat"]
+    SYS2["Systems<br>- Move<br>- Render"]
     
     BS --> SYS1
     BS --> SYS2
@@ -717,9 +717,9 @@ Modern game development combines elements from all three approaches:
 ```mermaid
 flowchart TD
     subgraph RECOMMENDED_HYBRID["Recommended Hybrid Architecture"]
-        CORE[CORE SIMULATION<br>Systems-oriented (OpenCombat-style)<br>- Deterministic<br>- Type-safe<br>- Server-authoritative]
-        ENTITY[ENTITY DEFINITION<br>Component composition (CloseCombatFree-style)<br>- JSON/YAML/QML for content<br>- Hot-reload capable<br>- Modder-accessible]
-        BEHAVIOR[BEHAVIOR SYSTEM<br>Scriptable components (OpenCombat-SDL + scripting)<br>- Lua/Wren for AI behaviors<br>- Data-driven action definitions<br>- Automatic prerequisite chaining]
+        CORE["CORE SIMULATION<br>Systems-oriented (OpenCombat-style)<br>- Deterministic<br>- Type-safe<br>- Server-authoritative"]
+        ENTITY["ENTITY DEFINITION<br>Component composition (CloseCombatFree-style)<br>- JSON/YAML/QML for content<br>- Hot-reload capable<br>- Modder-accessible"]
+        BEHAVIOR["BEHAVIOR SYSTEM<br>Scriptable components (OpenCombat-SDL + scripting)<br>- Lua/Wren for AI behaviors<br>- Data-driven action definitions<br>- Automatic prerequisite chaining"]
     end
     
     CORE --> ENTITY --> BEHAVIOR
@@ -774,13 +774,13 @@ Use the best approach for each task:
 flowchart TD
     START([Start: New Close Combat Clone Project])
     MP{Multiplayer required?}
-    MP_YES[Systems-oriented core<br>(OpenCombat-style)<br>- Message-driven state updates<br>- Server-authoritative<br>- Type-safe indices]
-    MP_NO[Flexible choice<br>- OOP or component-based<br>approaches work]
+    MP_YES["Systems-oriented core<br>(OpenCombat-style)<br>- Message-driven state updates<br>- Server-authoritative<br>- Type-safe indices"]
+    MP_NO["Flexible choice<br>- OOP or component-based<br>approaches work"]
     MOD{Modding community desired?}
-    MOD_YES[Declarative content<br>(CloseCombatFree-style)<br>- JSON/YAML entity definitions<br>- Lua scripting for behaviors<br>- Hot-reload support]
-    MOD_NO[Data-driven approach suffices<br>- XML/JSON configuration<br>- Hardcoded behaviors work]
+    MOD_YES["Declarative content<br>(CloseCombatFree-style)<br>- JSON/YAML entity definitions<br>- Lua scripting for behaviors<br>- Hot-reload support"]
+    MOD_NO["Data-driven approach suffices<br>- XML/JSON configuration<br>- Hardcoded behaviors work"]
     SIM{Deep simulation required?}
-    SIM_YES[Bitfield with automatic<br>prerequisite chaining<br>(OpenCombat-SDL style<br>state management)]
+    SIM_YES["Bitfield with automatic<br>prerequisite chaining<br>(OpenCombat-SDL style<br>state management)"]
     SIM_NO[Simple state hierarchy works]
     RESULT([Result: Hybrid architecture<br>optimized for your project])
     
